@@ -9,7 +9,7 @@ Methods for the query generator: specifically, to
 import numpy as np
 import galois
 
-from utils import fwht, gwht, bin_to_dec, dec_to_bin, binary_ints, qary_ints
+from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, dec_to_bin, binary_ints, qary_ints
 
 def get_b_simple(signal):
     '''
@@ -68,6 +68,8 @@ def get_Ms_BCH(n, b, num_to_get=None):
 
 def get_Ms_complex(n,b,q,num_to_get=None):
     GF = galois.GF(q)
+    if num_to_get is None:
+        num_to_get = n // b
     Ms=[]
     #TODO Prevent duplicate M
     for i in range(num_to_get):
@@ -75,7 +77,7 @@ def get_Ms_complex(n,b,q,num_to_get=None):
         Ms.append(M)
     return Ms
 
-def get_Ms(n, b, num_to_get=None, method="simple"):
+def get_Ms(n, b, q, num_to_get=None, method="simple"):
     '''
     Gets subsampling matrices for different sparsity levels.
 
@@ -98,10 +100,14 @@ def get_Ms(n, b, num_to_get=None, method="simple"):
     Ms : list of numpy.ndarrays, shape (n, b)
     The list of subsampling matrices.
     '''
-    return {
-        "simple": get_Ms_simple,
-        "complex": get_Ms_complex
-    }.get(method)(n, b, num_to_get)
+    if q == 2:
+        return {
+            "simple": get_Ms_simple
+        }.get(method)(n, b, num_to_get)
+    else:
+        return {
+            "complex": get_Ms_complex
+        }.get(method)(n, b, q, num_to_get)
 
 def get_D_identity_like(n, **kwargs):
     '''
@@ -185,12 +191,12 @@ def subsample_indices(M, d):
 def compute_delayed_gwht(signal, M, D, q):
     GF = galois.GF(q)
     b = M.shape[1]
-    n =M.shape[0]
     L = GF(qary_ints(b, q)) # List of all length b qary vectors
     base_inds = [M @ L + np.outer(d, GF.Ones(q ** b)) for d in D]
-    base_inds_dec = [np.array([q ** i for i in range(n)]) @ np.array(A, dtype=int) for A in base_inds]
+    base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
+    used_inds = set(np.unique(base_inds))
     samples_to_transform = signal.signal_t[np.array(base_inds_dec)]
-    return np.array([gwht(row, q, b) for row in samples_to_transform])
+    return np.array([gwht(row, q, b) for row in samples_to_transform]), used_inds
 
 def compute_delayed_wht(signal, M, D):
     '''

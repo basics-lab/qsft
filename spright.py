@@ -7,14 +7,15 @@ SPRIGHT decoding main file. Logic flow:
 '''
 
 import numpy as np
+import galois
 from matplotlib import pyplot as plt
 import sys
 import tqdm
 import time
 sys.path.append("src")
 
-from src.utils import fwht, dec_to_bin, bin_to_dec, binary_ints
-from src.query import compute_delayed_wht, get_Ms, get_b, get_D
+from src.utils import fwht, dec_to_bin, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
+from src.query import compute_delayed_wht, compute_delayed_gwht, get_Ms, get_b, get_D
 from src.reconstruct import singleton_detection
 
 class SPRIGHT:
@@ -63,6 +64,7 @@ class SPRIGHT:
         wht : ndarray
         The WHT constructed by subsampling and peeling.
         '''
+        GF = galois.GF(signal.q)
         # check the condition for p_failure > eps
         # upper bound on the number of peeling rounds, error out after that point
         num_peeling = 0
@@ -70,7 +72,7 @@ class SPRIGHT:
         wht = np.zeros_like(signal.signal_t)
         b = get_b(signal, method=self.query_method)
         peeling_max = 2 ** b
-        Ms = get_Ms(signal.n, b, method=self.query_method)
+        Ms = get_Ms(signal.n, b, signal.q, method=self.query_method)
         Us, Ss = [], []
         singletons = {}
         multitons = []
@@ -80,16 +82,22 @@ class SPRIGHT:
             num_delays = signal.n + 1
         else:
             num_delays = signal.n * int(np.log2(signal.n)) # idk
-        K = binary_ints(signal.n)
+        if signal.q == 2:
+            K = binary_ints(signal.n)
+        else:
+            K = GF(qary_ints(signal.n, signal.q))
             
         # subsample, make the observation [U] and offset signature [S] matrices
         for M in Ms:
-            D = get_D(signal.n, method=self.delays_method, num_delays=num_delays)
+            D = get_D(signal.n, method=self.delays_method, num_delays=num_delays, q=signal.q)
             if verbose:
                 print("------")
                 print("a delay matrix")
                 print(D)
-            U, used_i = compute_delayed_wht(signal, M, D)
+            if signal.q == 2:
+                U, used_i = compute_delayed_wht(signal, M, D)
+            else:
+                U, used_i = compute_delayed_gwht(signal, M, D, signal.q)
             Us.append(U)
             Ss.append((-1) ** (D @ K)) # offset signature matrix
             if report:
@@ -99,7 +107,10 @@ class SPRIGHT:
         if verbose:
             print('cutoff: {}'.format(cutoff))
         # K is the binary representation of all integers from 0 to 2 ** n - 1.
-        select_froms = np.array([[bin_to_dec(row) for row in M.T.dot(K).T] for M in Ms])
+        if signal.q == 2:
+            select_froms = np.array([[bin_to_dec(row) for row in M.T.dot(K).T] for M in Ms])
+        else:
+            select_froms = np.array([qary_vec_to_dec(-M.T @ K, signal.q) for M in Ms])
         # `select_froms` is the collection of 'j' values and associated indices
         # so that we can quickly choose from the coefficient locations such that M.T @ k = j as in (20)
         # example: ball j goes to bin at "select_froms[i][j]"" in stage i
@@ -249,7 +260,7 @@ if __name__ == "__main__":
     np.random.seed(10)
     from src.inputsignal import Signal
     test_signal = Signal(8, [4, 6, 10, 15, 24, 37, 48, 54], strengths=[2, 4, 1, 1, 1, 3, 8, 1], noise_sd=0)
-    test_singal_complex = Signal(3, [4, 6, 10, 15, 24, 37, 48, 54], q=4, strengths=[2, 4, 1, 1, 1, 3, 8, 1], noise_sd=0)
+    test_signal_complex = Signal(3, [4, 6, 10, 15, 24, 37, 48, 54], q=4, strengths=[2, 4, 1, 1, 1, 3, 8, 1], noise_sd=0)
     test_one_method = False
     if test_one_method:
         spright = SPRIGHT(

@@ -26,10 +26,26 @@ def gwht(x,q,n):
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
+
+def igwht(x,q,n):
+    """Computes the GWHT of an input signal"""
+    x_tensor = np.reshape(x, [q] * n)
+    print("Finding GWHT coefficients")
+    x_tf = fft.ifftn(x, norm='ortho')
+    x_tf = np.reshape(x_tf, [q ** n])
+    return x_tf
+
+
 def bin_to_dec(x):
     n = len(x)
     c = 2**(np.arange(n)[::-1])
     return c.dot(x).astype(np.int)
+
+
+def qary_vec_to_dec(x, q):
+    n = x.shape[0]
+    return np.array([q ** i for i in range(n)]) @ np.array(x, dtype=int)
+
 
 def dec_to_bin(x, num_bits):
     assert x < 2**num_bits, "number of bits are not enough"
@@ -37,6 +53,7 @@ def dec_to_bin(x, num_bits):
     u = list(u)
     u = [int(i) for i in u]
     return np.array(u)
+
 
 def binary_ints(m):
     '''
@@ -50,7 +67,6 @@ def binary_ints(m):
 
 def qary_ints(m, q):
     return [[(i // (q ** (m-(j+1)))) % q for i in range(q ** m)] for j in range(m)]
-
 
 
 def base_ints(q, m):

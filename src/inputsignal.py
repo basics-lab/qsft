@@ -3,7 +3,7 @@ Class for common interface to an input signal.
 '''
 
 import numpy as np
-from utils import fwht, gwht
+from utils import fwht, gwht, igwht
 
 class Signal:
     '''
@@ -45,7 +45,7 @@ class Signal:
             self.signal_t = fwht(wht) + np.random.normal(0, noise_sd, (N,))
             self.signal_w = fwht(self.signal_t) / N
         else:
-            self.signal_t = gwht(wht, q, n)
-            self.signal_w = gwht(self.signal_t, q, n) / N
+            self.signal_t = igwht(wht, q, n)
+            self.signal_w = gwht(self.signal_t, q, n)
             if noise_sd > 0:
                 print("Noisy version has not been implemented for q>2")
