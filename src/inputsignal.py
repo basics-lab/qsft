@@ -45,7 +45,7 @@ class Signal:
             self.signal_t = fwht(wht) + np.random.normal(0, noise_sd, (N,))
             self.signal_w = fwht(self.signal_t) / N
         else:
-            self.signal_t = gwht(wht)
-            self.signal_w = gwht(self.signal_t) / N
+            self.signal_t = gwht(wht, q, n)
+            self.signal_w = gwht(self.signal_t, q, n) / N
             if noise_sd > 0:
                 print("Noisy version has not been implemented for q>2")

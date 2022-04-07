@@ -3,7 +3,7 @@ Utility functions.
 '''
 
 import numpy as np
-import scipy as sp
+import scipy.fft as fft
 from functools import partial
 
 def fwht(x):
@@ -18,13 +18,12 @@ def fwht(x):
         return np.concatenate([(X_even + X_odd),
                                (X_even - X_odd)])
 
-def gwht(x):
+def gwht(x,q,n):
     """Computes the GWHT of an input signal"""
-    N = x.q ** x.n
-    x_tensor = np.reshape(x, [4], N)
+    x_tensor = np.reshape(x, [q] * n)
     print("Finding GWHT coefficients")
-    x_tf = sp.fft.fftn(x, norm='ortho')
-    x_tf = np.reshape(x_tf, [4 ** N])
+    x_tf = fft.fftn(x, norm='ortho')
+    x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
 def bin_to_dec(x):
@@ -47,6 +46,12 @@ def binary_ints(m):
     a = np.arange(2 ** m, dtype=int)[np.newaxis,:]
     b = np.arange(m, dtype=int)[::-1,np.newaxis]
     return np.array(a & 2**b > 0, dtype=int)
+
+
+def qary_ints(m, q):
+    return [[(i // (q ** (m-(j+1)))) % q for i in range(q ** m)] for j in range(m)]
+
+
 
 def base_ints(q, m):
     '''

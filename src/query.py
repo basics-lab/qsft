@@ -9,7 +9,7 @@ Methods for the query generator: specifically, to
 import numpy as np
 import galois
 
-from utils import fwht, bin_to_dec, dec_to_bin, binary_ints
+from utils import fwht, bin_to_dec, dec_to_bin, binary_ints, qary_ints
 
 def get_b_simple(signal):
     '''
@@ -182,7 +182,12 @@ def subsample_indices(M, d):
     inds_binary = np.mod(np.dot(M, L).T + d, 2).T 
     return bin_to_dec(inds_binary)
 
-def compute_delayed_gwht(signal, M, D):
+def compute_delayed_gwht(signal, M, D, q):
+    GF = galois.GF(q)
+    b = M.shape[1]
+    L = GF(qary_ints(b, q))
+    # TODO Finish this function
+    base_inds = [M @ L + np.outer(d, GF.Ones(q ** b)) for d in D]
 
 
 def compute_delayed_wht(signal, M, D):
