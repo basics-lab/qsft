@@ -18,10 +18,10 @@ def fwht(x):
         return np.concatenate([(X_even + X_odd),
                                (X_even - X_odd)])
 
+
 def gwht(x,q,n):
     """Computes the GWHT of an input signal"""
     x_tensor = np.reshape(x, [q] * n)
-    print("Finding GWHT coefficients")
     x_tf = fft.fftn(x, norm='ortho')
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
@@ -30,7 +30,6 @@ def gwht(x,q,n):
 def igwht(x,q,n):
     """Computes the GWHT of an input signal"""
     x_tensor = np.reshape(x, [q] * n)
-    print("Finding GWHT coefficients")
     x_tf = fft.ifftn(x, norm='ortho')
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
@@ -42,9 +41,25 @@ def bin_to_dec(x):
     return c.dot(x).astype(np.int)
 
 
+def nth_roots_unity(n):
+    return np.exp(2j * np.pi / n * np.arange(n))
+
+
+def near_nth_roots(x, q, eps):
+    return 0
+
+
 def qary_vec_to_dec(x, q):
     n = x.shape[0]
     return np.array([q ** i for i in range(n)]) @ np.array(x, dtype=int)
+
+
+def dec_to_qary_vec(x, q, n):
+    qary_vec = []
+    for i in range(n):
+        qary_vec.append(np.array([a // (q ** (n - (i + 1))) for a in x]))
+        x = x - (q ** (n-(i + 1))) * qary_vec[i]
+    return qary_vec
 
 
 def dec_to_bin(x, num_bits):

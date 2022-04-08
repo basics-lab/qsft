@@ -138,30 +138,33 @@ class SPRIGHT:
             # first step: find all the singletons and multitons.
             singletons = {} # dictionary from (i, j) values to the true index of the singleton, k.
             multitons = [] # list of (i, j) values indicating where multitons are.
-            
-            for i, (U, S, select_from) in enumerate(zip(Us, Ss, select_froms)):
-                for j, col in enumerate(U.T):
-                    # note that np.inner(x, x) is used as norm-squared: marginally faster than taking norm and squaring
-                    if np.inner(col, col) > cutoff:
-                        selection = np.where(select_from == j)[0] # pick all the k such that M.T @ k = j
-                        k, sgn = singleton_detection(
-                            col, 
-                            method=self.reconstruct_method, 
-                            selection=selection, 
-                            S_slice=S[:, selection], 
-                            n=signal.n
-                        ) # find the best fit singleton
-                        k_dec = bin_to_dec(k)
-                        rho = np.dot(S[:,k_dec], col)*sgn/len(col)                    
-                        residual = col - sgn * rho * S[:,k_dec] 
-                        if verbose:
-                            print((i, j), np.inner(residual, residual))
-                        if np.inner(residual, residual) > cutoff:
-                            multitons.append((i, j))
-                        else: # declare as singleton
-                            singletons[(i, j)] = (k, rho, sgn)
+            if signal.q > 2:
+                # TODO
+                selection = 0
+            else:
+                for i, (U, S, select_from) in enumerate(zip(Us, Ss, select_froms)):
+                    for j, col in enumerate(U.T):
+                        # note that np.inner(x, x) is used as norm-squared: marginally faster than taking norm and squaring
+                        if np.inner(col, col) > cutoff:
+                            selection = np.where(select_from == j)[0] # pick all the k such that M.T @ k = j
+                            k, sgn = singleton_detection(
+                                col,
+                                method=self.reconstruct_method,
+                                selection=selection,
+                                S_slice=S[:, selection],
+                                n=signal.n
+                            ) # find the best fit singleton
+                            k_dec = bin_to_dec(k)
+                            rho = np.dot(S[:,k_dec], col)*sgn/len(col)
+                            residual = col - sgn * rho * S[:,k_dec]
                             if verbose:
-                                print('amplitude: {}'.format(rho))
+                                print((i, j), np.inner(residual, residual))
+                            if np.inner(residual, residual) > cutoff:
+                                multitons.append((i, j))
+                            else: # declare as singleton
+                                singletons[(i, j)] = (k, rho, sgn)
+                                if verbose:
+                                    print('amplitude: {}'.format(rho))
                             
         
             # all singletons and multitons are discovered
