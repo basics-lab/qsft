@@ -51,7 +51,7 @@ def near_nth_roots(x, q, eps):
 
 def qary_vec_to_dec(x, q):
     n = x.shape[0]
-    return np.array([q ** i for i in range(n)]) @ np.array(x, dtype=int)
+    return np.array([q ** (n - (i + 1)) for i in range(n)]) @ np.array(x, dtype=int)
 
 
 def dec_to_qary_vec(x, q, n):

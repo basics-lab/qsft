@@ -100,7 +100,9 @@ def get_Ms(n, b, q, num_to_get=None, method="simple"):
     Ms : list of numpy.ndarrays, shape (n, b)
     The list of subsampling matrices.
     '''
-    if q == 2:
+    print(q)
+    print(method != "complex")
+    if q == 2 & (method != "complex"):
         return {
             "simple": get_Ms_simple
         }.get(method)(n, b, num_to_get)

@@ -10,8 +10,8 @@ from src.reconstruct import singleton_detection
 from src.inputsignal import Signal
 debug = True
 Us=[]
-n = 4
-q = 3
+n = 10
+q = 2
 b = 2
 eps = 0.1
 GF = galois.GF(q)
@@ -36,14 +36,13 @@ print("Searching for Singletons")
 for i, (U, select_from) in enumerate(zip(Us, select_froms)):
     for j, col in enumerate(U.T):
         j_qary = GF(dec_to_qary_vec(np.array([j]), q, b))[:,0]
-        print(j_qary)
         if debug:
             active_k_idx = []
             for idx in range(select_from.shape[1]):
                 if (j_qary == select_from[:, idx]).all():
                     active_k_idx.append(idx)
             k_active = K[:, active_k_idx]
-        print("For M(" + str(i) +") entry " + str(j)+ " the active indicies are:")
+        print("For M(" + str(i) +") entry U(" + str(j)+ ") the active indicies are:")
         print(active_k_idx)
         print("The active and non-zero indicies are:")
         active_non_zero = list(set(active_k_idx).intersection(non_zeros))
