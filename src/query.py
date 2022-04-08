@@ -100,14 +100,14 @@ def get_Ms(n, b, q, num_to_get=None, method="simple"):
     Ms : list of numpy.ndarrays, shape (n, b)
     The list of subsampling matrices.
     '''
-    print(q)
-    print(method != "complex")
-    if q == 2 & (method != "complex"):
+    if q == 2 and (method != "complex"):
+        print("method is not complex")
         return {
             "simple": get_Ms_simple
         }.get(method)(n, b, num_to_get)
     else:
         return {
+            "simple": get_Ms_simple,
             "complex": get_Ms_complex
         }.get(method)(n, b, q, num_to_get)
 
