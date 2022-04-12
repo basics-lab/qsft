@@ -17,7 +17,7 @@ Us = []
 Ss = []
 
 n = 3
-q = 7
+q = 4
 b = 2
 eps = 1e-7
 GF = galois.GF(q)
@@ -45,7 +45,7 @@ peeled = set([])
 result = []
 there_were_multitons = True
 peeling_max = 8
-max_iter = 2
+max_iter = 1
 iter_step = 0
 while there_were_multitons and num_peeling < peeling_max and iter_step < max_iter:
     iter_step = iter_step + 1
@@ -67,7 +67,7 @@ while there_were_multitons and num_peeling < peeling_max and iter_step < max_ite
             print(active_non_zero)
             if np.vdot(col, col) > eps:
                 ratios = col[0] / col
-                plt.title('Active and non-zero indices: ' + str(active_non_zero))
+                plt.title('Active and non-zero indices: ' + str(active_non_zero) + "  ({0},{1}), iter={2}".format(i,j,iter_step))
                 plt.plot(np.real(ratios), np.imag(ratios), '*')
                 plt.show()
                 is_singleton = near_nth_roots(ratios, q, eps)
