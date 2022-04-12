@@ -122,7 +122,7 @@ def get_D_complex(n, **kwargs):
     q=kwargs.get("q")
     GF = galois.GF(q)
     int_delays = np.zeros(n, )
-    for i in range(q-1):
+    for i in range(1): # Previously, q-1, but should just be 1
         int_delays = np.vstack((int_delays, (i+1)*np.eye(n)))
     return GF(int_delays.astype(int))
 

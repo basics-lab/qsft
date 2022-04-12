@@ -42,11 +42,16 @@ def bin_to_dec(x):
 
 
 def nth_roots_unity(n):
-    return np.exp(2j * np.pi / n * np.arange(n))
+    return np.exp(-2j * np.pi / n * np.arange(n))
 
 
-def near_nth_roots(x, q, eps):
-    return 0
+def near_nth_roots(ratios, q, eps):
+    in_set = np.zeros(ratios.shape, dtype=bool)
+    omega = nth_roots_unity(q)
+    for i in range(q):
+        in_set = in_set | (np.square(np.abs(ratios - omega[i])) < eps)
+    is_singleton = in_set.all()
+    return is_singleton
 
 
 def qary_vec_to_dec(x, q):
