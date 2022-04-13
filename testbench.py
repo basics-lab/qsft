@@ -29,12 +29,14 @@ print(non_zeros)
 signal = Signal(n, non_zeros, q=q, strengths=[2, 4, 1, 1, 1, 3, 8, 1], noise_sd=0)
 
 num_delays = signal.n + 1
-Ms = get_Ms(n, b, q, 3, "complex")
-K = GF(qary_ints(signal.n, signal.q))
-select_froms = [M.T @ K for M in Ms]
+Ms = get_Ms(n, b, q, 4, "complex")
+Ms = [np.array(M) for M in Ms]
+K = np.array(qary_ints(signal.n, signal.q))
+select_froms = [(M.T @ K) % q for M in Ms]
 
 for M in Ms:
     D = get_D(signal.n, method="complex", num_delays=num_delays, q=q)
+    D = np.array(D)
     U, used_inds = compute_delayed_gwht(signal, M, D, q)
     Us.append(U)
     Ss.append(omega ** np.array(D @ K))
@@ -53,7 +55,7 @@ while there_were_multitons and num_peeling < peeling_max and iter_step < max_ite
     singletons = {}
     for i, (U, S, select_from) in enumerate(zip(Us, Ss, select_froms)):
         for j, col in enumerate(U.T):
-            j_qary = GF(dec_to_qary_vec(np.array([j]), q, b))[:, 0]
+            j_qary = np.array(dec_to_qary_vec(np.array([j]), q, b))[:, 0]
             if debug:
                 active_k_idx = []
                 for idx in range(select_from.shape[1]):
@@ -72,7 +74,7 @@ while there_were_multitons and num_peeling < peeling_max and iter_step < max_ite
                 plt.show()
                 is_singleton = near_nth_roots(ratios, q, eps)
                 if is_singleton:
-                    singleton_ind = GF((np.arange(q) @ (np.abs(ratios - np.outer(nth_roots_unity(q), np.ones(n+1))) < eps))[1:])
+                    singleton_ind = ((np.arange(q) @ (np.abs(ratios - np.outer(nth_roots_unity(q), np.ones(n+1))) < eps))[1:])
                     dec_singleton_ind = qary_vec_to_dec(singleton_ind, q)
                     rho = np.vdot(S[:, dec_singleton_ind], col) / len(col)
                     singletons[(i, j)] = (singleton_ind, rho)
@@ -106,10 +108,10 @@ while there_were_multitons and num_peeling < peeling_max and iter_step < max_ite
     for ball in balls_to_peel:
         num_peeling += 1
         peeled.add(ball)
-        k = GF(dec_to_qary_vec(np.array([ball]), q, n))
+        k = np.array(dec_to_qary_vec(np.array([ball]), q, n))
         print("Processing Singleton {0}".format(ball))
         print(k)
-        potential_peels = [(l, qary_vec_to_dec(M.T.dot(k), q)) for l, M in enumerate(Ms)]
+        potential_peels = [(l, qary_vec_to_dec(M.T.dot(k) % q, q)) for l, M in enumerate(Ms)]
         for (l, j) in potential_peels:
             print("The singleton appears in M({0}), U({1})".format(l, j))
 
@@ -121,7 +123,7 @@ while there_were_multitons and num_peeling < peeling_max and iter_step < max_ite
                 print(to_subtract)
                 print('from')
                 print(Us[peel[0]][:, peel[1]])
-                print("Peeled ball {0} off bin {1}".format(qary_vec_to_dec(k,q), peel))
+                print("Peeled ball {0} off bin {1}".format(qary_vec_to_dec(k, q), peel))
             Us[peel[0]][:, peel[1]] -= to_subtract
         print("Iteration Complete: The peeled indicies are:")
         print(peeled)
