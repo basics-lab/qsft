@@ -15,6 +15,7 @@ debug = True
 verbose = True
 Us = []
 Ss = []
+np.random.seed(10)
 
 n = 3
 q = 4
@@ -37,6 +38,7 @@ select_froms = [(M.T @ K) % q for M in Ms]
 for M in Ms:
     D = get_D(signal.n, method="complex", num_delays=num_delays, q=q)
     D = np.array(D)
+    print(D)
     U, used_inds = compute_delayed_gwht(signal, M, D, q)
     Us.append(U)
     Ss.append(omega ** np.array(D @ K))
@@ -47,7 +49,7 @@ peeled = set([])
 result = []
 there_were_multitons = True
 peeling_max = 8
-max_iter = 1
+max_iter = 3
 iter_step = 0
 while there_were_multitons and num_peeling < peeling_max and iter_step < max_iter:
     iter_step = iter_step + 1
@@ -133,3 +135,4 @@ for k, value in result:
     idx = qary_vec_to_dec(k, q)
     if gwht[idx] == 0:
         gwht[idx] = value
+gwht *= np.sqrt(b/n)

@@ -15,7 +15,7 @@ def get_b_simple(signal):
     '''
     A semi-arbitrary fixed choice of the sparsity coefficient. See get_b for full signature.
     '''
-    return signal.n // 2
+    return signal.n - 1
 
 def get_b(signal, method="simple"):
     '''
@@ -35,7 +35,8 @@ def get_b(signal, method="simple"):
     The sparsity coefficient.
     '''
     return {
-        "simple" : get_b_simple
+        "simple": get_b_simple,
+        "complex": get_b_simple
     }.get(method)(signal)
 
 def get_Ms_simple(n, b, num_to_get=None):
@@ -66,12 +67,13 @@ def get_Ms_BCH(n, b, num_to_get=None):
         num_to_get = n // b
     return
 
-def get_Ms_complex(n,b,q,num_to_get=None):
+
+def get_Ms_complex(n, b, q, num_to_get=None):
     GF = galois.GF(q)
     if num_to_get is None:
-        num_to_get = n // b
+        num_to_get = max(n // b, 3)
     Ms=[]
-    #TODO Prevent duplicate M
+    # TODO Prevent duplicate M
     for i in range(num_to_get):
         M = GF.Random(n*b).reshape(n,b)
         Ms.append(M)
