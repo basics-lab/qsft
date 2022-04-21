@@ -75,13 +75,12 @@ def get_Ms_BCH(n, b, num_to_get=None):
 
 
 def get_Ms_complex(n, b, q, num_to_get=None):
-    GF = galois.GF(q)
     if num_to_get is None:
         num_to_get = max(n // b, 3)
-    Ms=[]
+    Ms = []
     # TODO Prevent duplicate M
     for i in range(num_to_get):
-        M = GF.Random(n*b).reshape(n,b)
+        M = np.random.randint(q, size=(n, b))
         Ms.append(M)
     return Ms
 

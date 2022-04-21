@@ -4,7 +4,7 @@ import tqdm
 import sys
 sys.path.append("src")
 from src.reconstruct import singleton_detection
-from src.utils import qary_ints,  bin_to_dec, qary_vec_to_dec, nth_roots_unity, dec_to_qary_vec, near_nth_roots
+from src.utils import qary_ints,  bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
 from src.query import compute_delayed_gwht, get_Ms, get_b, get_D
 
 
@@ -63,7 +63,6 @@ class QSPRIGHT:
         b = get_b(signal, method=self.query_method)
         peeling_max = q ** b
         Ms = get_Ms(signal.n, b, q, method=self.query_method)
-        Ms = [np.array(M) for M in Ms]
         Us, Ss = [], []
 
         if self.delays_method != "nso":
@@ -115,7 +114,7 @@ class QSPRIGHT:
         # a singleton will map from the (i, j)s to the true (binary) values k.
         # e.g. the singleton (0, 0), which in the example of section 3.2 is X[0100] + W1[00]
         # would be stored as the dictionary entry (0, 0): array([0, 1, 0, 0]).
-        max_iter= 3
+        max_iter = 3
         iter_step = 0
         there_were_multitons = True
         while there_were_multitons and num_peeling < peeling_max and iter_step < max_iter:
@@ -210,7 +209,7 @@ class QSPRIGHT:
                     for (l, j) in potential_peels:
                         print("The singleton appears in M({0}), U({1})".format(l, j))
                 for peel in potential_peels:
-                    signature_in_stage = Ss[peel[0]][:,ball]
+                    signature_in_stage = Ss[peel[0]][:, ball]
                     to_subtract = ball_values[ball] * signature_in_stage.reshape(-1, 1)
                     if verbose:
                         print('this is subtracted:')
@@ -276,7 +275,7 @@ if __name__ == "__main__":
     nonzero_indices = np.random.choice(N, num_nonzero_indices, replace=False)
     nonzero_values = 2 + 3 * np.random.rand(num_nonzero_indices)
     nonzero_values = nonzero_values * (2 * np.random.binomial(1, 0.5, size=num_nonzero_indices) - 1)
-    noise_sd = 0.1
+    noise_sd = 0.3
 
     test_signal = Signal(n, nonzero_indices, q=q, strengths=nonzero_indices, noise_sd=noise_sd)
     print("test signal generated")
