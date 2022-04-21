@@ -13,9 +13,15 @@ from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, dec_to_bin, binary_in
 
 def get_b_simple(signal):
     '''
-    A semi-arbitrary fixed choice of the sparsity coefficient. See get_b for full signature.
+    A fixed choice of the sparsity coefficient. See get_b for full signature.
     '''
     return signal.n - 1
+
+def get_b_complex(signal):
+    '''
+    A semi-arbitrary fixed choice of the sparsity coefficient. See get_b for full signature.
+    '''
+    return np.int(np.maximum(np.log(len(signal.loc))/np.log(signal.q), 4))
 
 def get_b(signal, method="simple"):
     '''
@@ -36,7 +42,7 @@ def get_b(signal, method="simple"):
     '''
     return {
         "simple": get_b_simple,
-        "complex": get_b_simple
+        "complex": get_b_complex
     }.get(method)(signal)
 
 def get_Ms_simple(n, b, num_to_get=None):
@@ -122,11 +128,10 @@ def get_D_identity_like(n, **kwargs):
 
 def get_D_complex(n, **kwargs):
     q=kwargs.get("q")
-    GF = galois.GF(q)
     int_delays = np.zeros(n, )
     for i in range(1): # Previously, q-1, but should just be 1
         int_delays = np.vstack((int_delays, (i+1)*np.eye(n)))
-    return GF(int_delays.astype(int))
+    return int_delays.astype(int)
 
 def get_D_random(n, **kwargs):
     '''

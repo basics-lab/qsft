@@ -42,10 +42,10 @@ class Signal:
         for l, s in zip(loc, strengths):
             wht[l] = s
         if q == 2:
-            self.signal_t = fwht(wht) + np.random.normal(0, noise_sd, (N,))
+            wht = wht + np.random.normal(0, noise_sd, (N,))
+            self.signal_t = fwht(wht)
             self.signal_w = fwht(self.signal_t) / N
         else:
+            wht = wht + np.random.normal(0, noise_sd, (N,))
             self.signal_t = igwht(wht, q, n)
             self.signal_w = gwht(self.signal_t, q, n)
-            if noise_sd > 0:
-                print("Noisy version has not been implemented for q>2")

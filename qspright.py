@@ -3,6 +3,7 @@ import numpy as np
 import tqdm
 import sys
 sys.path.append("src")
+from src.reconstruct import singleton_detection
 from src.utils import qary_ints,  bin_to_dec, qary_vec_to_dec, nth_roots_unity, dec_to_qary_vec, near_nth_roots
 from src.query import compute_delayed_gwht, get_Ms, get_b, get_D
 
@@ -35,7 +36,7 @@ class QSPRIGHT:
         self.delays_method = delays_method
         self.reconstruct_method = reconstruct_method
 
-    def transform(self, signal, verbose=False, report=False):
+    def transform(self, signal, verbose=False, report=False, **kwargs):
         '''
         Full SPRIGHT encoding and decoding. Implements Algorithms 1 and 2 from [2].
         (numbers) in the comments indicate equation numbers in [2].
@@ -53,6 +54,7 @@ class QSPRIGHT:
         wht : ndarray
         The WHT constructed by subsampling and peeling.
         '''
+
         num_peeling = 0
         q = signal.q
         omega = np.exp(2j * np.pi / q)
@@ -63,11 +65,7 @@ class QSPRIGHT:
         Ms = get_Ms(signal.n, b, q, method=self.query_method)
         Ms = [np.array(M) for M in Ms]
         Us, Ss = [], []
-        eps = 1e-7
-        singletons = {}
-        multitons = []
-        if report:
-            used = set()
+
         if self.delays_method != "nso":
             num_delays = signal.n + 1
         else:
@@ -82,7 +80,9 @@ class QSPRIGHT:
             D = np.array(D)
             if verbose:
                 print("------")
-                print("a delay matrix")
+                print("subsampling matrix")
+                print(M)
+                print("delay matrix")
                 print(D)
             U, used_i = compute_delayed_gwht(signal, M, D, q)
             Us.append(U)
@@ -90,13 +90,18 @@ class QSPRIGHT:
             if report:
                 used = used.union(used_i)
 
-        cutoff = 2 * signal.noise_sd ** 2 * (2 ** (signal.n - b)) * num_delays # noise threshold
+        cutoff = 1e-10 + 2 * signal.noise_sd ** 2 * (signal.q ** (signal.n - b)) * num_delays # noise threshold
+
+        print("b = ", b)
+        print("cutoff = ", cutoff)
+
         if verbose:
             print('cutoff: {}'.format(cutoff))
         # K is the binary representation of all integers from 0 to 2 ** n - 1.
-        select_froms = [(M.T @ K) % q for M in Ms]
+        select_froms = np.array([qary_vec_to_dec(np.mod(M.T @ K, signal.q), signal.q) for M in Ms])
+
         # `select_froms` is the collection of 'j' values and associated indices
-        # so that we can quickly choose from the coefficient locations such that M.T @ k = j as in (20)
+        # so that we can quickly choose from the coefficient locations such that - M.T @ k = j as in (20)
         # example: ball j goes to bin at "select_froms[i][j]"" in stage i
 
         # begin peeling
@@ -126,34 +131,41 @@ class QSPRIGHT:
             for i, (U, S, select_from) in enumerate(zip(Us, Ss, select_froms)):
                 for j, col in enumerate(U.T):
                     if verbose:
-                        j_qary = np.array(dec_to_qary_vec(np.array([j]), q, b))[:, 0]
-                        active_k_idx = []
-                        for idx in range(select_from.shape[1]):
-                            if np.all(j_qary == select_from[:, idx]):
-                                active_k_idx.append(idx)
-                        k_active = K[:, active_k_idx]
+                        active_k_idx = np.where(select_from == j)[0]
                         print("For M(" + str(i) + ") entry U(" + str(j) + ") the active indicies are:")
                         print(active_k_idx)
                         print("The active and non-zero (unpeeled) indicies are:")
                         non_zeros = set(np.nonzero(signal.signal_w > 0)[0])
                         active_non_zero = list(set(active_k_idx).intersection(non_zeros).difference(peeled))
                         print(active_non_zero)
-                    if np.vdot(col, col) > eps:
-                        ratios = col[0] / col
-                        is_singleton = near_nth_roots(ratios, q, eps)
-                        if is_singleton:
-                            singleton_ind = (
-                                (np.arange(q) @ (np.abs(ratios - np.outer(nth_roots_unity(q), np.ones(signal.n + 1)))
-                                                 < eps))[1:])
-                            dec_singleton_ind = qary_vec_to_dec(singleton_ind, q)
-                            rho = np.vdot(S[:, dec_singleton_ind], col) / len(col)
-                            singletons[(i, j)] = (singleton_ind, rho)
-                            if verbose:
-                                print("We predict that the singleton index is " + str(dec_singleton_ind))
-                        else:
+
+                    if np.linalg.norm(col) ** 2 > cutoff:
+
+                        selection = np.where(select_from == j)[0]
+
+                        k_dec = singleton_detection(
+                            col,
+                            method=self.reconstruct_method,
+                            selection=selection,
+                            S_slice=S[:, selection],
+                            q=signal.q,
+                            n=signal.n
+                        )  # find the best fit singleton
+
+                        k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
+                        rho = np.dot(np.conjugate(S[:, k_dec]), col) / S.shape[0]
+                        residual = col - rho * S[:, k_dec]
+
+                        if verbose:
+                            print((i, j), np.linalg.norm(residual) ** 2)
+                        if np.linalg.norm(residual) ** 2 > cutoff:
                             multitons.append((i, j))
                             if verbose:
                                 print("We have a Multiton")
+                        else:  # declare as singleton
+                            singletons[(i, j)] = (k, rho)
+                            if verbose:
+                                print("We have a Singleton at " + str(k_dec))
                     else:
                         if verbose:
                             print("We have a zeroton!")
@@ -209,7 +221,7 @@ class QSPRIGHT:
                     Us[peel[0]][:, peel[1]] -= to_subtract
                 if verbose:
                     print("Iteration Complete: The peeled indicies are:")
-                    print(peeled)
+                    print(np.sort(list(peeled)))
         loc = set()
         for k, value in result: # iterating over (i, j)s
             idx = qary_vec_to_dec(k, q) # converting 'k's of singletons to decimals
@@ -223,7 +235,7 @@ class QSPRIGHT:
         if not report:
             return gwht
         else:
-            return gwht, len(used), loc
+            return gwht, len(used), list(loc)
 
     def method_test(self, signal, num_runs=10):
         '''
@@ -256,10 +268,29 @@ class QSPRIGHT:
 if __name__ == "__main__":
     np.random.seed(10)
     from src.inputsignal import Signal
-    test_signal = Signal(3, [4, 6, 10, 15, 24, 37, 48, 54], q=4, strengths=[2, 4, 1, 1, 1, 3, 8, 1], noise_sd=0)
+
+    q = 4
+    n = 10
+    N = q ** n
+    num_nonzero_indices = 20
+    nonzero_indices = np.random.choice(N, num_nonzero_indices, replace=False)
+    nonzero_values = 2 + 3 * np.random.rand(num_nonzero_indices)
+    nonzero_values = nonzero_values * (2 * np.random.binomial(1, 0.5, size=num_nonzero_indices) - 1)
+    noise_sd = 0.1
+
+    test_signal = Signal(n, nonzero_indices, q=q, strengths=nonzero_indices, noise_sd=noise_sd)
+    print("test signal generated")
+
     spright = QSPRIGHT(
         query_method="complex",
         delays_method="complex",
-        reconstruct_method="noiseless"
+        reconstruct_method="mle"
     )
-    spright_tf = spright.transform(test_signal, verbose=True)
+
+    gwht, _, peeled = spright.transform(test_signal, verbose=False, report=True)
+
+    print("found non-zero indices: ")
+    print(np.sort(peeled))
+
+    print("true non-zero indices: ")
+    print(np.sort(nonzero_indices))

@@ -22,7 +22,7 @@ def fwht(x):
 def gwht(x,q,n):
     """Computes the GWHT of an input signal"""
     x_tensor = np.reshape(x, [q] * n)
-    x_tf = fft.fftn(x_tensor, norm='ortho')
+    x_tf = fft.fftn(x_tensor)
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
@@ -30,7 +30,7 @@ def gwht(x,q,n):
 def igwht(x,q,n):
     """Computes the GWHT of an input signal"""
     x_tensor = np.reshape(x, [q] * n)
-    x_tf = fft.ifftn(x_tensor, norm='ortho')
+    x_tf = fft.ifftn(x_tensor)
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
