@@ -5,6 +5,8 @@ Utility functions.
 import numpy as np
 import scipy.fft as fft
 from functools import partial
+import itertools
+import math
 
 def fwht(x):
     """Recursive implementation of the 1D Cooley-Tukey FFT"""
@@ -86,8 +88,21 @@ def binary_ints(m):
 
 
 def qary_ints(m, q):
-    return [[(i // (q ** (m-(j+1)))) % q for i in range(q ** m)] for j in range(m)]
+    return np.array(list(itertools.product(np.arange(q), repeat=m))).T
 
+def comb(n, k):
+    return math.factorial(n) // math.factorial(k) // math.factorial(n - k)
+
+def qary_ints_low_order(m, q, order):
+    num_of_ks = np.sum([comb(m, o) * ((q-1) ** o) for o in range(order + 1)])
+    K = np.zeros((num_of_ks, m))
+    counter = 0
+    for o in range(order + 1):
+        positions = itertools.combinations(np.arange(m), o)
+        for pos in positions:
+            K[counter:counter+((q-1) ** o), pos] = np.array(list(itertools.product(1 + np.arange(q-1), repeat=o)))
+            counter += ((q-1) ** o)
+    return K.T
 
 def base_ints(q, m):
     '''

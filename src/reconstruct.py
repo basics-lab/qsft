@@ -55,11 +55,32 @@ def singleton_detection_mle(U_slice, **kwargs):
     alphas = 1/P * np.dot(np.conjugate(S_slice).T, U_slice)
     residuals = np.linalg.norm(U_slice - (alphas * S_slice).T, ord=2, axis=1)
     k_sel = np.argmin(residuals)
-    return selection[k_sel]
+    return selection[k_sel], S_slice[:, k_sel]
 
+
+def find_nearest_idx(array, value):
+    return
+
+def singleton_detection_nso(U_slice, **kwargs):
+    q, n = kwargs.get("q"), kwargs.get("n")
+
+    q_roots = 2 * np.pi / q * np.arange(q + 1)
+    U_slice_zero = U_slice[0::n+1]
+
+    k_sel_qary = np.zeros(n)
+    for i in range(1, n+1):
+        U_slice_i = U_slice[i::n+1]
+        angle = np.angle(np.mean(U_slice_zero * np.conjugate(U_slice_i))) % (2 * np.pi)
+        idx = (np.abs(q_roots - angle)).argmin() % q
+        k_sel_qary[i-1] = idx
+
+    k_sel = qary_vec_to_dec(np.array([k_sel_qary]).T, q)[0]
+
+    return k_sel
 
 def singleton_detection(U_slice, method="mle", **kwargs):
     return {
         "mle" : singleton_detection_mle,
         "noiseless" : singleton_detection_noiseless,
+        "nso" : singleton_detection_nso
     }.get(method)(U_slice, **kwargs)
