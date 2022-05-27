@@ -4,7 +4,7 @@ import tqdm
 import sys
 sys.path.append("src")
 from src.reconstruct import singleton_detection
-from src.utils import qary_ints,  bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
+from src.utils import qary_ints, qary_ints_low_order, bin_to_dec, qary_vec_to_dec, dec_to_qary_vec, comb
 from src.query import compute_delayed_gwht, get_Ms, get_b, get_D
 
 
@@ -65,11 +65,19 @@ class QSPRIGHT:
         Ms = get_Ms(signal.n, b, q, method=self.query_method)
         Us, Ss = [], []
 
+        max_order = kwargs.get("max_order")
+
         if self.delays_method != "nso":
             num_delays = signal.n + 1
         else:
             num_delays = signal.n * int(np.log2(signal.n)) # idk
-        K = np.array(qary_ints(signal.n, q))
+
+        # K is the all length-n q-ary sequences up to order max_order
+        K = qary_ints_low_order(signal.n, q, max_order)
+
+        print(K.shape)
+
+        K_dec = qary_vec_to_dec(K, q)
 
         used = set()
         peeled = set([])
@@ -91,13 +99,18 @@ class QSPRIGHT:
 
         cutoff = 1e-10 + 2 * signal.noise_sd ** 2 * (signal.q ** (signal.n - b)) * num_delays # noise threshold
 
+
         print("b = ", b)
         print("cutoff = ", cutoff)
 
         if verbose:
             print('cutoff: {}'.format(cutoff))
-        # K is the binary representation of all integers from 0 to 2 ** n - 1.
+
         select_froms = np.array([qary_vec_to_dec(np.mod(M.T @ K, signal.q), signal.q) for M in Ms])
+
+
+        _, counts =np.unique(select_froms[0], return_counts=True)
+        print(counts)
 
         # `select_froms` is the collection of 'j' values and associated indices
         # so that we can quickly choose from the coefficient locations such that - M.T @ k = j as in (20)
@@ -130,7 +143,7 @@ class QSPRIGHT:
             for i, (U, S, select_from) in enumerate(zip(Us, Ss, select_froms)):
                 for j, col in enumerate(U.T):
                     if verbose:
-                        active_k_idx = np.where(select_from == j)[0]
+                        active_k_idx = K_dec[select_from == j]
                         print("For M(" + str(i) + ") entry U(" + str(j) + ") the active indicies are:")
                         print(active_k_idx)
                         print("The active and non-zero (unpeeled) indicies are:")
@@ -140,31 +153,39 @@ class QSPRIGHT:
 
                     if np.linalg.norm(col) ** 2 > cutoff:
 
-                        selection = np.where(select_from == j)[0]
+                        selection_idx = (select_from == j)
+                        selection = K_dec[selection_idx]
 
-                        k_dec = singleton_detection(
-                            col,
-                            method=self.reconstruct_method,
-                            selection=selection,
-                            S_slice=S[:, selection],
-                            q=signal.q,
-                            n=signal.n
-                        )  # find the best fit singleton
+                        if len(selection) > 0:
 
-                        k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
-                        rho = np.dot(np.conjugate(S[:, k_dec]), col) / S.shape[0]
-                        residual = col - rho * S[:, k_dec]
+                            k_dec, S_k = singleton_detection(
+                                col,
+                                method=self.reconstruct_method,
+                                selection=selection,
+                                S_slice=S[:, selection_idx],
+                                q=signal.q,
+                                n=signal.n
+                            )  # find the best fit singleton
 
-                        if verbose:
-                            print((i, j), np.linalg.norm(residual) ** 2)
-                        if np.linalg.norm(residual) ** 2 > cutoff:
-                            multitons.append((i, j))
+                            k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
+                            rho = np.dot(np.conjugate(S_k), col) / S.shape[0]
+                            residual = col - rho * S_k
+
                             if verbose:
-                                print("We have a Multiton")
-                        else:  # declare as singleton
-                            singletons[(i, j)] = (k, rho)
+                                print((i, j), np.linalg.norm(residual) ** 2)
+
+                            if np.linalg.norm(residual) ** 2 > cutoff:
+                                multitons.append((i, j))
+                                if verbose:
+                                    print("We have a Multiton")
+
+                            else:  # declare as singleton
+                                singletons[(i, j)] = (k, rho)
+                                if verbose:
+                                    print("We have a Singleton at " + str(k_dec))
+                        else:
                             if verbose:
-                                print("We have a Singleton at " + str(k_dec))
+                                print("We have a zeroton!")
                     else:
                         if verbose:
                             print("We have a zeroton!")
@@ -209,7 +230,7 @@ class QSPRIGHT:
                     for (l, j) in potential_peels:
                         print("The singleton appears in M({0}), U({1})".format(l, j))
                 for peel in potential_peels:
-                    signature_in_stage = Ss[peel[0]][:, ball]
+                    signature_in_stage = Ss[peel[0]][:, np.where(ball == K_dec)]
                     to_subtract = ball_values[ball] * signature_in_stage.reshape(-1, 1)
                     if verbose:
                         print('this is subtracted:')
@@ -265,17 +286,26 @@ class QSPRIGHT:
 
 
 if __name__ == "__main__":
-    np.random.seed(10)
+    # np.random.seed(10)
     from src.inputsignal import Signal
 
     q = 4
-    n = 5
+    n = 10
     N = q ** n
-    num_nonzero_indices = 20
-    nonzero_indices = np.random.choice(N, num_nonzero_indices, replace=False)
+
+    num_nonzero_indices = 10
+    max_order = 5
+
+    nonzero_indices = []
+    for _ in range(num_nonzero_indices):
+        pos = np.random.choice(n, max_order, replace=False)
+        x = np.zeros(n)
+        x[pos] = np.random.choice(q, max_order, replace=True)
+        nonzero_indices.append(qary_vec_to_dec(x, q))
+
     nonzero_values = 2 + 3 * np.random.rand(num_nonzero_indices)
     nonzero_values = nonzero_values * (2 * np.random.binomial(1, 0.5, size=num_nonzero_indices) - 1)
-    noise_sd = 0.3
+    noise_sd = 0.1
 
     test_signal = Signal(n, nonzero_indices, q=q, strengths=nonzero_indices, noise_sd=noise_sd)
     print("test signal generated")
@@ -286,10 +316,13 @@ if __name__ == "__main__":
         reconstruct_method="mle"
     )
 
-    gwht, _, peeled = spright.transform(test_signal, verbose=True, report=True)
+    transform_args = {"max_order": max_order}
+
+    gwht, _, peeled = spright.transform(test_signal, verbose=False, report=True, **transform_args)
 
     print("found non-zero indices: ")
     print(np.sort(peeled))
 
     print("true non-zero indices: ")
     print(np.sort(nonzero_indices))
+

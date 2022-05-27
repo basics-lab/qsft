@@ -9,7 +9,7 @@ Methods for the query generator: specifically, to
 import numpy as np
 import galois
 
-from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, dec_to_bin, binary_ints, qary_ints
+from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, dec_to_qary_vec, binary_ints, qary_ints
 
 def get_b_simple(signal):
     '''
@@ -136,21 +136,22 @@ def get_D_random(n, **kwargs):
     '''
     Gets a random delays matrix of dimension (num_delays, n). See get_D for full signature.
     '''
+    q=kwargs.get("q")
     num_delays = kwargs.get("num_delays")
-    choices = np.random.choice(2 ** n, num_delays, replace=False)
-    return np.array([dec_to_bin(x, n) for x in choices])
+    return np.random.choice(q, (num_delays, n))
 
 def get_D_nso(n, **kwargs):
     '''
     Get a repetition code based (NSO-SPRIGHT) delays matrix. See get_D for full signature.
     '''
     num_delays = kwargs.get("num_delays")
+    q=kwargs.get("q")
     p1 = num_delays // n # is this what we want?
-    random_offsets = get_D_random(n, num_delays=p1) # OR np.random.binomial(1, 0.5, (num_delays, p1))
+    random_offsets = get_D_random(n, q=q, num_delays=p1)
     D = np.empty((0, n))
     identity_like = get_D_identity_like(n)
     for row in random_offsets:
-        modulated_offsets = (row + identity_like) % 2
+        modulated_offsets = (row - identity_like) % q
         D = np.vstack((D, modulated_offsets))
     return D
     
