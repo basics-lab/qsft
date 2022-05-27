@@ -1,12 +1,13 @@
 import time
 import numpy as np
 import tqdm
-import sys
-sys.path.append("src")
-from src.reconstruct import singleton_detection
-from src.utils import qary_ints,  bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
-from src.query import compute_delayed_gwht, get_Ms, get_b, get_D
 
+import sys
+sys.path.append("..")
+
+from qspright.reconstruct import singleton_detection
+from qspright.utils import bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
+from qspright.query import compute_delayed_gwht, get_Ms, get_b, get_D
 
 class QSPRIGHT:
     '''
@@ -59,7 +60,7 @@ class QSPRIGHT:
         q = signal.q
         omega = np.exp(2j * np.pi / q)
         result = []
-        gwht = np.zeros_like(signal.signal_t)
+        gwht = np.zeros_like(signal.signal_t, dtype = np.complex)
         b = get_b(signal, method=self.query_method)
         peeling_max = q ** b
         Ms = get_Ms(signal.n, b, q, method=self.query_method)
@@ -209,12 +210,9 @@ class QSPRIGHT:
         for k, value in result: # iterating over (i, j)s
             idx = qary_vec_to_dec(k, q) # converting 'k's of singletons to decimals
             loc.add(idx)
-            if gwht[idx] == 0:
-                gwht[idx] = value
-            else:
-                gwht[idx] = (gwht[idx] + value) / 2
-                # average out noise; e.g. in the example in 3.2, U1[11] and U2[11] are the same singleton,
-                # so averaging them reduces the effect of noise.
+            # TODO average out noise
+            gwht[idx] = value
+
         if not report:
             return gwht
         else:
@@ -250,10 +248,13 @@ class QSPRIGHT:
 
 if __name__ == "__main__":
     np.random.seed(10)
-    from src.inputsignal import Signal
+
+    from qspright.inputsignal import Signal
+
+    print(sys.path)
 
     q = 4
-    n = 12
+    n = 10
     N = q ** n
     num_nonzero_indices = 100
     nonzero_indices = np.random.choice(N, num_nonzero_indices, replace=False)
@@ -261,7 +262,7 @@ if __name__ == "__main__":
     nonzero_values = nonzero_values * (2 * np.random.binomial(1, 0.5, size=num_nonzero_indices) - 1)
     noise_sd = 1
 
-    test_signal = Signal(n, nonzero_indices, q=q, strengths=nonzero_indices, noise_sd=noise_sd)
+    test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_indices, noise_sd=noise_sd)
     print("test signal generated")
 
     spright = QSPRIGHT(

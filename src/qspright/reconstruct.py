@@ -6,7 +6,8 @@ Methods for the reconstruction engine; specifically, to
 '''
 
 import numpy as np
-from utils import qary_vec_to_dec, dec_to_qary_vec
+from qspright.utils import qary_vec_to_dec
+
 
 def singleton_detection_noiseless(U_slice, **kwargs):
     '''

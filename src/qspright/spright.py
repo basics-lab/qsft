@@ -8,15 +8,14 @@ SPRIGHT decoding main file. Logic flow:
 
 import numpy as np
 import galois
-from matplotlib import pyplot as plt
 import sys
 import tqdm
 import time
-sys.path.append("src")
+sys.path.append("..")
 
-from src.utils import fwht, dec_to_bin, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
-from src.query import compute_delayed_wht, compute_delayed_gwht, get_Ms, get_b, get_D
-from src.reconstruct import singleton_detection
+from qspright.qspright_rand import dec_to_bin, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
+from qspright.qspright_rand import compute_delayed_wht, compute_delayed_gwht, get_Ms, get_b, get_D
+from qspright.qspright_rand import singleton_detection
 
 class SPRIGHT:
     '''
@@ -261,7 +260,7 @@ class SPRIGHT:
 
 if __name__ == "__main__":
     np.random.seed(10)
-    from src.inputsignal import Signal
+    from qspright.qspright_rand import Signal
     test_signal = Signal(8, [4, 6, 10, 15, 24, 37, 48, 54], q=2, strengths=[2, 4, 1, 1, 1, 3, 8, 1], noise_sd=0)
     test_signal_complex = Signal(3, [4, 6, 10, 15, 24, 37, 48, 54], q=4, strengths=[2, 4, 1, 1, 1, 3, 8, 1], noise_sd=0)
     test_one_method = False

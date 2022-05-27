@@ -5,9 +5,15 @@ import RNA
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
 
-import data_utils
-import utils
-import gnk_model
+import rna_transform.data_utils
+import rna_transform.utils
+import rna_transform.gnk_model
+
+import sys
+sys.path.append("../src")
+
+from qspright.inputsignal import Signal
+from qspright.qspright_nso import QSPRIGHT
 
 """
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
@@ -53,7 +59,7 @@ def load_rna_data(save = False):
     of the Hammerhead ribozyme HH9. 
     """
     try:
-        y = np.load("../results/rna_data.npy")
+        y = np.load("results/rna_data.npy")
         print("Loaded saved RNA data.")
         return y - np.mean(y)
 
@@ -80,7 +86,7 @@ def load_rna_data(save = False):
         y = np.array(y)
 
         if save:
-            np.save("../results/rna_data.npy", y)
+            np.save("results/rna_data.npy", y)
 
         return y
     
@@ -96,7 +102,7 @@ def generate_householder_matrix():
     int_seqs = [[nucs_idx[si] for si in s] for s in seqs_as_list]
 
     print("Constructing Fourier matrix...")
-    X = utils.fourier_from_seqs(int_seqs, [4]*L)
+    X = utils.fourier_from_seqs(int_seqs, [4] * L)
 
     return X
 
@@ -157,37 +163,37 @@ def sample_structures_and_find_pairs(base_seq, positions, samples=10000):
     return important_pairs
 
 
-def calculate_rna_fourier_coefficients(save=False):
+def calculate_rna_lasso(save=False):
     """
     Calculates Fourier coefficients of the RNA fitness function. This will try to load them 
     from the results folder, but will otherwise calculate from scratch. If save=True,
     then coefficients will be saved to the results folder.
     """
     try:
-        beta = np.load("../results/rna_beta.npy")
+        beta = np.load("results/rna_beta_lasso.npy")
         print("Loaded saved beta array.")
         return beta
     except FileNotFoundError:
         alpha = 1e-12
         y = load_rna_data(save=save)
         X = generate_householder_matrix()
-        print("Fitting Fourier coefficients (this may take some time)...")
+        print("Fitting Lasso coefficients (this may take some time)...")
         model = Lasso(alpha=alpha, fit_intercept=False)
         model.fit(X, y)
         beta = model.coef_
         if save:
-            np.save("../results/rna_beta.npy", beta)
+            np.save("results/rna_beta_lasso.npy", beta)
         return beta
 
 
-def calculate_rna_gwht_coefficients(save=False):
+def calculate_rna_gwht(save=False):
     """
     Calculates GWHT coefficients of the RNA fitness function. This will try to load them
     from the results folder, but will otherwise calculate from scratch. If save=True,
     then coefficients will be saved to the results folder.
     """
     try:
-        beta = np.load("../results/rna_beta_gwht.npy")
+        beta = np.load("results/rna_beta_gwht.npy")
         print("Loaded saved beta array for GWHT.")
         return beta
     except FileNotFoundError:
@@ -196,8 +202,39 @@ def calculate_rna_gwht_coefficients(save=False):
         print("Finding GWHT coefficients")
         beta = scipy.fft.fftn(y_tensor, norm='ortho')
         beta = np.reshape(beta, [4 ** len(RNA_POSITIONS)])
+        print("Found GWHT coefficients")
+        if save:
+            np.save("results/rna_beta_gwht.npy", beta)
         return beta
 
+
+def calculate_rna_qspright(save=False, noise_sd=100):
+    """
+    Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
+    from the results folder, but will otherwise calculate from scratch. If save=True,
+    then coefficients will be saved to the results folder.
+    """
+    try:
+        beta = np.load("results/rna_beta_qspright.npy")
+        print("Loaded saved beta array for GWHT QSPRIGHT.")
+        return beta
+    except FileNotFoundError:
+        y = load_rna_data(save=save)
+        n = len(RNA_POSITIONS)
+        q = 4
+        print("Finding GWHT coefficients with QSPRIGHT")
+
+        test_signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
+        spright = QSPRIGHT(
+            query_method="complex",
+            delays_method="nso",
+            reconstruct_method="nso"
+        )
+        beta = spright.transform(test_signal, verbose=False, report=False)
+        print("Found GWHT coefficients")
+        if save:
+            np.save("results/rna_beta_qspright.npy", beta)
+        return beta
 
 def calculate_rna_gnk_wh_coefficient_vars(pairs_from_scratch=False, return_neighborhoods=False):
     """
@@ -210,7 +247,7 @@ def calculate_rna_gnk_wh_coefficient_vars(pairs_from_scratch=False, return_neigh
     q = 4
 
     if pairs_from_scratch:
-        important_pairs = sample_structures_and_find_pairs(data_utils.get_rna_base_seq(), 
+        important_pairs = sample_structures_and_find_pairs(data_utils.get_rna_base_seq(),
                                                            positions, samples=10000) # uncomment to calculate from scratch
     else:
         important_pairs = {(21, 52), (20, 44), (20, 52), (20, 43)}  # pre-calculated

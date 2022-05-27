@@ -5,9 +5,9 @@ from Bio import PDB
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
 
-import structure_utils
-import utils
-import gnk_model
+import rna_transform.structure_utils
+import rna_transform.utils
+import rna_transform.gnk_model
 
 
 """

@@ -9,7 +9,7 @@ Methods for the query generator: specifically, to
 import numpy as np
 import galois
 
-from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, dec_to_qary_vec, binary_ints, qary_ints
+from qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
 def get_b_simple(signal):
     '''
@@ -21,7 +21,7 @@ def get_b_complex(signal):
     '''
     A semi-arbitrary fixed choice of the sparsity coefficient. See get_b for full signature.
     '''
-    return np.int(np.maximum(np.log(len(signal.loc))/np.log(signal.q), 4))
+    return np.int(np.maximum(np.log(signal.sparsity)/np.log(signal.q), 4))
 
 def get_b(signal, method="simple"):
     '''

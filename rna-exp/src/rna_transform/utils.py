@@ -170,7 +170,6 @@ def calc_frac_var_explained(beta):
     beta_sq = np.abs(beta)**2
     beta_sq /= np.sum(beta_sq)
     bm_sorted = sorted(beta_sq, reverse=True)
-    print(bm_sorted[:10])
     return np.cumsum(bm_sorted)
     
 
