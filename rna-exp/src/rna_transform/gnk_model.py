@@ -1,9 +1,8 @@
 import numpy as np
 import itertools
-from itertools import chain, combinations
 from scipy.special import binom
 from math import factorial
-import utils
+import rna_transform.utils
 
 
 def get_neighborhood_powerset(V):

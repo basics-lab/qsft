@@ -1,11 +1,10 @@
 import time
 import numpy as np
 import tqdm
-import sys
-sys.path.append("src")
-from src.reconstruct import singleton_detection
-from src.utils import qary_ints, qary_ints_low_order, bin_to_dec, qary_vec_to_dec, dec_to_qary_vec, comb
-from src.query import compute_delayed_gwht, get_Ms, get_b, get_D
+
+from qspright import singleton_detection
+from qspright import qary_ints_low_order, bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
+from qspright import compute_delayed_gwht, get_Ms, get_b, get_D
 
 
 class QSPRIGHT:
@@ -287,7 +286,7 @@ class QSPRIGHT:
 
 if __name__ == "__main__":
     # np.random.seed(10)
-    from src.inputsignal import Signal
+    from qspright.qspright_rand import Signal
 
     q = 4
     n = 10
