@@ -6,7 +6,7 @@ Methods for the reconstruction engine; specifically, to
 '''
 
 import numpy as np
-from qspright.utils import qary_vec_to_dec
+from utils import qary_vec_to_dec
 
 
 def singleton_detection_noiseless(U_slice, **kwargs):
@@ -68,16 +68,15 @@ def singleton_detection_nso(U_slice, **kwargs):
     q_roots = 2 * np.pi / q * np.arange(q + 1)
     U_slice_zero = U_slice[0::n+1]
 
-    k_sel_qary = np.zeros(n)
+    k_sel_qary = np.zeros((n, ), dtype=int)
     for i in range(1, n+1):
         U_slice_i = U_slice[i::n+1]
         angle = np.angle(np.mean(U_slice_zero * np.conjugate(U_slice_i))) % (2 * np.pi)
         idx = (np.abs(q_roots - angle)).argmin() % q
         k_sel_qary[i-1] = idx
 
-    k_sel = qary_vec_to_dec(np.array([k_sel_qary]).T, q)[0]
-
-    return k_sel
+    #k_sel = qary_vec_to_dec(k_sel_qary, q)[0]
+    return k_sel_qary
 
 def singleton_detection(U_slice, method="mle", **kwargs):
     return {

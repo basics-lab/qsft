@@ -2,12 +2,9 @@ import time
 import numpy as np
 import tqdm
 
-import sys
-sys.path.append("..")
-
-from qspright.reconstruct import singleton_detection
-from qspright.utils import bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
-from qspright.query import compute_delayed_gwht, get_Ms, get_b, get_D
+from reconstruct import singleton_detection
+from utils import bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
+from query import compute_delayed_gwht, get_Ms, get_b, get_D
 
 class QSPRIGHT:
     '''
@@ -60,7 +57,7 @@ class QSPRIGHT:
         q = signal.q
         omega = np.exp(2j * np.pi / q)
         result = []
-        gwht = np.zeros_like(signal.signal_t, dtype = np.complex)
+        gwht = np.zeros_like(signal.signal_t_qidx, dtype=complex)
         b = get_b(signal, method=self.query_method)
         peeling_max = q ** b
         Ms = get_Ms(signal.n, b, q, method=self.query_method)
@@ -126,16 +123,14 @@ class QSPRIGHT:
                 for j, col in enumerate(U.T):
                     if np.linalg.norm(col) ** 2 > cutoff:
 
-                        k_dec = singleton_detection(
+                        k = singleton_detection(
                             col,
                             method=self.reconstruct_method,
                             q=signal.q,
                             n=signal.n
                         )  # find the best fit singleton
-
-                        k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
+                        #k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
                         signature = omega ** (D @ k)
-
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature
 
@@ -148,6 +143,7 @@ class QSPRIGHT:
                         else:  # declare as singleton
                             singletons[(i, j)] = (k, rho)
                             if verbose:
+                                k_dec = qary_vec_to_dec(k,q)[0]
                                 print("We have a Singleton at " + str(k_dec))
                     else:
                         if verbose:
@@ -173,7 +169,8 @@ class QSPRIGHT:
             ball_values = {}
             for (i, j) in singletons:
                 k, rho = singletons[(i, j)]
-                ball = qary_vec_to_dec(k, q)
+                ball = tuple(k)  # Must be a hashable type
+                #qary_vec_to_dec(k, q)
                 balls_to_peel.add(ball)
                 ball_values[ball] = rho
                 result.append((k, ball_values[ball]))
@@ -184,16 +181,17 @@ class QSPRIGHT:
             # peel
             for ball in balls_to_peel:
                 num_peeling += 1
-                peeled.add(ball)
-                k = np.array(dec_to_qary_vec(np.array([ball]), q, signal.n))
+
+                k = np.array(ball)[..., np.newaxis]
                 potential_peels = [(l, qary_vec_to_dec(M.T.dot(k) % q, q)) for l, M in enumerate(Ms)]
                 if verbose:
-                    print("Processing Singleton {0}".format(ball))
+                    k_dec = qary_vec_to_dec(np.array([k]), q)
+                    peeled.add(k_dec)
+                    print("Processing Singleton {0}".format(k_dec))
                     print(k)
                     for (l, j) in potential_peels:
                         print("The singleton appears in M({0}), U({1})".format(l, j))
                 for peel in potential_peels:
-                    k = np.array(dec_to_qary_vec([ball], signal.q, signal.n)).T[0]
                     signature_in_stage = omega ** (Ds[peel[0]] @ k)
                     to_subtract = ball_values[ball] * signature_in_stage.reshape(-1, 1)
                     if verbose:
@@ -211,7 +209,7 @@ class QSPRIGHT:
             idx = qary_vec_to_dec(k, q) # converting 'k's of singletons to decimals
             loc.add(idx)
             # TODO average out noise
-            gwht[idx] = value
+            gwht[k] = value
 
         if not report:
             return gwht
@@ -249,7 +247,7 @@ class QSPRIGHT:
 if __name__ == "__main__":
     np.random.seed(10)
 
-    from qspright.inputsignal import Signal
+    from inputsignal import Signal
 
     print(sys.path)
 

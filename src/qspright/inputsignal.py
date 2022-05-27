@@ -3,7 +3,7 @@ Class for common interface to an input signal.
 '''
 
 import numpy as np
-from qspright.utils import fwht, gwht, igwht
+from utils import fwht, gwht, igwht
 
 class Signal:
     '''
@@ -39,10 +39,10 @@ class Signal:
         self.n = kwargs.get("n")
         self.q = kwargs.get("q")
         self.signal_t = kwargs.get("signal")
+        self.signal_t_qidx = np.reshape(self.signal_t, [self.q] * self.n)
         self.noise_sd = kwargs.get("noise_sd")
         self.N = self.q ** self.n
         self.sparsity = kwargs.get("sparsity", 100)
-
         if kwargs.get("calc_w", False):
             self.signal_w = gwht(self.signal_t, self.q, self.n)
             if np.linalg.norm(self.signal_t - igwht(self.signal_w, self.q, self.n))/self.N < 1e-5:
@@ -63,9 +63,11 @@ class Signal:
         if self.q == 2:
             self.signal_w = wht + np.random.normal(0, self.noise_sd, (self.N,))
             self.signal_t = fwht(self.signal_w)
+            self.signal_t_qidx = np.reshape(self.signal_t, [self.q] * self.n)
         else:
             self.signal_w = wht + np.random.normal(0, self.noise_sd, (self.N,))
             self.signal_t = igwht(self.signal_w, self.q, self.n)
+            self.signal_t_qidx = np.reshape(self.signal_t, [self.q] * self.n)
             if np.linalg.norm(self.signal_w - gwht(self.signal_t, self.q, self.n))/self.N < 1e-5:
                 print("verified transform")
 

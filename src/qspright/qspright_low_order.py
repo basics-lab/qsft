@@ -69,7 +69,7 @@ class QSPRIGHT:
         if self.delays_method != "nso":
             num_delays = signal.n + 1
         else:
-            num_delays = signal.n * int(np.log2(signal.n)) # idk
+            num_delays = signal.n * int(np.log2(signal.n))
 
         # K is the all length-n q-ary sequences up to order max_order
         K = qary_ints_low_order(signal.n, q, max_order)

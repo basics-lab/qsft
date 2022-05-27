@@ -9,7 +9,7 @@ Methods for the query generator: specifically, to
 import numpy as np
 import galois
 
-from qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
+from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
 def get_b_simple(signal):
     '''
@@ -123,7 +123,7 @@ def get_D_identity_like(n, **kwargs):
     Gets the delays matrix [0; I], of dimension (n+1, n). See get_D for full signature.
     # TODO: rename this to avoid conceptual name collision with zeros_like or empty_like
     '''
-    return np.vstack((np.zeros(n,), np.eye(n)))
+    return np.vstack((np.zeros((1, n), dtype=int), np.eye(n, dtype=int)))
 
 def get_D_complex(n, **kwargs):
     q=kwargs.get("q")
@@ -148,7 +148,7 @@ def get_D_nso(n, **kwargs):
     q=kwargs.get("q")
     p1 = num_delays // n # is this what we want?
     random_offsets = get_D_random(n, q=q, num_delays=p1)
-    D = np.empty((0, n))
+    D = np.empty((0, n), dtype=int)
     identity_like = get_D_identity_like(n)
     for row in random_offsets:
         modulated_offsets = (row - identity_like) % q
@@ -201,10 +201,10 @@ def compute_delayed_gwht(signal, M, D, q):
     GF = galois.GF(q)
     b = M.shape[1]
     L = np.array(qary_ints(b, q))  # List of all length b qary vectors
-    base_inds = [(M @ L + np.outer(d, np.ones(q ** b))) % q for d in D]
-    base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
+    base_inds = [(M @ L + np.outer(d, np.ones(q ** b, dtype=int))) % q for d in D]
+    #base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
     used_inds = set(np.unique(base_inds))
-    samples_to_transform = signal.signal_t[np.array(base_inds_dec)]
+    samples_to_transform = [signal.signal_t_qidx[tuple(inds)] for inds in base_inds]
     return np.array([gwht(row, q, b) for row in samples_to_transform]), used_inds
 
 def compute_delayed_wht(signal, M, D):
