@@ -198,12 +198,13 @@ def subsample_indices(M, d):
     return bin_to_dec(inds_binary)
 
 def compute_delayed_gwht(signal, M, D, q):
-    GF = galois.GF(q)
     b = M.shape[1]
     L = np.array(qary_ints(b, q))  # List of all length b qary vectors
     base_inds = [(M @ L + np.outer(d, np.ones(q ** b, dtype=int))) % q for d in D]
-    #base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
-    used_inds = set(np.unique(base_inds))
+    base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
+    used_inds = np.swapaxes(np.array(base_inds), 0, 1)
+    used_inds = np.reshape(used_inds, (used_inds.shape[0], -1))
+    used_inds = np.unique(used_inds, axis = 1)
     samples_to_transform = [signal.signal_t_qidx[tuple(inds)] for inds in base_inds]
     return np.array([gwht(row, q, b) for row in samples_to_transform]), used_inds
 

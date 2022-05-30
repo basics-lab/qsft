@@ -208,7 +208,7 @@ def calculate_rna_gwht(save=False):
         return beta
 
 
-def calculate_rna_qspright(save=False, noise_sd=100):
+def calculate_rna_qspright(save=False, report = False, noise_sd=100):
     """
     Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
     from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -224,17 +224,24 @@ def calculate_rna_qspright(save=False, noise_sd=100):
         q = 4
         print("Finding GWHT coefficients with QSPRIGHT")
 
-        test_signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
+        signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
         spright = QSPRIGHT(
             query_method="complex",
             delays_method="nso",
             reconstruct_method="nso"
         )
-        beta = spright.transform(test_signal, verbose=False, report=False)
+
+        out = spright.transform(signal, verbose=False, report=report)
+        if report:
+            beta, n_used, peeled = out
+        else:
+            beta = out
+
         print("Found GWHT coefficients")
         if save:
             np.save("results/rna_beta_qspright.npy", beta)
-        return beta
+
+        return out
 
 def calculate_rna_gnk_wh_coefficient_vars(pairs_from_scratch=False, return_neighborhoods=False):
     """

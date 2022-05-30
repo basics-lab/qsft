@@ -67,11 +67,11 @@ class QSPRIGHT:
         if self.delays_method != "nso":
             num_delays = signal.n + 1
         else:
-            num_delays = 20 * signal.n * int(np.log(signal.n)/np.log(signal.q))
+            num_delays = 5 * signal.n * int(np.log(signal.n)/np.log(signal.q))
 
-        used = set()
+        used = np.zeros((signal.n, 0))
         peeled = set([])
-        # subsample, make the observation [U] and offset signature [S] matrices
+        # subsample with shifts [D], make the observation [U]
         for M in Ms:
             D = get_D(signal.n, method=self.delays_method, num_delays=num_delays, q=signal.q)
             D = np.array(D)
@@ -85,7 +85,7 @@ class QSPRIGHT:
             U, used_i = compute_delayed_gwht(signal, M, D, q)
             Us.append(U)
             if report:
-                used = used.union(used_i)
+                used = np.unique(np.concatenate([used, used_i], axis = 1), axis = 1)
 
         cutoff = 1e-10 + 1e-5 * 2 * signal.noise_sd ** 2 * (signal.q ** (signal.n - b)) * num_delays # noise threshold
 
@@ -209,12 +209,12 @@ class QSPRIGHT:
             idx = qary_vec_to_dec(k, q) # converting 'k's of singletons to decimals
             loc.add(idx)
             # TODO average out noise
-            gwht[k] = value
+            gwht[tuple(k)] = value
 
         if not report:
             return gwht
         else:
-            return gwht, len(used), list(loc)
+            return gwht, np.shape(used)[-1], list(loc)
 
     def method_test(self, signal, num_runs=10):
         '''
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     nonzero_values = nonzero_values * (2 * np.random.binomial(1, 0.5, size=num_nonzero_indices) - 1)
     noise_sd = 1
 
-    test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_indices, noise_sd=noise_sd)
+    test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_values, noise_sd=noise_sd)
     print("test signal generated")
 
     spright = QSPRIGHT(
@@ -269,7 +269,7 @@ if __name__ == "__main__":
         reconstruct_method="nso"
     )
 
-    gwht, _, peeled = spright.transform(test_signal, verbose=False, report=True)
+    gwht, n_used, peeled = spright.transform(test_signal, verbose=False, report=True)
 
     print("found non-zero indices: ")
     print(np.sort(peeled))
