@@ -67,6 +67,6 @@ class Signal:
         else:
             self.signal_t = igwht(self.signal_w, self.q, self.n)
             self.signal_t_qidx = np.reshape(self.signal_t, [self.q] * self.n)
-            if np.linalg.norm(self.signal_w - gwht(self.signal_t, self.q, self.n))/self.N < 1e-5:
+            if np.linalg.norm(self.signal_w - gwht(self.signal_t, self.q, self.n)) < 1e-3:
                 print("verified transform")
 

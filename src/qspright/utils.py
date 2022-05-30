@@ -22,17 +22,17 @@ def fwht(x):
 
 
 def gwht(x,q,n):
-    """Computes the GWHT of an input signal"""
+    """Computes the GWHT of an input signal with forward scaling"""
     x_tensor = np.reshape(x, [q] * n)
-    x_tf = fft.fftn(x_tensor)
+    x_tf = fft.fftn(x_tensor) / (q ** n)
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
 
 def igwht(x,q,n):
-    """Computes the GWHT of an input signal"""
+    """Computes the IGWHT of an input signal with forward scaling"""
     x_tensor = np.reshape(x, [q] * n)
-    x_tf = fft.ifftn(x_tensor)
+    x_tf = fft.ifftn(x_tensor) * (q ** n)
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
