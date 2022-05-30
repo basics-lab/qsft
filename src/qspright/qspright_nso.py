@@ -4,7 +4,7 @@ import tqdm
 
 from reconstruct import singleton_detection
 from utils import bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
-from query import compute_delayed_gwht, get_Ms, get_b, get_D
+from query import compute_delayed_gwht, get_Ms, get_D
 
 class QSPRIGHT:
     '''
@@ -29,10 +29,13 @@ class QSPRIGHT:
         "noiseless" : decode according to [2], section 4.2, with the assumption the signal is noiseless.
         "mle" : naive noisy decoding; decode by taking the maximum-likelihood singleton that could be at that bin.
     '''
-    def __init__(self, query_method, delays_method, reconstruct_method):
+    def __init__(self, query_method, delays_method, reconstruct_method, **kwargs):
         self.query_method = query_method
         self.delays_method = delays_method
         self.reconstruct_method = reconstruct_method
+        self.num_subsample = kwargs.get("num_subsample")
+        self.num_random_delays = kwargs.get("num_random_delays")
+        self.b = kwargs.get("b")
 
     def transform(self, signal, verbose=False, report=False, **kwargs):
         '''
@@ -58,16 +61,24 @@ class QSPRIGHT:
         omega = np.exp(2j * np.pi / q)
         result = []
         gwht = np.zeros_like(signal.signal_t_qidx, dtype=complex)
-        b = get_b(signal, method=self.query_method)
+
+        if self.b is None:
+            b = np.int(np.maximum(np.log(signal.sparsity) / np.log(signal.q), 4))
+        else:
+            b = self.b
+
         peeling_max = q ** b
-        Ms = get_Ms(signal.n, b, q, method=self.query_method)
+
+        Ms = get_Ms(signal.n, b, q, method=self.query_method, num_to_get=self.num_subsample)
         Us = []
         Ds = []
 
-        if self.delays_method != "nso":
+        if self.delays_method == "identity":
             num_delays = signal.n + 1
+        elif self.delays_method == "nso":
+            num_delays = self.num_random_delays * (signal.n + 1)
         else:
-            num_delays = 5 * signal.n * int(np.log(signal.n)/np.log(signal.q))
+            num_delays = self.num_random_delays
 
         used = np.zeros((signal.n, 0))
         peeled = set([])
@@ -85,15 +96,15 @@ class QSPRIGHT:
             U, used_i = compute_delayed_gwht(signal, M, D, q)
             Us.append(U)
             if report:
-                used = np.unique(np.concatenate([used, used_i], axis = 1), axis = 1)
+                used = np.concatenate([used, used_i], axis = 1)
 
-        cutoff = 1e-10 + 1e-5 * 2 * signal.noise_sd ** 2 * (signal.q ** (signal.n - b)) * num_delays # noise threshold
+        gamma = 0.2
 
-        print("b = ", b)
-        print("cutoff = ", cutoff)
+        cutoff = 1e-10 + (1 + gamma) * (signal.noise_sd ** 2) * (signal.q ** (signal.n - b)) # noise threshold
 
         if verbose:
-            print('cutoff: {}'.format(cutoff))
+            print("b = ", b)
+            print("cutoff = ", cutoff)
 
         # begin peeling
         # index convention for peeling: 'i' goes over all M/U/S values
@@ -121,7 +132,7 @@ class QSPRIGHT:
             multitons = []  # list of (i, j) values indicating where multitons are.
             for i, (U, D) in enumerate(zip(Us, Ds)):
                 for j, col in enumerate(U.T):
-                    if np.linalg.norm(col) ** 2 > cutoff:
+                    if np.linalg.norm(col) ** 2 > cutoff * len(col):
 
                         k = singleton_detection(
                             col,
@@ -136,7 +147,7 @@ class QSPRIGHT:
 
                         if verbose:
                             print((i, j), np.linalg.norm(residual) ** 2)
-                        if np.linalg.norm(residual) ** 2 > cutoff:
+                        if np.linalg.norm(residual) ** 2 > cutoff * len(residual):
                             multitons.append((i, j))
                             if verbose:
                                 print("We have a Multiton")
@@ -214,7 +225,8 @@ class QSPRIGHT:
         if not report:
             return gwht
         else:
-            return gwht, np.shape(used)[-1], list(loc)
+            used_unique = np.unique(used, axis=1)
+            return gwht, (np.shape(used)[-1], np.shape(used_unique)[-1]), list(loc)
 
     def method_test(self, signal, num_runs=10):
         '''

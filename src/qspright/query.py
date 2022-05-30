@@ -11,50 +11,11 @@ import galois
 
 from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
-def get_b_simple(signal):
-    '''
-    A fixed choice of the sparsity coefficient. See get_b for full signature.
-    '''
-    return signal.n - 1
-
-def get_b_complex(signal):
-    '''
-    A semi-arbitrary fixed choice of the sparsity coefficient. See get_b for full signature.
-    '''
-    return np.int(np.maximum(np.log(signal.sparsity)/np.log(signal.q), 4))
-
-def get_b(signal, method="simple"):
-    '''
-    Get the sparsity coefficient for the signal.
-
-    Arguments
-    ---------
-    signal : Signal
-    The signal whose WHT we want.
-
-    method : str
-    The method to use. All methods referenced must use this signature (minus "method".)
-
-    Returns
-    -------
-    b : int
-    The sparsity coefficient.
-    '''
-    return {
-        "simple": get_b_simple,
-        "complex": get_b_complex
-    }.get(method)(signal)
 
 def get_Ms_simple(n, b, num_to_get=None):
     '''
     A semi-arbitrary fixed choice of the subsampling matrices. See get_Ms for full signature.
     '''
-    # Not true in general, but required for this choice of M
-    if n % b != 0:
-       raise NotImplementedError("n must be exactly divisible by b")
-    if num_to_get is None:
-        num_to_get = n // b
-    
     Ms = []
     for i in range(num_to_get - 1, -1, -1):
         M = np.zeros((n, b))
@@ -63,20 +24,9 @@ def get_Ms_simple(n, b, num_to_get=None):
 
     return Ms
 
-def get_Ms_BCH(n, b, num_to_get=None):
-    '''
-    The subsampling matrices that enable BCH coding. See get_Ms for full signature.
-    '''
-    if n % b != 0:
-        raise NotImplementedError("b must be exactly divisible by n")
-    if num_to_get is None:
-        num_to_get = n // b
-    return
-
 
 def get_Ms_complex(n, b, q, num_to_get=None):
-    if num_to_get is None:
-        num_to_get = max(n // b, 3)
+
     Ms = []
     # TODO Prevent duplicate M
     for i in range(num_to_get):
@@ -107,25 +57,15 @@ def get_Ms(n, b, q, num_to_get=None, method="simple"):
     Ms : list of numpy.ndarrays, shape (n, b)
     The list of subsampling matrices.
     '''
-    if q == 2 and (method != "complex"):
-        print("method is not complex")
-        return {
-            "simple": get_Ms_simple
-        }.get(method)(n, b, num_to_get)
-    else:
-        return {
-            "simple": get_Ms_simple,
-            "complex": get_Ms_complex
-        }.get(method)(n, b, q, num_to_get)
+    if num_to_get is None:
+        num_to_get = max(n // b, 3)
 
-def get_D_identity_like(n, **kwargs):
-    '''
-    Gets the delays matrix [0; I], of dimension (n+1, n). See get_D for full signature.
-    # TODO: rename this to avoid conceptual name collision with zeros_like or empty_like
-    '''
-    return np.vstack((np.zeros((1, n), dtype=int), np.eye(n, dtype=int)))
+    return {
+        "simple": get_Ms_simple,
+        "complex": get_Ms_complex
+    }.get(method)(n, b, q, num_to_get)
 
-def get_D_complex(n, **kwargs):
+def get_D_identity(n, **kwargs):
     q=kwargs.get("q")
     int_delays = np.zeros(n, )
     for i in range(1): # Previously, q-1, but should just be 1
@@ -146,10 +86,10 @@ def get_D_nso(n, **kwargs):
     '''
     num_delays = kwargs.get("num_delays")
     q=kwargs.get("q")
-    p1 = num_delays // n # is this what we want?
+    p1 = num_delays // (n + 1) # is this what we want?
     random_offsets = get_D_random(n, q=q, num_delays=p1)
     D = np.empty((0, n), dtype=int)
-    identity_like = get_D_identity_like(n)
+    identity_like = get_D_identity(n)
     for row in random_offsets:
         modulated_offsets = (row - identity_like) % q
         D = np.vstack((D, modulated_offsets))
@@ -170,9 +110,8 @@ def get_D(n, method="random", **kwargs):
     The delays matrix; if num_delays is not specified in kwargs, see the relevant sub-function for a default.
     '''
     return {
-        "identity_like" : get_D_identity_like,
         "random" : get_D_random,
-        "complex" : get_D_complex,
+        "identity" : get_D_identity,
         "nso" : get_D_nso
     }.get(method)(n, **kwargs)
 
@@ -204,7 +143,6 @@ def compute_delayed_gwht(signal, M, D, q):
     base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
     used_inds = np.swapaxes(np.array(base_inds), 0, 1)
     used_inds = np.reshape(used_inds, (used_inds.shape[0], -1))
-    used_inds = np.unique(used_inds, axis = 1)
     samples_to_transform = [signal.signal_t_qidx[tuple(inds)] for inds in base_inds]
     return np.array([gwht(row, q, b) for row in samples_to_transform]), used_inds
 

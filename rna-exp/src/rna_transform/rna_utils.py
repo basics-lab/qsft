@@ -14,12 +14,13 @@ sys.path.append("../src")
 
 from qspright.inputsignal import Signal
 from qspright.qspright_nso import QSPRIGHT
+from qspright.utils import gwht
 
 """
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
 """
 
-RNA_POSITIONS = [2, 20, 21, 30, 43, 44, 52, 70]
+RNA_POSITIONS = [2, 3, 4, 20, 21, 30, 43, 44, 52, 70]
 
 
 def dna_to_rna(seq):
@@ -53,14 +54,15 @@ def get_rna_base_seq():
     return base_seq
 
 
-def load_rna_data(save = False):
+def load_rna_data(save = False, verbose = False):
     """
     Constructs and returns the data corresponding to the quasi-empirical RNA fitness function
     of the Hammerhead ribozyme HH9. 
     """
     try:
         y = np.load("results/rna_data.npy")
-        print("Loaded saved RNA data.")
+        if verbose:
+            print("Loaded saved RNA data.")
         return y - np.mean(y)
 
     except FileNotFoundError:
@@ -197,18 +199,16 @@ def calculate_rna_gwht(save=False):
         print("Loaded saved beta array for GWHT.")
         return beta
     except FileNotFoundError:
+        n = len(RNA_POSITIONS)
         y = load_rna_data(save=save)
-        y_tensor = np.reshape(y, [4] * len(RNA_POSITIONS))
-        print("Finding GWHT coefficients")
-        beta = scipy.fft.fftn(y_tensor, norm='ortho')
-        beta = np.reshape(beta, [4 ** len(RNA_POSITIONS)])
+        beta = gwht(y, q=4, n=n)
         print("Found GWHT coefficients")
         if save:
             np.save("results/rna_beta_gwht.npy", beta)
         return beta
 
 
-def calculate_rna_qspright(save=False, report = False, noise_sd=100):
+def calculate_rna_qspright(save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
     """
     Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
     from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -219,16 +219,23 @@ def calculate_rna_qspright(save=False, report = False, noise_sd=100):
         print("Loaded saved beta array for GWHT QSPRIGHT.")
         return beta
     except FileNotFoundError:
-        y = load_rna_data(save=save)
+        y = load_rna_data(save=save, verbose = verbose)
         n = len(RNA_POSITIONS)
         q = 4
-        print("Finding GWHT coefficients with QSPRIGHT")
+        if verbose:
+            print("Finding GWHT coefficients with QSPRIGHT")
+
+        if noise_sd is None:
+            noise_sd = 300 / (q ** n)
 
         signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
         spright = QSPRIGHT(
             query_method="complex",
             delays_method="nso",
-            reconstruct_method="nso"
+            reconstruct_method="nso",
+            num_subsample = num_subsample,
+            num_random_delays = num_random_delays,
+            b = b
         )
 
         out = spright.transform(signal, verbose=False, report=report)
@@ -237,7 +244,8 @@ def calculate_rna_qspright(save=False, report = False, noise_sd=100):
         else:
             beta = out
 
-        print("Found GWHT coefficients")
+        if verbose:
+            print("Found GWHT coefficients")
         if save:
             np.save("results/rna_beta_qspright.npy", beta)
 
