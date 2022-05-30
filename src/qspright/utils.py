@@ -86,6 +86,8 @@ def binary_ints(m):
     b = np.arange(m, dtype=int)[::-1,np.newaxis]
     return np.array(a & 2**b > 0, dtype=int)
 
+def angle_q(x,q):
+    return (((np.angle(x) % (2*np.pi) // (np.pi/q)) + 1) // 2) % q # Can be made much faster
 
 def qary_ints(m, q):
     return np.array(list(itertools.product(np.arange(q), repeat=m))).T

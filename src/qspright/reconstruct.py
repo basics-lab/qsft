@@ -6,7 +6,7 @@ Methods for the reconstruction engine; specifically, to
 '''
 
 import numpy as np
-from utils import qary_vec_to_dec
+from utils import angle_q
 
 
 def singleton_detection_noiseless(U_slice, **kwargs):
@@ -62,7 +62,19 @@ def singleton_detection_mle(U_slice, **kwargs):
 def find_nearest_idx(array, value):
     return
 
+"""
+Singleton Detection Via NSO Algorithm
+nso1 - Multiplying by conjugate "Soft Decoding" 
+nso2 - Quantized angle "Hard Decoding"
+"""
 def singleton_detection_nso(U_slice, **kwargs):
+    nso_type = kwargs.get("nso_subtype", "nso1")
+    if nso_type == "nso1":
+        return singleton_detection_nso1(U_slice, **kwargs)
+    elif nso_type == "nso2":
+        return singleton_detection_nso2(U_slice, **kwargs)
+
+def singleton_detection_nso1(U_slice, **kwargs):
     q, n = kwargs.get("q"), kwargs.get("n")
 
     q_roots = 2 * np.pi / q * np.arange(q + 1)
@@ -74,13 +86,24 @@ def singleton_detection_nso(U_slice, **kwargs):
         angle = np.angle(np.mean(U_slice_zero * np.conjugate(U_slice_i))) % (2 * np.pi)
         idx = (np.abs(q_roots - angle)).argmin() % q
         k_sel_qary[i-1] = idx
-
     #k_sel = qary_vec_to_dec(k_sel_qary, q)[0]
+    return k_sel_qary
+
+def singleton_detection_nso2(U_slice, **kwargs):
+    q, n = kwargs.get("q"), kwargs.get("n")
+    U_slice_zero = U_slice[0::n+1]
+    angle_0 = angle_q(U_slice_zero, q)
+    k_sel_qary = np.zeros((n, ), dtype=int)
+    for i in range(1, n+1):
+        U_slice_i = U_slice[i::n+1]
+        angle = angle_q(U_slice_i, q)
+        idx = np.round(np.mean((angle_0 - angle) % q)) % q
+        k_sel_qary[i-1] = idx
     return k_sel_qary
 
 def singleton_detection(U_slice, method="mle", **kwargs):
     return {
         "mle" : singleton_detection_mle,
         "noiseless" : singleton_detection_noiseless,
-        "nso" : singleton_detection_nso
+        "nso" : singleton_detection_nso,
     }.get(method)(U_slice, **kwargs)
