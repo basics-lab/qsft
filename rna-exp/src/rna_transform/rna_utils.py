@@ -90,7 +90,7 @@ def load_rna_data(save = False, verbose = False):
         if save:
             np.save("results/rna_data.npy", y)
 
-        return y
+        return y - np.mean(y)
     
 
 def generate_householder_matrix():
