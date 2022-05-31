@@ -4,6 +4,7 @@ import itertools
 import RNA
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
+from multiprocessing import Pool
 
 import rna_transform.data_utils
 import rna_transform.utils
@@ -20,7 +21,7 @@ from qspright.utils import gwht
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
 """
 
-RNA_POSITIONS = [2, 3, 4, 20, 21, 30, 43, 44]
+RNA_POSITIONS = [2, 3, 4, 20, 21, 30, 43, 44, 45, 46]
 
 
 def dna_to_rna(seq):
@@ -46,6 +47,14 @@ def insert(base_seq, positions, sub_seq):
     return "".join(new_seq)
 
 
+def load_rna_data(centering = True):
+    y = np.load("results/rna_data.npy")
+    if centering:
+        return y - np.mean(y)
+    else:
+        return y
+
+
 def get_rna_base_seq():
     """
     Returns the sequence of RFAM: AANN01066007.1 
@@ -54,44 +63,52 @@ def get_rna_base_seq():
     return base_seq
 
 
-def load_rna_data(save = False, verbose = False):
+
+base_seq = get_rna_base_seq()
+base_seq = dna_to_rna(base_seq)
+positions = RNA_POSITIONS
+L = len(positions)
+q = 4
+
+def _calc_data_inst(s):
+    full = insert(base_seq, positions, s)
+    (ss, mfe) = RNA.fold(full)
+    return mfe
+
+
+def calculate_rna_data(verbose = False, parallel = False):
     """
-    Constructs and returns the data corresponding to the quasi-empirical RNA fitness function
-    of the Hammerhead ribozyme HH9. 
+    Constructs and saves the data corresponding to the quasi-empirical RNA fitness function
+    of the Hammerhead ribozyme HH9.
     """
-    try:
-        y = np.load("results/rna_data.npy")
-        if verbose:
-            print("Loaded saved RNA data.")
-        return y - np.mean(y)
 
-    except FileNotFoundError:
-        base_seq = get_rna_base_seq()
-        base_seq = dna_to_rna(base_seq)
-        positions = RNA_POSITIONS
-        L = len(positions)
-        q = 4
+    # construct insertion sequences
+    nucs = ["A", "U", "C", "G"]
 
-        # construct insertion sequences
-        nucs = ["A", "U", "C", "G"]
+    seqs_as_list = list(itertools.product(nucs, repeat=len(positions)))
+    seqs = ["".join(s) for s in seqs_as_list]
 
+    print("Calculating free energies...")
+
+    if parallel:
+
+        with Pool() as pool:
+            y = list(tqdm(pool.imap(_calc_data_inst, seqs), total=len(seqs)))
+
+    else:
         y = []
-        seqs_as_list = list(itertools.product(nucs, repeat=len(positions)))
-        seqs = ["".join(s) for s in seqs_as_list]
 
-        print("Calculating free energies...")
         for s in tqdm(seqs):
             full = insert(base_seq, positions, s)
             (ss, mfe) = RNA.fold(full)
             y.append(mfe)
 
-        y = np.array(y)
+    y = np.array(y)
 
-        if save:
-            np.save("results/rna_data.npy", y)
+    np.save("results/rna_data.npy", y)
 
-        return y - np.mean(y)
-    
+    return
+
 
 def generate_householder_matrix():
     nucs = ["A", "U", "C", "G"]
@@ -177,7 +194,7 @@ def calculate_rna_lasso(save=False):
         return beta
     except FileNotFoundError:
         alpha = 1e-12
-        y = load_rna_data(save=save)
+        y = load_rna_data()
         X = generate_householder_matrix()
         print("Fitting Lasso coefficients (this may take some time)...")
         model = Lasso(alpha=alpha, fit_intercept=False)
@@ -200,7 +217,7 @@ def calculate_rna_gwht(save=False):
         return beta
     except FileNotFoundError:
         n = len(RNA_POSITIONS)
-        y = load_rna_data(save=save)
+        y = load_rna_data()
         beta = gwht(y, q=4, n=n)
         print("Found GWHT coefficients")
         if save:
@@ -219,7 +236,7 @@ def calculate_rna_qspright(save=False, report = False, noise_sd=None, verbose = 
         print("Loaded saved beta array for GWHT QSPRIGHT.")
         return beta
     except FileNotFoundError:
-        y = load_rna_data(save=save, verbose = verbose)
+        y = load_rna_data()
         n = len(RNA_POSITIONS)
         q = 4
         if verbose:
