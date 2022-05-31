@@ -6,7 +6,7 @@ Methods for the reconstruction engine; specifically, to
 '''
 
 import numpy as np
-from utils import angle_q
+from qspright.utils import angle_q
 
 
 def singleton_detection_noiseless(U_slice, **kwargs):
