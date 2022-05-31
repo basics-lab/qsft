@@ -3,8 +3,8 @@ import numpy as np
 import tqdm
 
 from reconstruct import singleton_detection
-from utils import bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
-from query import compute_delayed_gwht, get_Ms, get_D
+from qspright.utils import bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
+from qspright.query import compute_delayed_gwht, get_Ms, get_D
 
 class QSPRIGHT:
     '''

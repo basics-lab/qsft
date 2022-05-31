@@ -7,9 +7,8 @@ Methods for the query generator: specifically, to
 '''
 
 import numpy as np
-import galois
 
-from utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
+from qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
 
 def get_Ms_simple(n, b, num_to_get=None):

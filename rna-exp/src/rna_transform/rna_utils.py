@@ -20,7 +20,7 @@ from qspright.utils import gwht
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
 """
 
-RNA_POSITIONS = [2, 3, 4, 20, 21, 30, 43, 44, 52, 70]
+RNA_POSITIONS = [2, 3, 4, 20, 21, 30, 43, 44]
 
 
 def dna_to_rna(seq):
@@ -90,7 +90,7 @@ def load_rna_data(save = False, verbose = False):
         if save:
             np.save("results/rna_data.npy", y)
 
-        return y
+        return y - np.mean(y)
     
 
 def generate_householder_matrix():
