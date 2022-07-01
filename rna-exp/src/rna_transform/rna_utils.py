@@ -17,14 +17,10 @@ from qspright.inputsignal import Signal
 from qspright.qspright_nso import QSPRIGHT
 from qspright.utils import gwht, dec_to_qary_vec, qary_vec_to_dec, binary_ints
 
-from scipy.interpolate import NearestNDInterpolator
-from scipy.spatial import Delaunay
-
 """
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
 """
 
-RNA_POSITIONS = [2, 20, 30, 35, 46]
 
 def dna_to_rna(seq):
     """
@@ -49,120 +45,17 @@ def insert(base_seq, positions, sub_seq):
     return "".join(new_seq)
 
 
-def load_rna_data(centering = True):
-    y = np.load("results/rna_data.npy")
-    if centering:
-        return y - np.mean(y)
-    else:
-        return y
-
-
 def get_rna_base_seq():
     """
-    Returns the sequence of RFAM: AANN01066007.1 
+    Returns the sequence of RFAM: AANN01066007.1
     """
     base_seq = "CTGAGCCGTTACCTGCAGCTGATGAGCTCCAAAAAGAGCGAAACCTGCTAGGTCCTGCAGTACTGGCTTAAGAGGCT"
     return base_seq
 
 
-
-base_seq = get_rna_base_seq()
-base_seq = dna_to_rna(base_seq)
-positions = RNA_POSITIONS
-L = len(positions)
-q = 4
-
-def _calc_data_inst(s):
-    full = insert(base_seq, positions, s)
-    (ss, mfe) = RNA.fold(full)
-    return mfe
-
-
-def calculate_rna_data(verbose = False, parallel = False):
-    """
-    Constructs and saves the data corresponding to the quasi-empirical RNA fitness function
-    of the Hammerhead ribozyme HH9.
-    """
-
-    # construct insertion sequences
-    nucs = ["A", "U", "C", "G"]
-
-    seqs_as_list = list(itertools.product(nucs, repeat=len(positions)))
-    seqs = ["".join(s) for s in seqs_as_list]
-
-    print("Calculating free energies...")
-
-    if parallel:
-
-        with Pool() as pool:
-            y = list(tqdm(pool.imap(_calc_data_inst, seqs), total=len(seqs)))
-
-    else:
-        y = []
-
-        for s in tqdm(seqs):
-            full = insert(base_seq, positions, s)
-            (ss, mfe) = RNA.fold(full)
-            y.append(mfe)
-
-    y = np.array(y)
-
-    np.save("results/rna_data.npy", y)
-
-    return
-
-
-def generate_householder_matrix():
-    nucs = ["A", "U", "C", "G"]
-    positions = RNA_POSITIONS
-
-    nucs_idx = {nucs[i]: i for i in range(len(nucs))}
-    seqs_as_list = list(itertools.product(nucs, repeat=len(positions)))
-
-    L = len(positions)
-    int_seqs = [[nucs_idx[si] for si in s] for s in seqs_as_list]
-
-    print("Constructing Fourier matrix...")
-    X = utils.fourier_from_seqs(int_seqs, [4] * L)
-
-    return X
-
-
-def pairs_to_neighborhoods(positions, pairs):
-    """
-    Converts a list of pairs of interacting positions into a set of neighborhoods.
-    """
-    V = []
-    for i, p in enumerate(positions):
-        Vp = [i+1]
-        for pair in pairs:
-            if pair[0] == p:
-                Vp.append(positions.index(pair[1]) + 1)
-            elif pair[1] == p:
-                Vp.append(positions.index(pair[0]) + 1)
-        V.append(sorted(Vp))
-    return V 
-
-
-def find_pairs(ss):
-    """
-    Finds interacting pairs in a RNA secondary structure
-    """
-    pairs = []
-    op = []
-    N = len(ss)
-    for i in range(N):
-        if ss[i] == '(':
-            op.append(i)
-        elif ss[i] == ')':
-            pair = (op.pop(), i)
-            pairs.append(pair)
-    return pairs
-
-
 def sample_structures_and_find_pairs(base_seq, positions, samples=10000):
     """
-    Samples secondary structures from the Boltzmann distribution 
+    Samples secondary structures from the Boltzmann distribution
     and finds pairs of positions that are paired in any of the
     sampled strutures.
     """
@@ -184,215 +77,331 @@ def sample_structures_and_find_pairs(base_seq, positions, samples=10000):
     return important_pairs
 
 
-def calculate_rna_lasso(save=False):
+def pairs_to_neighborhoods(positions, pairs):
     """
-    Calculates Fourier coefficients of the RNA fitness function. This will try to load them 
-    from the results folder, but will otherwise calculate from scratch. If save=True,
-    then coefficients will be saved to the results folder.
+    Converts a list of pairs of interacting positions into a set of neighborhoods.
     """
-    try:
-        beta = np.load("results/rna_beta_lasso.npy")
-        print("Loaded saved beta array.")
-        return beta
-    except FileNotFoundError:
-        alpha = 1e-12
-        y = load_rna_data()
-        X = generate_householder_matrix()
-        print("Fitting Lasso coefficients (this may take some time)...")
-        model = Lasso(alpha=alpha, fit_intercept=False)
-        model.fit(X, y)
-        beta = model.coef_
-        if save:
-            np.save("results/rna_beta_lasso.npy", beta)
-        return beta
+    V = []
+    for i, p in enumerate(positions):
+        Vp = [i+1]
+        for pair in pairs:
+            if pair[0] == p:
+                Vp.append(positions.index(pair[1]) + 1)
+            elif pair[1] == p:
+                Vp.append(positions.index(pair[0]) + 1)
+        V.append(sorted(Vp))
+    return V
 
 
-def calculate_rna_gwht(save=False):
+def find_pairs(ss):
     """
-    Calculates GWHT coefficients of the RNA fitness function. This will try to load them
-    from the results folder, but will otherwise calculate from scratch. If save=True,
-    then coefficients will be saved to the results folder.
+    Finds interacting pairs in a RNA secondary structure
     """
-    try:
-        beta = np.load("results/rna_beta_gwht.npy")
-        print("Loaded saved beta array for GWHT.")
-        return beta
-    except FileNotFoundError:
-        n = len(RNA_POSITIONS)
-        y = load_rna_data()
-        beta = gwht(y, q=4, n=n)
-        print("Found GWHT coefficients")
-        if save:
-            np.save("results/rna_beta_gwht.npy", beta)
-        return beta
+    pairs = []
+    op = []
+    N = len(ss)
+    for i in range(N):
+        if ss[i] == '(':
+            op.append(i)
+        elif ss[i] == ')':
+            pair = (op.pop(), i)
+            pairs.append(pair)
+    return pairs
 
 
-def calculate_rna_qspright(save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
-    """
-    Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
-    from the results folder, but will otherwise calculate from scratch. If save=True,
-    then coefficients will be saved to the results folder.
-    """
-    try:
-        beta = np.load("results/rna_beta_qspright.npy")
-        print("Loaded saved beta array for GWHT QSPRIGHT.")
-        return beta
-    except FileNotFoundError:
-        y = load_rna_data()
-        n = len(RNA_POSITIONS)
-        q = 4
-        if verbose:
-            print("Finding GWHT coefficients with QSPRIGHT")
+def _calc_data_inst(args):
+    base_seq, positions, s = args
+    full = insert(base_seq, positions, s)
+    (ss, mfe) = RNA.fold(full)
+    return mfe
 
-        if noise_sd is None:
-            noise_sd = 300 / (q ** n)
 
-        signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
-        spright = QSPRIGHT(
-            query_method="complex",
-            delays_method="nso",
-            reconstruct_method="nso",
-            num_subsample = num_subsample,
-            num_random_delays = num_random_delays,
-            b = b
-        )
+class RNAHelper:
+    def __init__(self, positions):
+        self.positions = positions
+        self.base_seq = dna_to_rna(get_rna_base_seq())
+        self.n = len(positions)
+        self.q = 4
+        self.rna_data  = self.load_rna_data()
 
-        out = spright.transform(signal, verbose=False, report=report)
-        if report:
-            beta, n_used, peeled = out
+    def calculate_rna_data(self, verbose = False, parallel = True):
+        """
+        Constructs and saves the data corresponding to the quasi-empirical RNA fitness function
+        of the Hammerhead ribozyme HH9.
+        """
+
+        # construct insertion sequences
+        nucs = ["A", "U", "C", "G"]
+
+        seqs_as_list = list(itertools.product(nucs, repeat=len(self.positions)))
+        seqs = ["".join(s) for s in seqs_as_list]
+
+        print("Calculating free energies...")
+
+        if parallel:
+
+            with Pool() as pool:
+                y = list(tqdm(pool.imap(_calc_data_inst,
+                                        zip(itertools.repeat(self.base_seq), itertools.repeat(self.positions), seqs)),
+                              total=len(seqs)))
+
         else:
-            beta = out
+            y = []
 
-        if verbose:
-            print("Found GWHT coefficients")
-        if save:
-            np.save("results/rna_beta_qspright.npy", beta)
+            for s in tqdm(seqs):
+                full = insert(base_seq, positions, s)
+                (ss, mfe) = RNA.fold(full)
+                y.append(mfe)
 
-        return out
+        np.save("results/rna_data.npy", np.array(y))
 
-
-# def convert_onehot(y):
-#     n = len(RNA_POSITIONS)
-#     q = 4
-#     y_oh = np.zeros(2 ** (n * q))
-#
-#     for i in range(q ** n):
-#         i_oh = np.zeros(n * q, dtype=np.int32)
-#         i_qary = np.array(dec_to_qary_vec([i], q, n)).T[0]
-#         for loc, symbol in enumerate(i_qary):
-#             i_oh[loc * q + symbol] = 1
-#         i_oh_dec = qary_vec_to_dec(i_oh, 2)
-#         y_oh[i_oh_dec] = y[i]
-#
-#     return y_oh
+        return
 
 
-def fill_with_neighbor_mean(y):
-
-    n = len(np.shape(y))
-
-    idxs = binary_ints(n).T
-    nan_left = True
-
-    while nan_left:
-        nan_left = False
-        for idx in idxs:
-            if np.isnan(y[tuple(idx)]):
-                nan_left = True
-                neighbor_values = []
-                for pos in range(n):
-                    idx_temp = idx.copy()
-                    idx_temp[pos] = 1 - idx_temp[pos]
-                    neighbor_values.append(y[tuple(idx_temp)])
-                y[tuple(idx)] = np.nanmean(neighbor_values)
-
-    return y
-
-def convert_onehot(y):
-    n = len(RNA_POSITIONS)
-    q = 4
-    y_oh = np.empty([2] * (n * q))
-    y_oh[:] = np.nan
-
-    for i in range(q ** n):
-        i_oh = np.zeros(n * q, dtype=np.int32)
-        i_qary = np.array(dec_to_qary_vec([i], q, n)).T[0]
-        for loc, symbol in enumerate(i_qary):
-            i_oh[loc * q + symbol] = 1
-        y_oh[tuple(i_oh)] = y[i]
-
-    y_oh_filled = fill_with_neighbor_mean(y_oh)
-
-    return np.reshape(y_oh_filled, [2 ** (n * q)])
+    def load_rna_data(self, centering=True):
+        try:
+            y = np.load("results/rna_data.npy")
+            if centering:
+                return y - np.mean(y)
+            else:
+                return y
+        except:
+            return None
 
 
-def calculate_rna_onehot_wht(save=False):
-    """
-    Calculates WHT coefficients of the one-hot RNA fitness function. This will try to load them
-    from the results folder, but will otherwise calculate from scratch. If save=True,
-    then coefficients will be saved to the results folder.
-    """
-    try:
-        beta = np.load("results/rna_beta_onehot_wht.npy")
-        print("Loaded saved beta array for GWHT.")
-        return beta
-    except FileNotFoundError:
-        n = len(RNA_POSITIONS)
-        y = load_rna_data()
-        y_oh = convert_onehot(y)
-        beta = gwht(y_oh, q=2, n=n*q)
-        print("Found one-hot WHT coefficients")
-        if save:
-            np.save("results/rna_beta_onehot_wht.npy", beta)
-        return beta
-
-
-def calculate_rna_onehot_spright(save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
-    """
-    Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
-    from the results folder, but will otherwise calculate from scratch. If save=True,
-    then coefficients will be saved to the results folder.
-    """
-    try:
-        beta = np.load("results/rna_beta_onehot_spright.npy")
-        print("Loaded saved beta array for one-hot SPRIGHT.")
-        return beta
-
-    except FileNotFoundError:
-        y = load_rna_data()
-        y_oh = convert_onehot(y)
-        n = len(RNA_POSITIONS)
-        q = 4
-
-        if verbose:
-            print("Finding WHT coefficients with SPRIGHT")
-
-        if noise_sd is None:
-            noise_sd = 300 / (2 ** (q * n))
-
-        signal = Signal(n=n*q, q=2, signal=y_oh, noise_sd=noise_sd)
-        spright = QSPRIGHT(
-            query_method="complex",
-            delays_method="nso",
-            reconstruct_method="nso",
-            num_subsample = num_subsample,
-            num_random_delays = num_random_delays,
-            b = b
-        )
-
-        out = spright.transform(signal, verbose=False, report=report)
-        if report:
-            beta, n_used, peeled = out
+    def get_rna_data(self):
+        if self.rna_data is None:
+            raise RuntimeError("RNA data is not yet computed.")
         else:
-            beta = out
+            return self.rna_data
 
-        if verbose:
+
+    def generate_householder_matrix(self):
+        nucs = ["A", "U", "C", "G"]
+        positions = self.positions
+
+        nucs_idx = {nucs[i]: i for i in range(len(nucs))}
+        seqs_as_list = list(itertools.product(nucs, repeat=len(positions)))
+
+        int_seqs = [[nucs_idx[si] for si in s] for s in seqs_as_list]
+
+        print("Constructing Fourier matrix...")
+        X = utils.fourier_from_seqs(int_seqs, [4] * self.n)
+
+        return X
+
+    def calculate_rna_lasso(self, save=False):
+        """
+        Calculates Fourier coefficients of the RNA fitness function. This will try to load them
+        from the results folder, but will otherwise calculate from scratch. If save=True,
+        then coefficients will be saved to the results folder.
+        """
+        try:
+            beta = np.load("results/rna_beta_lasso.npy")
+            print("Loaded saved beta array.")
+            return beta
+        except FileNotFoundError:
+            alpha = 1e-12
+            y = self.get_rna_data()
+            X = generate_householder_matrix()
+            print("Fitting Lasso coefficients (this may take some time)...")
+            model = Lasso(alpha=alpha, fit_intercept=False)
+            model.fit(X, y)
+            beta = model.coef_
+            if save:
+                np.save("results/rna_beta_lasso.npy", beta)
+            return beta
+
+
+    def calculate_rna_gwht(self, save=False):
+        """
+        Calculates GWHT coefficients of the RNA fitness function. This will try to load them
+        from the results folder, but will otherwise calculate from scratch. If save=True,
+        then coefficients will be saved to the results folder.
+        """
+        try:
+            beta = np.load("results/rna_beta_gwht.npy")
+            print("Loaded saved beta array for GWHT.")
+            return beta
+        except FileNotFoundError:
+            n = self.n
+            y = self.get_rna_data()
+            beta = gwht(y, q=4, n=n)
             print("Found GWHT coefficients")
-        if save:
-            np.save("results/rna_beta_onehot_spright.npy", beta)
+            if save:
+                np.save("results/rna_beta_gwht.npy", beta)
+            return beta
 
-        return out
 
+    def calculate_rna_qspright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
+        """
+        Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
+        from the results folder, but will otherwise calculate from scratch. If save=True,
+        then coefficients will be saved to the results folder.
+        """
+        try:
+            beta = np.load("results/rna_beta_qspright.npy")
+            print("Loaded saved beta array for GWHT QSPRIGHT.")
+            return beta
+        except FileNotFoundError:
+            y = self.get_rna_data()
+            n = len(self.positions)
+            q = 4
+            if verbose:
+                print("Finding GWHT coefficients with QSPRIGHT")
+
+            if noise_sd is None:
+                noise_sd = 300 / (q ** n)
+
+            signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
+            spright = QSPRIGHT(
+                query_method="complex",
+                delays_method="nso",
+                reconstruct_method="nso",
+                num_subsample = num_subsample,
+                num_random_delays = num_random_delays,
+                b = b
+            )
+
+            out = spright.transform(signal, verbose=False, report=report)
+            if report:
+                beta, n_used, peeled = out
+            else:
+                beta = out
+
+            if verbose:
+                print("Found GWHT coefficients")
+            if save:
+                np.save("results/rna_beta_qspright.npy", beta)
+
+            return out
+
+
+    # def convert_onehot(y):
+    #     n = len(self.positions)
+    #     q = 4
+    #     y_oh = np.zeros(2 ** (n * q))
+    #
+    #     for i in range(q ** n):
+    #         i_oh = np.zeros(n * q, dtype=np.int32)
+    #         i_qary = np.array(dec_to_qary_vec([i], q, n)).T[0]
+    #         for loc, symbol in enumerate(i_qary):
+    #             i_oh[loc * q + symbol] = 1
+    #         i_oh_dec = qary_vec_to_dec(i_oh, 2)
+    #         y_oh[i_oh_dec] = y[i]
+    #
+    #     return y_oh
+
+
+    def fill_with_neighbor_mean(self, y):
+
+        n = self.n
+
+        idxs = binary_ints(n).T
+        nan_left = True
+
+        while nan_left:
+            nan_left = False
+            for idx in idxs:
+                if np.isnan(y[tuple(idx)]):
+                    nan_left = True
+                    neighbor_values = []
+                    for pos in range(n):
+                        idx_temp = idx.copy()
+                        idx_temp[pos] = 1 - idx_temp[pos]
+                        neighbor_values.append(y[tuple(idx_temp)])
+                    if np.sum(~np.isnan(neighbor_values)) > 0:
+                        y[tuple(idx)] = np.nanmean(neighbor_values)
+
+        return y
+
+    def convert_onehot(self, y):
+        n = self.n
+        q = self.q
+
+        y_oh = np.empty([2] * (n * q))
+        y_oh[:] = np.nan
+
+        for i in range(q ** n):
+            i_oh = np.zeros(n * q, dtype=np.int32)
+            i_qary = np.array(dec_to_qary_vec([i], q, n)).T[0]
+            for loc, symbol in enumerate(i_qary):
+                i_oh[loc * q + symbol] = 1
+            y_oh[tuple(i_oh)] = y[i]
+
+        y_oh_filled = fill_with_neighbor_mean(y_oh)
+
+        return np.reshape(y_oh_filled, [2 ** (n * q)])
+
+
+    def calculate_rna_onehot_wht(self, save=False):
+        """
+        Calculates WHT coefficients of the one-hot RNA fitness function. This will try to load them
+        from the results folder, but will otherwise calculate from scratch. If save=True,
+        then coefficients will be saved to the results folder.
+        """
+        try:
+            beta = np.load("results/rna_beta_onehot_wht.npy")
+            print("Loaded saved beta array for GWHT.")
+            return beta
+        except FileNotFoundError:
+            y = self.get_rna_data()
+            y = load_rna_data()
+            y_oh = convert_onehot(y)
+            beta = gwht(y_oh, q=2, n=n*q)
+            print("Found one-hot WHT coefficients")
+            if save:
+                np.save("results/rna_beta_onehot_wht.npy", beta)
+            return beta
+
+
+    def calculate_rna_onehot_spright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
+        """
+        Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
+        from the results folder, but will otherwise calculate from scratch. If save=True,
+        then coefficients will be saved to the results folder.
+        """
+        try:
+            beta = np.load("results/rna_beta_onehot_spright.npy")
+            print("Loaded saved beta array for one-hot SPRIGHT.")
+            return beta
+
+        except FileNotFoundError:
+            y = self.get_rna_data()
+            y_oh = convert_onehot(y)
+            n = len(self.positions)
+            q = 4
+
+            if verbose:
+                print("Finding WHT coefficients with SPRIGHT")
+
+            if noise_sd is None:
+                noise_sd = 300 / (2 ** (q * n))
+
+            signal = Signal(n=n*q, q=2, signal=y_oh, noise_sd=noise_sd)
+            spright = QSPRIGHT(
+                query_method="complex",
+                delays_method="nso",
+                reconstruct_method="nso",
+                num_subsample = num_subsample,
+                num_random_delays = num_random_delays,
+                b = b
+            )
+
+            out = spright.transform(signal, verbose=False, report=report)
+            if report:
+                beta, n_used, peeled = out
+            else:
+                beta = out
+
+            if verbose:
+                print("Found GWHT coefficients")
+            if save:
+                np.save("results/rna_beta_onehot_spright.npy", beta)
+
+            return out
+
+'''
 
 def calculate_rna_gnk_wh_coefficient_vars(pairs_from_scratch=False, return_neighborhoods=False):
     """
@@ -412,10 +421,12 @@ def calculate_rna_gnk_wh_coefficient_vars(pairs_from_scratch=False, return_neigh
 
     # add adjacent pairs
     important_pairs = important_pairs.union({(20, 21), (43, 44)})
-    V = pairs_to_neighborhoods(RNA_POSITIONS, important_pairs)
+    V = pairs_to_neighborhoods(self.positions, important_pairs)
 
     gnk_beta_var = gnk_model.calc_beta_var(L, q, V)
     if return_neighborhoods:
         return gnk_beta_var, V
     else:
         return gnk_beta_var
+
+'''
