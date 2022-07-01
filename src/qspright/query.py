@@ -11,14 +11,14 @@ import numpy as np
 from qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
 
-def get_Ms_simple(n, b, num_to_get=None):
+def get_Ms_simple(n, b, q, num_to_get=None):
     '''
     A semi-arbitrary fixed choice of the subsampling matrices. See get_Ms for full signature.
     '''
     Ms = []
     for i in range(num_to_get - 1, -1, -1):
-        M = np.zeros((n, b))
-        M[(b * i) : (b * (i + 1))] = np.eye(b)
+        M = np.zeros((n, b), dtype=np.int32)
+        M[(b * i) : (b * (i + 1)), :] = np.eye(b)
         Ms.append(M)
 
     return Ms
@@ -58,6 +58,9 @@ def get_Ms(n, b, q, num_to_get=None, method="simple"):
     '''
     if num_to_get is None:
         num_to_get = max(n // b, 3)
+
+    if method == "simple" and num_to_get > n // b:
+        raise ValueError("When query_method is 'simple', the number of M matrices to return cannot be larger than n // b")
 
     return {
         "simple": get_Ms_simple,

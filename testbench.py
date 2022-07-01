@@ -22,11 +22,12 @@ test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_values, no
 print("test signal generated")
 
 spright = QSPRIGHT(
-    query_method="complex",
+    query_method="simple",
     delays_method="nso",
     reconstruct_method="nso",
-    num_subsample=3,
-    num_random_delays=5
+    num_subsample=2,
+    num_random_delays=5,
+    b=5
 )
 
 gwht, (n_used, n_used_unique), peeled = spright.transform(test_signal, verbose=False, report=True)
