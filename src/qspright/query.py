@@ -145,7 +145,7 @@ def compute_delayed_gwht(signal, M, D, q):
     base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
     used_inds = np.swapaxes(np.array(base_inds), 0, 1)
     used_inds = np.reshape(used_inds, (used_inds.shape[0], -1))
-    samples_to_transform = [signal.signal_t_qidx[tuple(inds)] for inds in base_inds]
+    samples_to_transform = [signal.get_time_domain(tuple(inds)) for inds in base_inds]
     return np.array([gwht(row, q, b) for row in samples_to_transform]), used_inds
 
 def compute_delayed_wht(signal, M, D):

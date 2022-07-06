@@ -3,7 +3,7 @@ Class for common interface to an input signal.
 '''
 
 import numpy as np
-from qspright.utils import fwht, gwht, igwht
+from qspright.utils import fwht, gwht_tensored, igwht_tensored
 
 class Signal:
     '''
@@ -22,12 +22,6 @@ class Signal:
     
     noise_sd : scalar
     The standard deviation of the added noise.
-    
-    signal_t : numpy.ndarray
-    The time signal.
-    
-    signal_w : numpy.ndarray
-    The WHT of input_signal.
     '''
     def __init__(self, **kwargs):
         if kwargs.get("signal") is None:
@@ -38,14 +32,13 @@ class Signal:
     def _init_given(self, **kwargs):
         self.n = kwargs.get("n")
         self.q = kwargs.get("q")
-        self.signal_t = kwargs.get("signal")
-        self.signal_t_qidx = np.reshape(self.signal_t, [self.q] * self.n)
         self.noise_sd = kwargs.get("noise_sd")
         self.N = self.q ** self.n
         self.sparsity = kwargs.get("sparsity", 100)
+        self.signal_t = np.reshape(kwargs.get("signal"), [self.q] * self.n)
         if kwargs.get("calc_w", False):
-            self.signal_w = gwht(self.signal_t, self.q, self.n)
-            if np.linalg.norm(self.signal_t - igwht(self.signal_w, self.q, self.n))/self.N < 1e-5:
+            self.signal_w = gwht_tensored(self.signal_t_qidx, self.q, self.n)
+            if np.linalg.norm(self.signal_t - igwht_tensored(self.signal_w, self.q, self.n))/self.N < 1e-5:
                 print("verified transform")
 
 
@@ -60,13 +53,36 @@ class Signal:
         wht = np.zeros((self.N,))
         for l, s in zip(self.loc, self.strengths):
             wht[l] = s
-        self.signal_w = wht + np.random.normal(0, self.noise_sd, (self.N,))
+        self._signal_w = wht + np.random.normal(0, self.noise_sd, (self.N,))
+        self._signal_w = np.reshape(self._signal_w, [self.q] * self.n)
         if self.q == 2:
-            self.signal_t = fwht(self.signal_w)
-            self.signal_t_qidx = np.reshape(self.signal_t, [self.q] * self.n)
+            self._signal_t = fwht(self._signal_w)
+            self._signal_t = np.reshape(self._signal_t, [self.q] * self.n)
         else:
-            self.signal_t = igwht(self.signal_w, self.q, self.n)
-            self.signal_t_qidx = np.reshape(self.signal_t, [self.q] * self.n)
-            if np.linalg.norm(self.signal_w - gwht(self.signal_t, self.q, self.n)) < 1e-3:
+            self._signal_t = igwht_tensored(self._signal_w, self.q, self.n)
+            if np.linalg.norm(self._signal_w - gwht_tensored(self._signal_t, self.q, self.n)) < 1e-3:
                 print("verified transform")
 
+    '''
+    shape: returns the shape of the time domain signal.
+    
+    Returns
+    -------
+    shape of time domain signal
+    '''
+    def shape(self):
+        return tuple([self.q for i in range(self.n)])
+
+    '''
+    shape: returns the shape of the time domain signal.
+    
+    Arguments
+    ---------    
+    inds: tuple of 1d n-element arrays that represent the indicies to be queried
+    
+    Returns
+    -------
+    indices : linear output of the queried indicies
+    '''
+    def get_time_domain(self, inds):
+        return self.signal_t[inds]

@@ -28,6 +28,11 @@ def gwht(x,q,n):
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
+def gwht_tensored(x,q,n):
+    """Computes the GWHT of an input signal with forward scaling"""
+    x_tf = fft.fftn(x) / (q ** n)
+    return x_tf
+
 
 def igwht(x,q,n):
     """Computes the IGWHT of an input signal with forward scaling"""
@@ -36,6 +41,10 @@ def igwht(x,q,n):
     x_tf = np.reshape(x_tf, [q ** n])
     return x_tf
 
+def igwht_tensored(x,q,n):
+    """Computes the IGWHT of an input signal with forward scaling"""
+    x_tf = fft.ifftn(x) * (q ** n)
+    return x_tf
 
 def bin_to_dec(x):
     n = len(x)

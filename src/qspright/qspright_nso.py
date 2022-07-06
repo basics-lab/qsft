@@ -58,33 +58,34 @@ class QSPRIGHT:
 
         num_peeling = 0
         q = signal.q
+        n = signal.n
         omega = np.exp(2j * np.pi / q)
         result = []
-        gwht = np.zeros_like(signal.signal_t_qidx, dtype=complex)
+        gwht = np.zeros(signal.shape(), dtype=complex)
 
         if self.b is None:
-            b = np.int(np.maximum(np.log(signal.sparsity) / np.log(signal.q), 4))
+            b = np.int(np.maximum(np.log(signal.sparsity) / np.log(q), 4))
         else:
             b = self.b
 
         peeling_max = q ** b
 
-        Ms = get_Ms(signal.n, b, q, method=self.query_method, num_to_get=self.num_subsample)
+        Ms = get_Ms(n, b, q, method=self.query_method, num_to_get=self.num_subsample)
         Us = []
         Ds = []
 
         if self.delays_method == "identity":
-            num_delays = signal.n + 1
+            num_delays = n + 1
         elif self.delays_method == "nso":
-            num_delays = self.num_random_delays * (signal.n + 1)
+            num_delays = self.num_random_delays * (n + 1)
         else:
             num_delays = self.num_random_delays
 
-        used = np.zeros((signal.n, 0))
+        used = np.zeros((n, 0))
         peeled = set([])
         # subsample with shifts [D], make the observation [U]
         for M in Ms:
-            D = get_D(signal.n, method=self.delays_method, num_delays=num_delays, q=signal.q)
+            D = get_D(n, method=self.delays_method, num_delays=num_delays, q=q)
             D = np.array(D)
             if verbose:
                 print("------")
@@ -96,11 +97,11 @@ class QSPRIGHT:
             U, used_i = compute_delayed_gwht(signal, M, D, q)
             Us.append(U)
             if report:
-                used = np.concatenate([used, used_i], axis = 1)
+                used = np.concatenate([used, used_i], axis=1)
 
         gamma = 0.2
 
-        cutoff = 1e-10 + (1 + gamma) * (signal.noise_sd ** 2) * (signal.q ** (signal.n - b)) # noise threshold
+        cutoff = 1e-10 + (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
 
         if verbose:
             print("b = ", b)
@@ -137,8 +138,8 @@ class QSPRIGHT:
                         k = singleton_detection(
                             col,
                             method=self.reconstruct_method,
-                            q=signal.q,
-                            n=signal.n,
+                            q=q,
+                            n=n,
                             nso_subtype = "nso1"
                         )  # find the best fit singleton
                         #k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
@@ -262,16 +263,14 @@ if __name__ == "__main__":
 
     from inputsignal import Signal
 
-    print(sys.path)
-
     q = 4
     n = 10
     N = q ** n
     num_nonzero_indices = 100
     nonzero_indices = np.random.choice(N, num_nonzero_indices, replace=False)
-    nonzero_values = 2 + 3 * np.random.rand(num_nonzero_indices)
+    nonzero_values = 2 + np.random.rand(num_nonzero_indices)
     nonzero_values = nonzero_values * (2 * np.random.binomial(1, 0.5, size=num_nonzero_indices) - 1)
-    noise_sd = 1
+    noise_sd = 1e-6
 
     test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_values, noise_sd=noise_sd)
     print("test signal generated")
@@ -279,8 +278,10 @@ if __name__ == "__main__":
     spright = QSPRIGHT(
         query_method="complex",
         delays_method="nso",
-        reconstruct_method="nso"
-    )
+        reconstruct_method="nso",
+        b=6,
+        num_subsample=3,
+        num_random_delays=20)
 
     gwht, n_used, peeled = spright.transform(test_signal, verbose=False, report=True)
 
