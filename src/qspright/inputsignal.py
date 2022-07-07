@@ -35,10 +35,10 @@ class Signal:
         self.noise_sd = kwargs.get("noise_sd")
         self.N = self.q ** self.n
         self.sparsity = kwargs.get("sparsity", 100)
-        self.signal_t = np.reshape(kwargs.get("signal"), [self.q] * self.n)
+        self._signal_t = np.reshape(kwargs.get("signal"), [self.q] * self.n)
         if kwargs.get("calc_w", False):
-            self.signal_w = gwht_tensored(self.signal_t_qidx, self.q, self.n)
-            if np.linalg.norm(self.signal_t - igwht_tensored(self.signal_w, self.q, self.n))/self.N < 1e-5:
+            self.signal_w = gwht_tensored(self._signal_t, self.q, self.n)
+            if np.linalg.norm(self._signal_t - igwht_tensored(self.signal_w, self.q, self.n))/self.N < 1e-5:
                 print("verified transform")
 
 
@@ -47,8 +47,8 @@ class Signal:
         self.q = kwargs.get("q")
         self.noise_sd = kwargs.get("noise_sd", 0)
         self.N = self.q ** self.n
-        self.loc = kwargs.get("loc")
         self.sparsity = len(self.loc)
+        self.loc = kwargs.get("loc")
         self.strengths = kwargs.get("strengths", np.ones_like(self.loc))
         wht = np.zeros((self.N,))
         for l, s in zip(self.loc, self.strengths):
@@ -85,4 +85,4 @@ class Signal:
     indices : linear output of the queried indicies
     '''
     def get_time_domain(self, inds):
-        return self.signal_t[inds]
+        return self._signal_t[inds]

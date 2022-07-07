@@ -1,13 +1,13 @@
 import time
 import numpy as np
 import tqdm
-
 from reconstruct import singleton_detection
-from qspright.utils import bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
+from qspright.utils import bin_to_dec, qary_vec_to_dec
 from qspright.query import compute_delayed_gwht, get_Ms, get_D
 
+
 class QSPRIGHT:
-    '''
+    """
     Class to store encoder/decoder configurations and carry out encoding/decoding.
 
     Attributes
@@ -28,7 +28,7 @@ class QSPRIGHT:
     Currently implemented methods:
         "noiseless" : decode according to [2], section 4.2, with the assumption the signal is noiseless.
         "mle" : naive noisy decoding; decode by taking the maximum-likelihood singleton that could be at that bin.
-    '''
+    """
     def __init__(self, query_method, delays_method, reconstruct_method, **kwargs):
         self.query_method = query_method
         self.delays_method = delays_method

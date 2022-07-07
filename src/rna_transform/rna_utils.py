@@ -1,21 +1,13 @@
 import numpy as np
-import scipy
+import rna
 import itertools
-import RNA
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
 from multiprocessing import Pool
-
-import rna_transform.data_utils
-import rna_transform.utils
-import rna_transform.gnk_model
-
-import sys
-sys.path.append("../src")
-
+import rna_transform.utils as utils
 from qspright.inputsignal import Signal
 from qspright.qspright_nso import QSPRIGHT
-from qspright.utils import gwht, dec_to_qary_vec, qary_vec_to_dec, binary_ints
+from qspright.utils import gwht, dec_to_qary_vec, binary_ints
 
 """
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
@@ -59,9 +51,9 @@ def sample_structures_and_find_pairs(base_seq, positions, samples=10000):
     and finds pairs of positions that are paired in any of the
     sampled strutures.
     """
-    md = RNA.md()
+    md = rna.md()
     md.uniq_ML = 1
-    fc = RNA.fold_compound(base_seq, md)
+    fc = rna.fold_compound(base_seq, md)
     (ss, mfe) = fc.mfe()
     fc.exp_params_rescale(mfe)
     fc.pf()
@@ -112,7 +104,7 @@ def find_pairs(ss):
 def _calc_data_inst(args):
     base_seq, positions, s = args
     full = insert(base_seq, positions, s)
-    (ss, mfe) = RNA.fold(full)
+    (ss, mfe) = rna.fold(full)
     return mfe
 
 
@@ -122,7 +114,7 @@ class RNAHelper:
         self.base_seq = dna_to_rna(get_rna_base_seq())
         self.n = len(positions)
         self.q = 4
-        self.rna_data  = self.load_rna_data()
+        self.rna_data = self.load_rna_data()
 
     def calculate_rna_data(self, verbose = False, parallel = True):
         """
@@ -149,8 +141,8 @@ class RNAHelper:
             y = []
 
             for s in tqdm(seqs):
-                full = insert(base_seq, positions, s)
-                (ss, mfe) = RNA.fold(full)
+                full = insert(self.base_seq, self.positions, s)
+                (ss, mfe) = rna.fold(full)
                 y.append(mfe)
 
         np.save("results/rna_data.npy", np.array(y))
@@ -203,7 +195,7 @@ class RNAHelper:
         except FileNotFoundError:
             alpha = 1e-12
             y = self.get_rna_data()
-            X = generate_householder_matrix()
+            X = self.generate_householder_matrix()
             print("Fitting Lasso coefficients (this may take some time)...")
             model = Lasso(alpha=alpha, fit_intercept=False)
             model.fit(X, y)
@@ -231,7 +223,6 @@ class RNAHelper:
             if save:
                 np.save("results/rna_beta_gwht.npy", beta)
             return beta
-
 
     def calculate_rna_qspright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
         """
@@ -329,7 +320,7 @@ class RNAHelper:
                 i_oh[loc * q + symbol] = 1
             y_oh[tuple(i_oh)] = y[i]
 
-        y_oh_filled = fill_with_neighbor_mean(y_oh)
+        y_oh_filled = self.fill_with_neighbor_mean(y_oh)
 
         return np.reshape(y_oh_filled, [2 ** (n * q)])
 
@@ -346,9 +337,9 @@ class RNAHelper:
             return beta
         except FileNotFoundError:
             y = self.get_rna_data()
-            y = load_rna_data()
-            y_oh = convert_onehot(y)
-            beta = gwht(y_oh, q=2, n=n*q)
+            y = self.load_rna_data()
+            y_oh = self.convert_onehot(y)
+            beta = gwht(y_oh, q=2, n=self.n*self.q)
             print("Found one-hot WHT coefficients")
             if save:
                 np.save("results/rna_beta_onehot_wht.npy", beta)
@@ -368,7 +359,7 @@ class RNAHelper:
 
         except FileNotFoundError:
             y = self.get_rna_data()
-            y_oh = convert_onehot(y)
+            y_oh = self.convert_onehot(y)
             n = len(self.positions)
             q = 4
 
@@ -430,3 +421,5 @@ def calculate_rna_gnk_wh_coefficient_vars(pairs_from_scratch=False, return_neigh
         return gnk_beta_var
 
 '''
+
+
