@@ -1,6 +1,8 @@
 from qspright.inputsignal import Signal
 from rna_transform.rna_utils import insert
 import numpy as np
+import RNA
+
 
 class SignalRNA(Signal):
     nucs = np.array(["A", "U", "C", "G"])
@@ -16,6 +18,6 @@ class SignalRNA(Signal):
         for idx in inds:
             s = self.nucs[idx]
             full = insert(self.base_seq, self.positions, s)
-            (ss, mfe) = rna.fold(full)
+            (ss, mfe) = RNA.fold(full)
             y.append(mfe)
         return y

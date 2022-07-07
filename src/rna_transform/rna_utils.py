@@ -1,5 +1,5 @@
 import numpy as np
-import rna
+import RNA
 import itertools
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
@@ -51,9 +51,9 @@ def sample_structures_and_find_pairs(base_seq, positions, samples=10000):
     and finds pairs of positions that are paired in any of the
     sampled strutures.
     """
-    md = rna.md()
+    md = RNA.md()
     md.uniq_ML = 1
-    fc = rna.fold_compound(base_seq, md)
+    fc = RNA.fold_compound(base_seq, md)
     (ss, mfe) = fc.mfe()
     fc.exp_params_rescale(mfe)
     fc.pf()
@@ -104,7 +104,7 @@ def find_pairs(ss):
 def _calc_data_inst(args):
     base_seq, positions, s = args
     full = insert(base_seq, positions, s)
-    (ss, mfe) = rna.fold(full)
+    (ss, mfe) = RNA.fold(full)
     return mfe
 
 
@@ -142,7 +142,7 @@ class RNAHelper:
 
             for s in tqdm(seqs):
                 full = insert(self.base_seq, self.positions, s)
-                (ss, mfe) = rna.fold(full)
+                (ss, mfe) = RNA.fold(full)
                 y.append(mfe)
 
         np.save("results/rna_data.npy", np.array(y))
