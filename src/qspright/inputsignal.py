@@ -1,6 +1,7 @@
 '''
 Class for common interface to an input signal.
 '''
+from typing import Optional, Any
 
 import numpy as np
 from qspright.utils import fwht, gwht_tensored, igwht_tensored
@@ -23,17 +24,21 @@ class Signal:
     noise_sd : scalar
     The standard deviation of the added noise.
     '''
+
     def __init__(self, **kwargs):
+        self._init_standard_params(**kwargs)
         if kwargs.get("signal") is None:
             self._init_random(**kwargs)
         else:
             self._init_given(**kwargs)
 
-    def _init_given(self, **kwargs):
+    def _init_standard_params(self, **kwargs):
         self.n = kwargs.get("n")
         self.q = kwargs.get("q")
-        self.noise_sd = kwargs.get("noise_sd")
+        self.noise_sd = kwargs.get("noise_sd", 0)
         self.N = self.q ** self.n
+
+    def _init_given(self, **kwargs):
         self.sparsity = kwargs.get("sparsity", 100)
         self._signal_t = np.reshape(kwargs.get("signal"), [self.q] * self.n)
         if kwargs.get("calc_w", False):
@@ -43,12 +48,8 @@ class Signal:
 
 
     def _init_random(self, **kwargs):
-        self.n = kwargs.get("n")
-        self.q = kwargs.get("q")
-        self.noise_sd = kwargs.get("noise_sd", 0)
-        self.N = self.q ** self.n
-        self.sparsity = len(self.loc)
         self.loc = kwargs.get("loc")
+        self.sparsity = len(self.loc)
         self.strengths = kwargs.get("strengths", np.ones_like(self.loc))
         wht = np.zeros((self.N,))
         for l, s in zip(self.loc, self.strengths):

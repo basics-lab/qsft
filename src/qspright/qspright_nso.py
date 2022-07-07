@@ -262,7 +262,8 @@ if __name__ == "__main__":
     np.random.seed(10)
 
     from inputsignal import Signal
-
+    from rna_transform.input_rna_signal import SignalRNA
+    from rna_transform.rna_utils import get_rna_base_seq
     q = 4
     n = 10
     N = q ** n
@@ -271,8 +272,10 @@ if __name__ == "__main__":
     nonzero_values = 2 + np.random.rand(num_nonzero_indices)
     nonzero_values = nonzero_values * (2 * np.random.binomial(1, 0.5, size=num_nonzero_indices) - 1)
     noise_sd = 1e-6
+    positions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
-    test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_values, noise_sd=noise_sd)
+    test_signal = SignalRNA(n=n, q=q, noise_sd=800/(q ** n), base_seq=get_rna_base_seq(), positions=positions)
+    #test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_values, noise_sd=noise_sd)
     print("test signal generated")
 
     spright = QSPRIGHT(
