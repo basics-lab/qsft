@@ -6,7 +6,7 @@ Methods for the reconstruction engine; specifically, to
 '''
 
 import numpy as np
-from qspright.utils import angle_q
+from src.qspright.utils import angle_q
 
 
 def singleton_detection_noiseless(U_slice, **kwargs):
@@ -24,7 +24,11 @@ def singleton_detection_noiseless(U_slice, **kwargs):
     k : numpy.ndarray
     Index of the corresponding right node, in binary form.
     '''
-    return (-np.sign(U_slice * U_slice[0])[1:] == 1).astype(np.int), 1
+    q = kwargs.get('q')
+    angles = np.angle(U_slice)
+    angles = q*(angles[1:] - angles[0])/(2*np.pi)
+    angles = angles.round().astype(int) % q
+    return angles
 
 def singleton_detection_mle(U_slice, **kwargs):
     '''
