@@ -4,9 +4,10 @@ Utility functions.
 
 import numpy as np
 import scipy.fft as fft
-from functools import partial
+from group_lasso import GroupLasso
 import itertools
 import math
+import random
 
 def fwht(x):
     """Recursive implementation of the 1D Cooley-Tukey FFT"""
@@ -151,3 +152,28 @@ def flip(x):
     Flip all bits in the binary array x.
     '''
     return np.bitwise_xor(x, 1)
+
+
+def lasso_decode(signal, sample_rate):
+    q = signal.q
+    n = signal.n
+    N = q ** n
+    n_samples = np.round(sample_rate*N).astype(int)
+    sample_idx = random.sample(range(N), n_samples)
+    sample_idx = dec_to_qary_vec(sample_idx, q, n)
+    y = signal.get_time_domain(tuple(sample_idx))
+    y = np.concatenate((np.real(y), np.imag(y)))
+    freqs = np.array(sample_idx).T @ qary_ints(n, q)
+    X = np.exp(2j*np.pi*freqs/q)
+    X = np.concatenate((np.concatenate((np.real(X), -np.imag(X)), axis=1), np.concatenate((np.imag(X), np.real(X)), axis=1)))
+    groups = [i % N for i in range(2*N)]
+    lasso = GroupLasso(groups=groups,
+                       group_reg=0.1,
+                       l1_reg=0,
+                       n_iter=1000,
+                       supress_warning=True)
+    lasso.fit(X, y)
+    w = lasso.coef_
+    non_zero = np.nonzero(w[:(N-1), 0])
+    gwht = w[0:(N-1)] + 1j*w[N:(2*N-1)]
+    return gwht, non_zero

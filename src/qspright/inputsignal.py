@@ -71,8 +71,8 @@ class Signal:
             self._signal_t = np.reshape(self._signal_t, [self.q] * self.n)
         else:
             self._signal_t = igwht_tensored(self._signal_w, self.q, self.n)
-            if np.linalg.norm(self._signal_w - gwht_tensored(self._signal_t, self.q, self.n)) < 1e-3:
-                print("verified transform")
+            #if np.linalg.norm(self._signal_w - gwht_tensored(self._signal_t, self.q, self.n)) < 1e-3:
+            #    print("verified transform")
 
     '''
     shape: returns the shape of the time domain signal.
