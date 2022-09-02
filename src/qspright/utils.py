@@ -186,7 +186,9 @@ def best_convex_underestimator(points):
     first_point_idx = np.argmin(vertices[:, 0])
     last_point_idx = np.argmax(vertices[:, 0])
 
+    if last_point_idx == vertices.shape[0]:
+        return vertices[first_point_idx:]
     if first_point_idx < last_point_idx:
-        return vertices[first_point_idx:last_point_idx]
+        return vertices[first_point_idx:last_point_idx+1]
     else:
-        return np.concatenate((vertices[first_point_idx:],vertices[:last_point_idx]))
+        return np.concatenate((vertices[first_point_idx:],vertices[:last_point_idx+1]))
