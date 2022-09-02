@@ -104,7 +104,6 @@ class QSPRIGHT:
 
         cutoff = 1e-10 + 2 * (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
-        print("cutoff = ", cutoff)
 
         if verbose:
             print("b = ", b)
@@ -231,7 +230,7 @@ class QSPRIGHT:
             return gwht
         else:
             used_unique = np.unique(used, axis=1)
-            return gwht, (np.shape(used)[-1], np.shape(used_unique)[-1]), list(loc)
+            return gwht, (np.shape(used)[-1], np.shape(used_unique)[-1], used_unique), list(loc)
 
     def method_test(self, signal, num_runs=10):
         '''
