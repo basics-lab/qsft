@@ -51,10 +51,10 @@ class Signal:
         self.loc = kwargs.get("loc")
         self.sparsity = len(self.loc)
         self.strengths = kwargs.get("strengths", np.ones_like(self.loc))
-        wht = np.zeros((self.N,))
+        wht = np.zeros((self.N,), dtype=np.complex)
         for l, s in zip(self.loc, self.strengths):
             wht[l] = s
-        self._signal_w = wht + np.random.normal(0, self.noise_sd, (self.N,))
+        self._signal_w = wht + np.random.normal(0, self.noise_sd, size=(self.N, 2)).view(np.complex).reshape(self.N)
         self._signal_w = np.reshape(self._signal_w, [self.q] * self.n)
         if self.q == 2:
             self._signal_t = fwht(self._signal_w)
