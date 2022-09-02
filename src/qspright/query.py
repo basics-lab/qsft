@@ -8,7 +8,7 @@ Methods for the query generator: specifically, to
 
 import numpy as np
 
-from qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
+from src.qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
 
 def get_Ms_simple(n, b, q, num_to_get=None):

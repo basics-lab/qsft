@@ -4,7 +4,15 @@ Class for common interface to an input signal.
 from typing import Optional, Any
 
 import numpy as np
-from qspright.utils import fwht, gwht_tensored, igwht_tensored
+import random
+from src.qspright.utils import fwht, gwht_tensored, igwht_tensored
+
+
+def random_signal_strength_model(sparsity, a, b):
+    magnitude = np.random.uniform(a, b, sparsity)
+    phase = np.random.uniform(0, 2*np.pi, sparsity)
+    return magnitude * np.exp(1j*phase)
+
 
 class Signal:
     '''
@@ -48,13 +56,15 @@ class Signal:
 
 
     def _init_random(self, **kwargs):
-        self.loc = kwargs.get("loc")
-        self.sparsity = len(self.loc)
-        self.strengths = kwargs.get("strengths", np.ones_like(self.loc))
-        wht = np.zeros((self.N,), dtype=np.complex)
+        self.sparsity = kwargs.get("sparsity")
+        self.loc = random.sample(range(self.N), self.sparsity)
+        self.a = kwargs.get("a")
+        self.b = kwargs.get("b")
+        self.strengths = random_signal_strength_model(self.sparsity, self.a, self.b)
+        wht = np.zeros((self.N,), dtype=complex)
         for l, s in zip(self.loc, self.strengths):
             wht[l] = s
-        self._signal_w = wht + np.random.normal(0, self.noise_sd, size=(self.N, 2)).view(np.complex).reshape(self.N)
+        self._signal_w = wht + np.random.normal(0, self.noise_sd, (self.N,))
         self._signal_w = np.reshape(self._signal_w, [self.q] * self.n)
         if self.q == 2:
             self._signal_t = fwht(self._signal_w)
@@ -75,8 +85,6 @@ class Signal:
         return tuple([self.q for i in range(self.n)])
 
     '''
-    shape: returns the shape of the time domain signal.
-    
     Arguments
     ---------    
     inds: tuple of 1d n-element arrays that represent the indicies to be queried
