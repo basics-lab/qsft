@@ -86,7 +86,35 @@ class RNAHelper:
 
         return X
 
-    def calculate_rna_lasso(self, save=False):
+    def compute_rna_model(self, method, **kwargs):
+        if method == "householder":
+            return self._calculate_rna_householder(**kwargs)
+        elif method == "gwht":
+            return self._calculate_rna_gwht(**kwargs)
+        elif method == "qspright":
+            return self._calculate_rna_qspright(**kwargs)
+        elif method == "onehot_wht":
+            return self._calculate_rna_onehot_wht(**kwargs)
+        elif method == "onehot_spright":
+            return self._calculate_rna_onehot_spright(**kwargs)
+        else:
+            raise NotImplementedError()
+
+    def test_rna_model(self, method, **kwargs):
+        if method == "householder":
+            raise NotImplementedError()
+        elif method == "gwht":
+            raise NotImplementedError()
+        elif method == "qspright":
+            return self._test_rna_qspright(**kwargs)
+        elif method == "onehot_wht":
+            raise NotImplementedError()
+        elif method == "onehot_spright":
+            raise NotImplementedError()
+        else:
+            raise NotImplementedError()
+
+    def _calculate_rna_householder(self, save=False):
         """
         Calculates Fourier coefficients of the RNA fitness function. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -109,7 +137,7 @@ class RNAHelper:
             return beta
 
 
-    def calculate_rna_gwht(self, save=False):
+    def _calculate_rna_gwht(self, save=False):
         """
         Calculates GWHT coefficients of the RNA fitness function. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -128,7 +156,7 @@ class RNAHelper:
                 np.save("results/rna_beta_gwht.npy", beta)
             return beta
 
-    def calculate_rna_qspright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None, large=False):
+    def _calculate_rna_qspright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None, on_demand_comp=False):
         """
         Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -148,7 +176,7 @@ class RNAHelper:
             if noise_sd is None:
                 noise_sd = 300 / (q ** n)
 
-            if large:
+            if on_demand_comp:
                 signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
                                    positions=self.positions, parallel=True)
             else:
@@ -175,7 +203,6 @@ class RNAHelper:
                 np.save("results/rna_beta_qspright.npy", beta)
 
             return out
-
 
     # def convert_onehot(y):
     #     n = len(self.positions)
@@ -234,7 +261,7 @@ class RNAHelper:
         return np.reshape(y_oh_filled, [2 ** (n * q)])
 
 
-    def calculate_rna_onehot_wht(self, save=False):
+    def _calculate_rna_onehot_wht(self, save=False):
         """
         Calculates WHT coefficients of the one-hot RNA fitness function. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -255,7 +282,7 @@ class RNAHelper:
             return beta
 
 
-    def calculate_rna_onehot_spright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
+    def _calculate_rna_onehot_spright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
         """
         Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -300,3 +327,5 @@ class RNAHelper:
                 np.save("results/rna_beta_onehot_spright.npy", beta)
 
             return out
+
+    def _test_rna_qspright(self):
