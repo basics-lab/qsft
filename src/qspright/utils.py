@@ -8,6 +8,7 @@ from group_lasso import GroupLasso
 import itertools
 import math
 import random
+from scipy.spatial import ConvexHull
 
 def fwht(x):
     """Recursive implementation of the 1D Cooley-Tukey FFT"""
@@ -177,3 +178,17 @@ def lasso_decode(signal, sample_rate):
     non_zero = np.nonzero(w[:(N-1), 0])
     gwht = w[0:(N-1)] + 1j*w[N:(2*N-1)]
     return gwht, non_zero
+
+
+def best_convex_underestimator(points):
+    hull = ConvexHull(points)
+    vertices = points[hull.vertices]
+    first_point_idx = np.argmin(vertices[:, 0])
+    last_point_idx = np.argmax(vertices[:, 0])
+
+    if last_point_idx == vertices.shape[0]:
+        return vertices[first_point_idx:]
+    if first_point_idx < last_point_idx:
+        return vertices[first_point_idx:last_point_idx+1]
+    else:
+        return np.concatenate((vertices[first_point_idx:],vertices[:last_point_idx+1]))
