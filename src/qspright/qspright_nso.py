@@ -62,6 +62,7 @@ class QSPRIGHT:
         omega = np.exp(2j * np.pi / q)
         result = []
         gwht = np.zeros(signal.shape(), dtype=complex)
+        gwht_counts = np.zeros(signal.shape(), dtype=complex)
 
         if self.b is None:
             b = np.int(np.maximum(np.log(signal.sparsity) / np.log(q), 4))
@@ -99,9 +100,11 @@ class QSPRIGHT:
             if report:
                 used = np.concatenate([used, used_i], axis=1)
 
-        gamma = 0.2
+        gamma = 1
 
-        cutoff = 1e-10 + (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
+        cutoff = 1e-10 + 2 * (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
+        cutoff = kwargs.get("cutoff", cutoff)
+        print("cutoff = ", cutoff)
 
         if verbose:
             print("b = ", b)
@@ -221,8 +224,8 @@ class QSPRIGHT:
         for k, value in result: # iterating over (i, j)s
             idx = qary_vec_to_dec(k, q) # converting 'k's of singletons to decimals
             loc.add(idx)
-            # TODO average out noise
-            gwht[tuple(k)] = value
+            gwht[tuple(k)] = (gwht[tuple(k)] * gwht_counts[tuple(k)] + value) / (gwht_counts[tuple(k)] + 1)
+            gwht_counts[tuple(k)] += 1
 
         if not report:
             return gwht

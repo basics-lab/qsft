@@ -12,7 +12,7 @@ N = q ** n
 sparsity = 20
 a = 1
 b = 10
-noise_sd = 0
+noise_sd = 0.01
 
 test_signal = Signal(n=n, q=q, sparsity=sparsity, a=a, b=b, noise_sd=noise_sd)
 print("test signal generated")

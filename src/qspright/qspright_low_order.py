@@ -96,7 +96,7 @@ class QSPRIGHT:
             if report:
                 used = used.union(used_i)
 
-        cutoff = 1e-10 + 2 * signal.noise_sd ** 2 * (signal.q ** (signal.n - b)) * num_delays # noise threshold
+        cutoff = 1e-10 + 4 * signal.noise_sd ** 2 * (signal.q ** (signal.n - b)) * num_delays # noise threshold
 
 
         print("b = ", b)
