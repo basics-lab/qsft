@@ -19,6 +19,8 @@ class SignalRNA(Signal):
         self.parallel = kwargs.get("parallel")
         self.mean = -21.23934478693991
 
+        self.pool = Pool()
+
         nucs = ["A", "U", "C", "G"]
         seqs_as_list = list(itertools.product(nucs, repeat=len(self.positions)))
         self.seqs = np.array(["".join(s) for s in seqs_as_list])
@@ -30,9 +32,7 @@ class SignalRNA(Signal):
         if self.parallel:
 
             sub_seqs = self.seqs[inds_dec]
-
-            with Pool() as pool:
-                y = list(pool.imap(_calc_data_inst, zip(itertools.repeat(self.base_seq), itertools.repeat(self.positions), sub_seqs)))
+            y = list(self.pool.imap(_calc_data_inst, zip(itertools.repeat(self.base_seq), itertools.repeat(self.positions), sub_seqs)))
 
         else:
             y = []
