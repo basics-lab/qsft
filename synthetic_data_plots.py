@@ -32,5 +32,4 @@ if __name__ == '__main__':
     plt.xlabel("Sparsity Level")
     plt.ylabel("Fraction of Failures")
     plt.show()
-    print("Sample Rate:")
-    print(np.mean(result[:, 1]))
+

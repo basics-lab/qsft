@@ -17,4 +17,3 @@ def compute_point_qspright(sparsity, spright, config):
         n_fail += (np.sum(np.abs(signal._signal_w - gwht) ** 2) / np.sum(np.abs(signal._signal_w) ** 2)) > 0.1
         n_samples += n_used_unique
     return n_fail/n_points, n_samples/(n_points*(q ** n))
-
