@@ -177,7 +177,7 @@ def lasso_decode(signal, sample_rate):
     w = lasso.coef_
     non_zero = np.nonzero(w[:(N-1), 0])
     gwht = w[0:(N-1)] + 1j*w[N:(2*N-1)]
-    return gwht, non_zero
+    return np.reshape(gwht, [q] * n), non_zero
 
 
 def best_convex_underestimator(points):

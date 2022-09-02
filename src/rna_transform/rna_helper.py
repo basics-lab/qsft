@@ -7,6 +7,7 @@ from sklearn.linear_model import Lasso
 from multiprocessing import Pool
 
 import rna_transform.utils as utils
+from src.qspright.utils import lasso_decode
 from qspright.inputsignal import Signal
 from qspright.qspright_nso import QSPRIGHT
 from qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints
@@ -196,6 +197,45 @@ class RNAHelper:
             out = spright.transform(signal, verbose=False, report=report)
             if report:
                 beta, n_used, peeled = out
+            else:
+                beta = out
+
+            if verbose:
+                print("Found GWHT coefficients")
+            if save:
+                np.save("results/rna_beta_qspright.npy", beta)
+
+            return out
+
+    def _calculate_rna_lasso(self, save=False, report=False, noise_sd=None, verbose=False, on_demand_comp=False, sampling_rate=0.1):
+        """
+        Calculates GWHT coefficients of the RNA fitness function using LASSO. This will try to load them
+        from the results folder, but will otherwise calculate from scratch. If save=True,
+        then coefficients will be saved to the results folder.
+        """
+        try:
+            beta = np.load("results/rna_beta_LASSO.npy")
+            print("Loaded saved beta array for GWHT LASSO.")
+            return beta
+        except FileNotFoundError:
+            y = self.get_rna_data()
+            n = len(self.positions)
+            q = 4
+            if verbose:
+                print("Finding GWHT coefficients with LASSO")
+
+            if noise_sd is None:
+                noise_sd = 300 / (q ** n)
+
+            if on_demand_comp:
+                signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
+                                   positions=self.positions, parallel=True)
+            else:
+                signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
+
+            out = lasso_decode(signal, sampling_rate)
+            if report:
+                beta, peeled = out
             else:
                 beta = out
 
