@@ -25,7 +25,7 @@ spright = QSPRIGHT(
     b=3
 )
 
-gwht, (n_used, n_used_unique), peeled = spright.transform(test_signal, verbose=False, report=True)
+gwht, (n_used, n_used_unique, _), peeled = spright.transform(test_signal, verbose=False, report=True)
 gwht_lasso, non_zero = lasso_decode(test_signal, 0.30)
 
 print("found non-zero indices: ")

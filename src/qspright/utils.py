@@ -175,8 +175,8 @@ def lasso_decode(signal, sample_rate):
                        supress_warning=True)
     lasso.fit(X, y)
     w = lasso.coef_
-    non_zero = np.nonzero(w[:(N-1), 0])
-    gwht = w[0:(N-1)] + 1j*w[N:(2*N-1)]
+    non_zero = np.nonzero(w[:N, 0])
+    gwht = w[0:N] + 1j*w[N:(2*N)]
     return np.reshape(gwht, [q] * n), non_zero
 
 

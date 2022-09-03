@@ -4,6 +4,7 @@ import sys
 from src.qspright.qspright_nso import QSPRIGHT
 from itertools import repeat
 from compute_point import compute_point_qspright
+from compute_point import compute_point_lasso
 import matplotlib.pyplot as plt
 sys.path.append("./src/qspright/")
 np.random.seed(10)
@@ -28,8 +29,10 @@ if __name__ == '__main__':
     p = Pool()
     result = p.starmap(compute_point_qspright, zip(sparsities, repeat(spright), repeat(config)))
     result = np.array(result)
+    lasso_result = p.starmap(compute_point_lasso, zip(sparsities, repeat(0.3), repeat(config)))
+    p.close()
     plt.plot(sparsities, result[:, 0])
+    plt.plot(sparsities, lasso_result)
     plt.xlabel("Sparsity Level")
     plt.ylabel("Fraction of Failures")
     plt.show()
-
