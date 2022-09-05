@@ -216,6 +216,7 @@ class QSPRIGHT:
                         print(Us[peel[0]][:, peel[1]])
                         print("Peeled ball {0} off bin {1}".format(qary_vec_to_dec(k, q), peel))
                     Us[peel[0]][:, peel[1]] -= to_subtract
+
                 if verbose:
                     print("Iteration Complete: The peeled indicies are:")
                     print(np.sort(list(peeled)))

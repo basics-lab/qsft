@@ -93,5 +93,9 @@ class Signal:
     -------
     indices : linear output of the queried indicies
     '''
-    def get_time_domain(self, inds):
-        return self._signal_t[inds]
+    def get_time_domain(self, base_inds):
+        base_inds = np.array(base_inds)
+        if len(base_inds.shape) == 3:
+            return [self._signal_t[tuple(inds)] for inds in base_inds]
+        elif len(base_inds.shape) == 2:
+            return self._signal_t[tuple(base_inds)]

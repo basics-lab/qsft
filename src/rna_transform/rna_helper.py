@@ -53,6 +53,8 @@ class RNAHelper:
 
         np.save("results/rna_data.npy", np.array(y))
 
+        self.rna_data = np.array(y)
+
         return
 
 
