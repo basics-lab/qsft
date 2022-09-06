@@ -3,11 +3,13 @@ Utility functions.
 '''
 
 import numpy as np
-import scipy.fft as fft
+import mkl_fft._scipy_fft as fft
 from group_lasso import GroupLasso
+from sklearn.linear_model import Ridge
 import itertools
 import math
 import random
+import time
 from scipy.spatial import ConvexHull
 
 def fwht(x):
@@ -72,10 +74,10 @@ def qary_vec_to_dec(x, q):
     return np.array([q ** (n - (i + 1)) for i in range(n)]) @ np.array(x, dtype=int)
 
 
-def dec_to_qary_vec(x, q, n):
+def dec_to_qary_vec(x, q, n, dtype=int):
     qary_vec = []
     for i in range(n):
-        qary_vec.append(np.array([a // (q ** (n - (i + 1))) for a in x]))
+        qary_vec.append(np.array([a // (q ** (n - (i + 1))) for a in x], dtype=dtype))
         x = x - (q ** (n-(i + 1))) * qary_vec[i]
     return qary_vec
 
@@ -100,8 +102,8 @@ def binary_ints(m):
 def angle_q(x,q):
     return (((np.angle(x) % (2*np.pi) // (np.pi/q)) + 1) // 2) % q # Can be made much faster
 
-def qary_ints(m, q):
-    return np.array(list(itertools.product(np.arange(q), repeat=m))).T
+def qary_ints(m, q, dtype=int):
+    return np.array(list(itertools.product(np.arange(q), repeat=m)), dtype=dtype).T
 
 def comb(n, k):
     return math.factorial(n) // math.factorial(k) // math.factorial(n - k)
@@ -155,27 +157,45 @@ def flip(x):
     return np.bitwise_xor(x, 1)
 
 
-def lasso_decode(signal, sample_rate):
+def lasso_decode(signal, sample_rate, refine=False, verbose=False):
     q = signal.q
     n = signal.n
     N = q ** n
+    dtype = int if q*n > 255 else np.uint8
     n_samples = np.round(sample_rate*N).astype(int)
     sample_idx = random.sample(range(N), n_samples)
-    sample_idx = dec_to_qary_vec(sample_idx, q, n)
+    sample_idx = dec_to_qary_vec(sample_idx, q, n, dtype=dtype)
+    if verbose:
+        start_time = time.time()
+        print("Setting up LASSO problem")
     y = signal.get_time_domain(tuple(sample_idx))
     y = np.concatenate((np.real(y), np.imag(y)))
-    freqs = np.array(sample_idx).T @ qary_ints(n, q)
-    X = np.exp(2j*np.pi*freqs/q)
+    freqs = np.array(sample_idx).T @ qary_ints(n, q, dtype=dtype)
+    X = np.exp(2j*np.pi*freqs/q).astype(np.csingle)
+    freqs = 0
     X = np.concatenate((np.concatenate((np.real(X), -np.imag(X)), axis=1), np.concatenate((np.imag(X), np.real(X)), axis=1)))
     groups = [i % N for i in range(2*N)]
+    if verbose:
+        print(f"Setup Time:{time.time() - start_time}sec")
+        print("Running Iterations...")
+        start_time = time.time()
     lasso = GroupLasso(groups=groups,
                        group_reg=0.1,
                        l1_reg=0,
+                       tol=1e-2,
                        n_iter=1000,
-                       supress_warning=True)
+                       subsampling_scheme=1,
+                       supress_warning=True,
+                       fit_intercept=False)
     lasso.fit(X, y)
+    if verbose:
+        print(f"LASSO fit time:{time.time() - start_time}sec")
     w = lasso.coef_
-    non_zero = np.nonzero(w[:N, 0])
+    non_zero = np.nonzero(w[:N, 0])[0]
+    if refine:
+        ridge = Ridge(alpha=0.1, tol=1e-8)
+        ridge.fit(X[:, non_zero], y)
+        w[non_zero] = ridge.coef_[:, np.newaxis]
     gwht = w[0:N] + 1j*w[N:(2*N)]
     return np.reshape(gwht, [q] * n), non_zero
 
@@ -191,4 +211,4 @@ def best_convex_underestimator(points):
     if first_point_idx < last_point_idx:
         return vertices[first_point_idx:last_point_idx+1]
     else:
-        return np.concatenate((vertices[first_point_idx:],vertices[:last_point_idx+1]))
+        return np.concatenate((vertices[first_point_idx:], vertices[:last_point_idx+1]))
