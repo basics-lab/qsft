@@ -95,8 +95,8 @@ def _acc_test(i):
     unique_sample_ratio = n_used_unique / helper_obj.q ** helper_obj.n
 
     test_kwargs = {}
-    test_kwargs["beta"] = np.reshape(gwht, -1)
-    test_kwargs["on_demand_comp"] = False
+    test_kwargs["beta"] = gwht
+    test_kwargs["on_demand_comp"] = True
 
     acc = helper_obj.test_rna_model(method="qspright", **test_kwargs)
     return param_idx, sample_ratio, unique_sample_ratio, acc

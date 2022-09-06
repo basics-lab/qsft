@@ -9,7 +9,7 @@ from multiprocessing import Pool
 import rna_transform.utils as utils
 from src.qspright.utils import lasso_decode
 from qspright.inputsignal import Signal
-from qspright.qspright_nso import QSPRIGHT
+from qspright.qspright_sparse import QSPRIGHT
 from qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints
 from rna_transform.input_rna_signal import SignalRNA
 from rna_utils import  insert, dna_to_rna, get_rna_base_seq, _calc_data_inst
@@ -205,6 +205,7 @@ class RNAHelper:
             if verbose:
                 print("Found GWHT coefficients")
             if save:
+                # TODO fix the bug here (beta is no longer an array, it is a dict)
                 np.save("results/rna_beta_qspright.npy", beta)
 
             return out
@@ -373,16 +374,25 @@ class RNAHelper:
             return out
 
     def _test_rna_qspright(self, beta, test_sample_rate=0.01, on_demand_comp=False):
-        y = self.get_rna_data()
+        """
+        :param beta: estimated transform given in dict format
+        :param test_sample_rate:
+        :param on_demand_comp:
+        :return:
+        """
+
         n = len(self.positions)
         q = 4
         noise_sd = 300 / (q ** n)
         N = q**n
 
+        print("testing")
+
         if on_demand_comp:
             signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
                                positions=self.positions, parallel=True)
         else:
+            y = self.get_rna_data()
             signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
 
         n_samples = np.round(test_sample_rate * N).astype(int)
@@ -390,9 +400,15 @@ class RNAHelper:
         sample_idx = dec_to_qary_vec(sample_idx, q, n)
         y = signal.get_time_domain(tuple(sample_idx))
 
-        freqs = np.array(sample_idx).T @ qary_ints(n, q)
+        print("chkpt 2")
+
+        freqs = np.array(sample_idx).T @ np.array(list(beta.keys())).T
         H = np.exp(2j * np.pi * freqs / q)
 
-        y_hat = H @ beta
+        print("chkpt 3")
+
+        y_hat = H @ np.array(list(beta.values()))
+
+        print("chkpt 4")
 
         return np.linalg.norm(y_hat - y)**2 / np.linalg.norm(y)**2
