@@ -7,9 +7,6 @@ Methods for the query generator: specifically, to
 '''
 
 import numpy as np
-from multiprocessing import Pool
-import itertools
-import tqdm
 from src.qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
 
@@ -142,9 +139,6 @@ def subsample_indices(M, d):
 
 
 def compute_delayed_gwht(signal, M, D, q, parallel = True):
-
-    global signal_shared
-    signal_shared = signal
 
     b = M.shape[1]
     L = np.array(qary_ints(b, q))  # List of all length b qary vectors
