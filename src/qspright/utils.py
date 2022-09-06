@@ -161,7 +161,7 @@ def lasso_decode(signal, sample_rate, refine=False, verbose=False):
     q = signal.q
     n = signal.n
     N = q ** n
-    dtype = int if q*n > 255 else np.uint8
+    dtype = int if (q ** 2)*n > 255 else np.uint8
     n_samples = np.round(sample_rate*N).astype(int)
     sample_idx = random.sample(range(N), n_samples)
     sample_idx = dec_to_qary_vec(sample_idx, q, n, dtype=dtype)
