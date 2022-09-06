@@ -184,7 +184,6 @@ def lasso_decode(signal, sample_rate, refine=False, verbose=False):
                        l1_reg=0,
                        tol=1e-2,
                        n_iter=1000,
-                       subsampling_scheme=1,
                        supress_warning=True,
                        fit_intercept=False)
     lasso.fit(X, y)
