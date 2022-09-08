@@ -8,7 +8,7 @@ from src.qspright.utils import lasso_decode
 
 np.random.seed(10)
 q = 4
-n = 7
+n = 10
 N = q ** n
 sparsity = 200
 a = 1
@@ -28,12 +28,12 @@ spright = QSPRIGHT(
 start_time = time.time()
 gwht, (n_used, n_used_unique, _), peeled = spright.transform(test_signal, verbose=False, report=True)
 print(f"SPRIGHT Runtime:{time.time() - start_time}")
-gwht_lasso, non_zero = lasso_decode(test_signal, 0.3, refine=True, verbose=True)
+#gwht_lasso, non_zero = lasso_decode(test_signal, 0.3, refine=True, verbose=True)
 
 print("found non-zero indices SPRIGHT: ")
 print(np.sort(peeled))
 print("found non-zero indices LASSO: ")
-print(np.sort(non_zero))
+#print(np.sort(non_zero))
 print("true non-zero indices: ")
 print(np.sort(test_signal.loc))
 
@@ -41,4 +41,4 @@ print("total sample ratio = ", n_used / q ** n)
 print("unique sample ratio = ", n_used_unique / q ** n)
 
 print("NMSE SPRIGHT= ", np.sum(np.abs(test_signal._signal_w - gwht)**2) / np.sum(np.abs(test_signal._signal_w)**2))
-print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))
+#print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))

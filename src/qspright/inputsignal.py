@@ -95,6 +95,7 @@ class Signal:
     '''
     def get_time_domain(self, base_inds):
         base_inds = np.array(base_inds)
+        breakpoint()
         if len(base_inds.shape) == 3:
             return [self._signal_t[tuple(inds)] for inds in base_inds]
         elif len(base_inds.shape) == 2:

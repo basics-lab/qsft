@@ -4,7 +4,7 @@ import tqdm
 from src.qspright.reconstruct import singleton_detection
 from src.qspright.utils import bin_to_dec, qary_vec_to_dec
 from src.qspright.query import compute_delayed_gwht, get_Ms, get_D
-
+from src.qspright.input_signal_long import LongSignal
 
 class QSPRIGHT:
     """
@@ -88,10 +88,12 @@ class QSPRIGHT:
 
         used = np.zeros((n, 0))
         peeled = set([])
+        D = get_D(n, method=self.delays_method, num_delays=num_delays, q=q)
+        D = np.array(D)
+        if type(signal) == LongSignal:
+            signal.set_time_domain(Ms, D, b)
         # subsample with shifts [D], make the observation [U]
         for M in Ms:
-            D = get_D(n, method=self.delays_method, num_delays=num_delays, q=q)
-            D = np.array(D)
             if verbose:
                 print("------")
                 print("subsampling matrix")

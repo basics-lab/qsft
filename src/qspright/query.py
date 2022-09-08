@@ -139,11 +139,9 @@ def subsample_indices(M, d):
 
 
 def compute_delayed_gwht(signal, M, D, q, parallel = True):
-
     b = M.shape[1]
     L = np.array(qary_ints(b, q))  # List of all length b qary vectors
     base_inds = [(M @ L + np.outer(d, np.ones(q ** b, dtype=int))) % q for d in D]
-    base_inds_dec = [qary_vec_to_dec(A, q) for A in base_inds]
     used_inds = np.swapaxes(np.array(base_inds), 0, 1)
     used_inds = np.reshape(used_inds, (used_inds.shape[0], -1))
     samples_to_transform = signal.get_time_domain(base_inds)
