@@ -5,6 +5,7 @@ from src.qspright.reconstruct import singleton_detection
 from src.qspright.utils import bin_to_dec, qary_vec_to_dec
 from src.qspright.query import compute_delayed_gwht, get_Ms, get_D
 from src.qspright.input_signal_long import LongSignal
+from src.rna_transform.input_rna_signal_long import SignalRNA
 
 class QSPRIGHT:
     """
@@ -90,8 +91,10 @@ class QSPRIGHT:
         peeled = set([])
         D = get_D(n, method=self.delays_method, num_delays=num_delays, q=q)
         D = np.array(D)
-        if type(signal) == LongSignal:
+
+        if type(signal) == LongSignal or type(signal) == SignalRNA:
             signal.set_time_domain(Ms, D, b)
+
         # subsample with shifts [D], make the observation [U]
         for M in Ms:
             if verbose:
@@ -106,7 +109,7 @@ class QSPRIGHT:
             if report:
                 used = np.concatenate([used, used_i], axis=1)
 
-        gamma = 1
+        gamma = 1.5
 
         cutoff = 1e-7 + 2 * (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)

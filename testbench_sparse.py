@@ -8,12 +8,12 @@ from src.qspright.input_signal_long import LongSignal
 from src.qspright.utils import lasso_decode, qary_vec_to_dec
 
 np.random.seed(10)
-q = 10
-n = 60
+q = 4
+n = 20
 N = q ** n
-sparsity = 60
+sparsity = 1000
 a = 1
-b = 10
+b = 6
 noise_sd = 0
 
 test_signal = LongSignal(n=n, q=q, sparsity=sparsity, a=a, b=b, noise_sd=noise_sd)
@@ -24,7 +24,7 @@ spright = QSPRIGHT(
     delays_method="identity",
     reconstruct_method="noiseless",
     num_subsample=3,
-    b=3
+    b=b
 )
 
 gwht, (n_used, n_used_unique, _), peeled = spright.transform(test_signal, verbose=False, report=True)

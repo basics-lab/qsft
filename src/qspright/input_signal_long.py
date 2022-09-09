@@ -7,6 +7,7 @@ from src.qspright.utils import qary_vec_to_dec, qary_ints
 import numpy as np
 import random
 from src.qspright.utils import fwht, gwht_tensored, igwht_tensored
+
 class LongSignal(Signal):
 
     def _init_random(self, **kwargs):

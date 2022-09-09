@@ -6,13 +6,13 @@ from tqdm import tqdm
 from sklearn.linear_model import Lasso
 from multiprocessing import Pool
 
-import rna_transform.utils as utils
+import src.rna_transform.utils as utils
 from src.qspright.utils import lasso_decode
-from qspright.inputsignal import Signal
-from qspright.qspright_sparse import QSPRIGHT
-from qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints
-from rna_transform.input_rna_signal import SignalRNA
-from rna_utils import  insert, dna_to_rna, get_rna_base_seq, _calc_data_inst
+from src.qspright.inputsignal import Signal
+from src.qspright.qspright_sparse import QSPRIGHT
+from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints
+from src.rna_transform.input_rna_signal_long import SignalRNA
+from src.rna_transform.rna_utils import  insert, dna_to_rna, get_rna_base_seq, _calc_data_inst
 
 
 class RNAHelper:
@@ -161,7 +161,7 @@ class RNAHelper:
                 np.save("results/rna_beta_gwht.npy", beta)
             return beta
 
-    def _calculate_rna_qspright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None, on_demand_comp=False):
+    def _calculate_rna_qspright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None, sampling_method="full"):
         """
         Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -172,7 +172,6 @@ class RNAHelper:
             print("Loaded saved beta array for GWHT QSPRIGHT.")
             return beta
         except FileNotFoundError:
-            y = self.get_rna_data()
             n = len(self.positions)
             q = 4
             if verbose:
@@ -181,11 +180,11 @@ class RNAHelper:
             if noise_sd is None:
                 noise_sd = 300 / (q ** n)
 
-            if on_demand_comp:
+            if sampling_method == "full":
+                signal = Signal(n=n, q=q, signal=self.get_rna_data() , noise_sd=noise_sd)
+            elif sampling_method == "partial":
                 signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
                                    positions=self.positions, parallel=True)
-            else:
-                signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
 
             spright = QSPRIGHT(
                 query_method="complex",
@@ -373,11 +372,11 @@ class RNAHelper:
 
             return out
 
-    def _test_rna_qspright(self, beta, test_sample_rate=0.01, on_demand_comp=False):
+    def _test_rna_qspright(self, beta, n_samples=10000, sampling_method = "full"):
         """
-        :param beta: estimated transform given in dict format
+        :param beta:
         :param test_sample_rate:
-        :param on_demand_comp:
+        :param sampling_method:
         :return:
         """
 
@@ -388,27 +387,21 @@ class RNAHelper:
 
         print("testing")
 
-        if on_demand_comp:
+        if sampling_method == "full":
+            signal = Signal(n=n, q=q, signal=self.get_rna_data() , noise_sd=noise_sd)
+        elif sampling_method == "partial":
             signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
                                positions=self.positions, parallel=True)
-        else:
-            y = self.get_rna_data()
-            signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
 
-        n_samples = np.round(test_sample_rate * N).astype(int)
+        n_samples = np.minimum(n_samples, N)
         sample_idx = random.sample(range(N), n_samples)
         sample_idx = dec_to_qary_vec(sample_idx, q, n)
-        y = signal.get_time_domain(tuple(sample_idx))
 
-        print("chkpt 2")
+        signal.sample(np.array(sample_idx))
+        y = signal.get_time_domain(sample_idx)
 
         freqs = np.array(sample_idx).T @ np.array(list(beta.keys())).T
         H = np.exp(2j * np.pi * freqs / q)
-
-        print("chkpt 3")
-
         y_hat = H @ np.array(list(beta.values()))
-
-        print("chkpt 4")
 
         return np.linalg.norm(y_hat - y)**2 / np.linalg.norm(y)**2

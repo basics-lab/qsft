@@ -102,11 +102,9 @@ def find_pairs(ss):
 
 
 def _calc_data_inst(args):
-    base_seq, positions, s = args
-    full = insert(base_seq, positions, s)
+    sample_index, full = args
     (ss, mfe) = RNA.fold(full)
-    return mfe
-
+    return (sample_index, mfe)
 
 
 '''
