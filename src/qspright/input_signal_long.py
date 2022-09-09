@@ -8,6 +8,7 @@ import numpy as np
 from multiprocessing import Pool
 import random
 from src.qspright.utils import fwht, gwht_tensored, igwht_tensored
+
 class LongSignal(Signal):
 
     def _init_random(self, **kwargs):

@@ -14,12 +14,12 @@ def _nmse_test(i):
     # set model arguments
     model_kwargs = {}
     model_kwargs["save"] = False
-    model_kwargs["noise_sd"] = 800 / (helper_obj.q ** helper_obj.n)
+    model_kwargs["noise_sd"] = 2000 / (helper_obj.q ** helper_obj.n)
     model_kwargs["report"] = True
     model_kwargs["num_subsample"] = num_subsample
     model_kwargs["num_random_delays"] = num_random_delays
     model_kwargs["b"] = b
-    model_kwargs["on_demand_comp"] = False
+    model_kwargs["sampling_method"] = "full"
 
     gwht, (n_used, n_used_unique, used_unique), peeled = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
     emp_beta_qspright = np.reshape(gwht, -1)
@@ -79,12 +79,12 @@ def _acc_test(i):
     # set model arguments
     model_kwargs = {}
     model_kwargs["save"] = False
-    model_kwargs["noise_sd"] = 800 / (helper_obj.q ** helper_obj.n)
+    model_kwargs["noise_sd"] = 2000 / (helper_obj.q ** helper_obj.n)
     model_kwargs["report"] = True
     model_kwargs["num_subsample"] = num_subsample
     model_kwargs["num_random_delays"] = num_random_delays
     model_kwargs["b"] = b
-    model_kwargs["on_demand_comp"] = True
+    model_kwargs["sampling_method"] = "partial"
 
     gwht, (n_used, n_used_unique, used_unique), peeled = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
 
@@ -96,7 +96,7 @@ def _acc_test(i):
 
     test_kwargs = {}
     test_kwargs["beta"] = gwht
-    test_kwargs["on_demand_comp"] = True
+    test_kwargs["sampling_method"] = "partial"
 
     acc = helper_obj.test_rna_model(method="qspright", **test_kwargs)
     return param_idx, sample_ratio, unique_sample_ratio, acc

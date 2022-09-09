@@ -98,7 +98,7 @@ class QSPRIGHT:
         if timing_verbose:
             print(f"D Generation:{time.time() - start_time}")
             start_time = time.time()
-        if type(signal) == LongSignal:
+        if type(signal) == LongSignal or type(signal) == SignalRNA:
             signal.set_time_domain(Ms, D, b)
         if timing_verbose:
             print(f"Signal Sampling:{time.time() - start_time}")
@@ -119,7 +119,7 @@ class QSPRIGHT:
         if timing_verbose:
             print(f"Fourier Transformation Total Time:{time.time() - start_time}")
             start_time = time.time()
-        gamma = 1
+        gamma = 1.5
 
         cutoff = 1e-7 + 2 * (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
