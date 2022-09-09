@@ -37,7 +37,7 @@ class QSPRIGHT:
         self.num_random_delays = kwargs.get("num_random_delays")
         self.b = kwargs.get("b")
 
-    def transform(self, signal, verbose=False, report=False, **kwargs):
+    def transform(self, signal, verbose=False, report=False, timing_verbose=False, **kwargs):
         '''
         Full SPRIGHT encoding and decoding. Implements Algorithms 1 and 2 from [2].
         (numbers) in the comments indicate equation numbers in [2].
@@ -74,8 +74,11 @@ class QSPRIGHT:
             b = self.b
 
         peeling_max = q ** n
-
+        if timing_verbose:
+            start_time = time.time()
         Ms = get_Ms(n, b, q, method=self.query_method, num_to_get=self.num_subsample)
+        if timing_verbose:
+            print(f"M Generation:{time.time() - start_time}")
         Us = []
         Ds = []
 
@@ -88,10 +91,18 @@ class QSPRIGHT:
 
         used = np.zeros((n, 0))
         peeled = set([])
+        if timing_verbose:
+            start_time = time.time()
         D = get_D(n, method=self.delays_method, num_delays=num_delays, q=q)
         D = np.array(D)
+        if timing_verbose:
+            print(f"D Generation:{time.time() - start_time}")
+            start_time = time.time()
         if type(signal) == LongSignal:
             signal.set_time_domain(Ms, D, b)
+        if timing_verbose:
+            print(f"Signal Sampling:{time.time() - start_time}")
+            start_time = time.time()
         # subsample with shifts [D], make the observation [U]
         for M in Ms:
             if verbose:
@@ -105,7 +116,9 @@ class QSPRIGHT:
             Us.append(U)
             if report:
                 used = np.concatenate([used, used_i], axis=1)
-
+        if timing_verbose:
+            print(f"Fourier Transformation Total Time:{time.time() - start_time}")
+            start_time = time.time()
         gamma = 1
 
         cutoff = 1e-7 + 2 * (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
@@ -129,6 +142,8 @@ class QSPRIGHT:
         max_iter = 20
         iter_step = 0
         cont_peeling = True
+        if timing_verbose:
+            start_time = time.time()
         while cont_peeling and num_peeling < peeling_max and iter_step < max_iter:
             iter_step += 1
             if verbose:
@@ -238,7 +253,8 @@ class QSPRIGHT:
             else:
                 gwht[tuple(k)] = value
                 gwht_counts[tuple(k)] = 1
-
+        if timing_verbose:
+            print(f"Peeling Time:{time.time() - start_time}")
         if not report:
             return gwht
         else:

@@ -5,6 +5,7 @@ from src.qspright.inputsignal import Signal
 from src.qspright.inputsignal import random_signal_strength_model
 from src.qspright.utils import qary_vec_to_dec, qary_ints
 import numpy as np
+from multiprocessing import Pool
 import random
 from src.qspright.utils import fwht, gwht_tensored, igwht_tensored
 class LongSignal(Signal):
@@ -20,21 +21,23 @@ class LongSignal(Signal):
         for i in range(self.locq.shape[1]):
             self._signal_w[tuple(self.locq[:, i])] = self.strengths[i]
 
-    def set_time_domain(self, Ms, D, logB):
+    def set_time_domain(self, Ms, D, logB, parallel=False):
         self.logB = logB
+        self.Ms = Ms
         self.L = np.array(qary_ints(logB, self.q))  # List of all length b qary vectors
         for i in range(D.shape[0]):
-            self.set_time_domain_d(Ms, D[i, :])
+            self.set_time_domain_d(D[i, :])
 
-    def set_time_domain_d(self, Ms, d):
-        base_inds = [((M @ self.L) + np.outer(d, np.ones(self.q ** self.logB, dtype=int))) % self.q for M in Ms]
+    def set_time_domain_d(self, d):
+        base_inds = [((M @ self.L) + np.outer(d, np.ones(self.q ** self.logB, dtype=int))) % self.q for M in self.Ms]
         freqs = [k.T @ self.locq for k in base_inds]
         samples = [np.exp(2j*np.pi*freq/self.q) @ self.strengths for freq in freqs]
-        for i in range(len(Ms)):
+        for i in range(len(self.Ms)):
             sample = samples[i]
             K = base_inds[i]
             for j in range(self.q ** self.logB):
-                self._signal_t[tuple(K[:, j])] = sample[j]
+                self._signal_t[tuple(K[:, j])] = sample[j] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
+                                                                                            size=(1, 2)).view(np.cdouble)
 
     def get_time_domain(self, base_inds):
         base_inds = np.array(base_inds)
@@ -46,5 +49,4 @@ class LongSignal(Signal):
             return np.array([self._signal_t[tup] for tup in sample_array])
 
     def get_nonzero_locations(self):
-        for i in range(self.sparsity):
-            return qary_vec_to_dec(self.locq, self.q)
+        return qary_vec_to_dec(self.locq, self.q)
