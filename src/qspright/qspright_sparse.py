@@ -99,8 +99,6 @@ class QSPRIGHT:
         if self.delays_method == "nso":
             D = np.vstack(D)
 
-        print(D.shape)
-
         if timing_verbose:
             print(f"D Generation:{time.time() - start_time}")
             start_time = time.time()
@@ -164,7 +162,6 @@ class QSPRIGHT:
             for i, (U, D) in enumerate(zip(Us, Ds)):
                 for j, col in enumerate(U.T):
                     if np.linalg.norm(col) ** 2 > cutoff * len(col):
-
                         k = singleton_detection(
                             col,
                             method=self.reconstruct_method,
