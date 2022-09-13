@@ -89,11 +89,11 @@ def get_D_nso(n, **kwargs):
     q=kwargs.get("q")
     p1 = num_delays // (n + 1) # is this what we want?
     random_offsets = get_D_random(n, q=q, num_delays=p1)
-    D = np.empty((0, n), dtype=int)
+    D = []
     identity_like = get_D_identity(n)
     for row in random_offsets:
         modulated_offsets = (row - identity_like) % q
-        D = np.vstack((D, modulated_offsets))
+        D.append(modulated_offsets)
     return D
     
 def get_D(n, method="random", **kwargs):

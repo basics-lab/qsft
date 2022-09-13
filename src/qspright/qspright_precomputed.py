@@ -3,9 +3,7 @@ import numpy as np
 import tqdm
 from src.qspright.reconstruct import singleton_detection
 from src.qspright.utils import bin_to_dec, qary_vec_to_dec
-from src.qspright.query import compute_delayed_gwht, get_Ms, get_D
-from src.qspright.input_signal_long import LongSignal
-from src.rna_transform.input_rna_signal_long import SignalRNA
+from src.qspright.input_signal_precomputed import PrecomputedSignal
 
 class QSPRIGHT:
     """
@@ -30,15 +28,13 @@ class QSPRIGHT:
         "noiseless" : decode according to [2], section 4.2, with the assumption the signal is noiseless.
         "mle" : naive noisy decoding; decode by taking the maximum-likelihood singleton that could be at that bin.
     """
-    def __init__(self, query_method, delays_method, reconstruct_method, **kwargs):
-        self.query_method = query_method
-        self.delays_method = delays_method
+    def __init__(self, reconstruct_method, **kwargs):
         self.reconstruct_method = reconstruct_method
         self.num_subsample = kwargs.get("num_subsample")
         self.num_random_delays = kwargs.get("num_random_delays")
         self.b = kwargs.get("b")
 
-    def transform(self, signal, verbose=False, report=False, timing_verbose=False, **kwargs):
+    def transform(self, signal : PrecomputedSignal, verbose=False, report=False, timing_verbose=False, **kwargs):
         '''
         Full SPRIGHT encoding and decoding. Implements Algorithms 1 and 2 from [2].
         (numbers) in the comments indicate equation numbers in [2].
@@ -60,72 +56,25 @@ class QSPRIGHT:
         num_peeling = 0
         q = signal.q
         n = signal.n
+
         omega = np.exp(2j * np.pi / q)
         result = []
 
         gwht = {}
         gwht_counts = {}
 
-        # gwht = np.zeros(signal.shape(), dtype=complex)
-        # gwht_counts = np.zeros(signal.shape(), dtype=complex)
-
-        if self.b is None:
-            b = np.int(np.maximum(np.log(signal.sparsity) / np.log(q), 4))
-        else:
-            b = self.b
-
         peeling_max = q ** n
-        if timing_verbose:
-            start_time = time.time()
-        Ms = get_Ms(n, b, q, method=self.query_method, num_to_get=self.num_subsample)
-        if timing_verbose:
-            print(f"M Generation:{time.time() - start_time}")
-        Us = []
-        Ds = []
-
-        if self.delays_method == "identity":
-            num_delays = n + 1
-        elif self.delays_method == "nso":
-            num_delays = self.num_random_delays * (n + 1)
-        else:
-            num_delays = self.num_random_delays
-
-        used = np.zeros((n, 0))
         peeled = set([])
-        if timing_verbose:
-            start_time = time.time()
-        D = get_D(n, method=self.delays_method, num_delays=num_delays, q=q)
 
-        if self.delays_method == "nso":
-            D = np.vstack(D)
+        b = self.b
 
-        print(D.shape)
-
-        if timing_verbose:
-            print(f"D Generation:{time.time() - start_time}")
-            start_time = time.time()
-        if type(signal) == LongSignal or type(signal) == SignalRNA:
-            signal.set_time_domain(Ms, D, b)
-        if timing_verbose:
-            print(f"Signal Sampling:{time.time() - start_time}")
-            start_time = time.time()
-        # subsample with shifts [D], make the observation [U]
-        for M in Ms:
-            if verbose:
-                print("------")
-                print("subsampling matrix")
-                print(M)
-                print("delay matrix")
-                print(D)
-            Ds.append(D)
-            U, used_i = compute_delayed_gwht(signal, M, D, q)
-            Us.append(U)
-            if report:
-                used = np.concatenate([used, used_i], axis=1)
-        if timing_verbose:
-            print(f"Fourier Transformation Total Time:{time.time() - start_time}")
-            start_time = time.time()
         gamma = 1.5
+
+        Ms, Ds, Us, used = signal.get_MDU(self.num_subsample, self.num_random_delays)
+
+        for i in range(len(Ds)):
+            Us[i] = np.vstack(Us[i])
+            Ds[i] = np.vstack(Ds[i])
 
         cutoff = 1e-7 + 2 * (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)

@@ -222,6 +222,9 @@ class QSPRIGHT:
                     print("Iteration Complete: The peeled indicies are:")
                     print(np.sort(list(peeled)))
 
+            if num_peeling < 1: # check if anything is peeled yet. If not, increase the cutoff value
+                cutoff = cutoff * 2
+
         loc = set()
         for k, value in result: # iterating over (i, j)s
             idx = qary_vec_to_dec(k, q) # converting 'k's of singletons to decimals
