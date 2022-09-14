@@ -173,14 +173,8 @@ def get_Ms_and_Ds(n, q, **kwargs):
     D = get_D(n, method=delays_method, num_delays=num_delays, q=q)
     if timing_verbose:
         print(f"D Generation:{time.time() - start_time}")
-        start_time = time.time()
-    if timing_verbose:
-        print(f"Signal Sampling:{time.time() - start_time}")
-        start_time = time.time()
     for M in Ms:
         Ds.append(D)
-    if timing_verbose:
-        print(f"Fourier Transformation Total Time:{time.time() - start_time}")
     return Ms, Ds
 
 def compute_delayed_wht(signal, M, D):

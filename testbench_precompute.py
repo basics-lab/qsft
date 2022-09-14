@@ -4,11 +4,11 @@ import sys
 sys.path.append("./src/qspright/")
 from src.qspright.qspright_precomputed import QSPRIGHT
 from src.qspright.input_signal_precomputed import PrecomputedSignal
-
+from src.rna_transform.input_rna_signal_precomputed import PrecomputedSignalRNA
 if __name__ == '__main__':
     np.random.seed(10)
     q = 4
-    n = 20
+    n = 10
     N = q ** n
     sparsity = 200
     a_min = 1
@@ -35,6 +35,18 @@ if __name__ == '__main__':
                                     query_args=query_args)
 
     """
+    The PrecomputeSignalRNA Class is only slightly different from the standard PrecomputedSignal Class, If constructed without 
+    the signal keyword argument, the PrecomputedSignalRNA object is intenaded to be used to save samples. When the 
+    .sample() function is called, it will be use the ViennaRNA package to generate the data, with subsampling patten 
+    chosen based on the query args. Note that you must include the positions argument, which should be a list of
+    integers < q ** n of length n
+    """
+    test_signal_RNA = PrecomputedSignalRNA(n=n,
+                                           q=q,
+                                           noise_sd=noise_sd,
+                                           positions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                                           query_args=query_args)
+    """
     subsample() computes the subsamples and saves the output into a folder "foldername". By default, for each M matrix, a 
     .pickle file is saved, representing all the samples corresponding to that M
     all_b - If you want to save sampling patterns for b >=2 up to the value of b passed in the construction
@@ -44,7 +56,7 @@ if __name__ == '__main__':
     subsample_nosave() should work as well, and should be faster? (not tested)
     """
     test_signal.subsample(foldername="test1", all_b=True, save_locally=True)
-
+    test_signal_RNA.subsample(foldername="test_RNA", all_b=False)
     """
     If you have set save_locally = True, or you ran subsample_nosave(), you can still save all the subsampled entries in
     a single file
@@ -62,7 +74,7 @@ if __name__ == '__main__':
     the case, the b value must not be provided (and b is inferred from the saved Ms).
     """
     test_signal = PrecomputedSignal(signal="test1",
-                                    M_select=[True, False, True, True, False],
+                                    M_select=[True, True, True, True, True],
                                     noise_sd=noise_sd,
                                     transform="saved_tf.pickle",
                                     b=4)
@@ -102,4 +114,4 @@ if __name__ == '__main__':
     print("NMSE SPRIGHT= ",
           np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal._signal_w.values())) ** 2))
 
-    # print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))
+    #print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))
