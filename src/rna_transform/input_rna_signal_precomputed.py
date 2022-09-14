@@ -52,7 +52,7 @@ class PrecomputedSignalRNA(PrecomputedSignal):
                         seq = seq + self.nucs[nuc_idx]
                     full = insert(self.base_seq, self.positions, seq)
                     (ss, mfe) = RNA.fold(full)
-                    signal_t[tuple(base_inds[i][j][:, r])] = mfe - self.mean
+                    signal_t[tuple(base_inds[i][j][:, r])] = np.csingle(mfe - self.mean)
         filename = f"{foldername}/M{idx}_b{b_i}.pickle" if all_b else f"{foldername}/M{idx}.pickle"
         with open(filename, 'wb') as f:
             pickle.dump((M, D, self.q, signal_t), f)

@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     """
     The PrecomputeSignalRNA Class is only slightly different from the standard PrecomputedSignal Class, If constructed without 
-    the signal keyword argument, the PrecomputedSignalRNA object is intenaded to be used to save samples. When the 
+    the signal keyword argument, the PrecomputedSignalRNA object is intended to be used to save samples. When the 
     .sample() function is called, it will be use the ViennaRNA package to generate the data, with subsampling patten 
     chosen based on the query args. Note that you must include the positions argument, which should be a list of
     integers < q ** n of length n

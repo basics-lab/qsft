@@ -87,8 +87,8 @@ class PrecomputedSignal(LongSignal):
                             pickle.dump((M[:, (self.b - b_i):], D, self.q, signal_t), f)
                         f.close()
                         b_i += 1
-                    signal_t[tuple(base_inds[i][j][:, r])] = samples[i][j][r] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
-                                                                                            size=(1, 2)).view(np.cdouble)
+                    signal_t[tuple(base_inds[i][j][:, r])] = np.csingle(samples[i][j][r] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
+                                                                                        size=(1, 2)).view(np.cdouble))
         filename = f"{foldername}/M{idx}_b{b_i}.pickle" if all_b else f"{foldername}/M{idx}.pickle"
         with open(filename, 'wb') as f:
             pickle.dump((M, D, self.q, signal_t), f)
