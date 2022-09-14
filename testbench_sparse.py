@@ -2,7 +2,6 @@ import numpy as np
 import sys
 sys.path.append("./src/qspright/")
 from src.qspright.qspright_sparse import QSPRIGHT
-from src.qspright.input_signal_long import LongSignal
 from src.qspright.utils import lasso_decode, qary_vec_to_dec
 
 if __name__ == '__main__':
@@ -15,7 +14,7 @@ if __name__ == '__main__':
     b = 10
     noise_sd = 1e-5
 
-    test_signal = LongSignal(n=n, q=q, sparsity=sparsity, a=a, b=b, noise_sd=noise_sd)
+    test_signal = Signal(n=n, q=q, sparsity=sparsity, a=a, b=b, noise_sd=noise_sd)
     print("test signal generated")
 
     spright = QSPRIGHT(

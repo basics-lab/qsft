@@ -5,7 +5,7 @@ Methods for the query generator: specifically, to
 2. get the indices of a signal subsample
 3. compute a subsampled and delayed Walsh-Hadamard transform.
 '''
-
+import time
 import numpy as np
 from src.qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 
@@ -149,6 +149,39 @@ def compute_delayed_gwht(signal, M, D, q, parallel = True):
 
     return transform, used_inds
 
+def get_Ms_and_Ds(n, q, **kwargs):
+    query_method = kwargs.get("query_method")
+    delays_method = kwargs.get("delays_method")
+    num_subsample = kwargs.get("num_subsample")
+    num_random_delays = kwargs.get("num_random_delays")
+    b = kwargs.get("b")
+    timing_verbose = kwargs.get("timing_verbose", True)
+    if timing_verbose:
+        start_time = time.time()
+    Ms = get_Ms(n, b, q, method=query_method, num_to_get=num_subsample)
+    if timing_verbose:
+        print(f"M Generation:{time.time() - start_time}")
+    Ds = []
+    if delays_method == "identity":
+        num_delays = n + 1
+    elif delays_method == "nso":
+        num_delays = num_random_delays * (n + 1)
+    else:
+        num_delays = num_random_delays
+    if timing_verbose:
+        start_time = time.time()
+    D = get_D(n, method=delays_method, num_delays=num_delays, q=q)
+    if timing_verbose:
+        print(f"D Generation:{time.time() - start_time}")
+        start_time = time.time()
+    if timing_verbose:
+        print(f"Signal Sampling:{time.time() - start_time}")
+        start_time = time.time()
+    for M in Ms:
+        Ds.append(D)
+    if timing_verbose:
+        print(f"Fourier Transformation Total Time:{time.time() - start_time}")
+    return Ms, Ds
 
 def compute_delayed_wht(signal, M, D):
     '''

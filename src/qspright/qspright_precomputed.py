@@ -3,8 +3,8 @@ import numpy as np
 import tqdm
 from src.qspright.reconstruct import singleton_detection
 from src.qspright.utils import bin_to_dec, qary_vec_to_dec
-from src.qspright.input_signal_precomputed import PrecomputedSignal
-
+from src.qspright.input_signal_long import LongSignal
+from src.qspright.query import compute_delayed_gwht
 class QSPRIGHT:
     """
     Class to store encoder/decoder configurations and carry out encoding/decoding.
@@ -34,7 +34,7 @@ class QSPRIGHT:
         self.num_random_delays = kwargs.get("num_random_delays")
         self.b = kwargs.get("b")
 
-    def transform(self, signal : PrecomputedSignal, verbose=False, report=False, timing_verbose=False, **kwargs):
+    def transform(self, signal : LongSignal, verbose=False, report=False, timing_verbose=False, **kwargs):
         '''
         Full SPRIGHT encoding and decoding. Implements Algorithms 1 and 2 from [2].
         (numbers) in the comments indicate equation numbers in [2].
@@ -70,8 +70,25 @@ class QSPRIGHT:
 
         gamma = 1.5
 
-        Ms, Ds, Us, used = signal.get_MDU(self.num_subsample, self.num_random_delays)
-
+        Ms, Ds = signal.get_MD(self.num_subsample, self.num_random_delays)
+        Us = []
+        used = []
+        # subsample with shifts [D], make the observation [U]
+        for (M, D) in zip(Ms, Ds):
+            if verbose:
+                print("------")
+                print("subsampling matrix")
+                print(M)
+                print("delay matrix")
+                print(D)
+            U = []
+            used_sub = []
+            for D_sub in D:
+                U_sub, used_i = compute_delayed_gwht(signal, M, D_sub, q)
+                U.append(U_sub)
+                used_sub.append(used_i)
+            Us.append(U)
+            used.append(used_sub)
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
             Ds[i] = np.vstack(Ds[i])

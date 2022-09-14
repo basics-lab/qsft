@@ -1,10 +1,10 @@
-from qspright.inputsignal import Signal
-from rna_transform.rna_utils import insert
+from src.qspright.inputsignal import Signal
+from src.rna_transform.rna_utils import insert
 import numpy as np
 import RNA
-from qspright.utils import qary_vec_to_dec
+from src.qspright.utils import qary_vec_to_dec
 import itertools
-from rna_transform.rna_utils import _calc_data_inst
+from src.rna_transform.rna_utils import _calc_data_inst
 from multiprocessing import Pool
 from tqdm import tqdm
 from functools import partial

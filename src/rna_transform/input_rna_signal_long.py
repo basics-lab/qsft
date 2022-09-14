@@ -7,10 +7,10 @@ from src.qspright.utils import qary_vec_to_dec, qary_ints
 import numpy as np
 import random
 from src.qspright.utils import fwht, gwht_tensored, igwht_tensored
-from rna_transform.rna_utils import insert
+from src.rna_transform.rna_utils import insert
 import RNA
 import itertools
-from rna_transform.rna_utils import _calc_data_inst
+from src.rna_transform.rna_utils import _calc_data_inst
 from multiprocessing import Pool
 from tqdm import tqdm
 from functools import partial

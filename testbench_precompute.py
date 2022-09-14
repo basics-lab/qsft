@@ -13,11 +13,8 @@ if __name__ == '__main__':
     sparsity = 200
     a_min = 1
     a_max = 10
-    b = 6
+    b = 4
     noise_sd = 1e-5
-
-    test_signal = PrecomputedSignal(n=n, q=q, sparsity=sparsity, a_min=a_min, a_max=a_max, noise_sd=noise_sd)
-
     query_args = {
         "query_method": "complex",
         "delays_method": "nso",
@@ -26,9 +23,20 @@ if __name__ == '__main__':
         "b": b
     }
 
-    test_signal.subsample(**query_args)
+    test_signal = PrecomputedSignal(n=n,
+                                    q=q,
+                                    sparsity=sparsity,
+                                    a_min=a_min,
+                                    a_max=a_max,
+                                    noise_sd=noise_sd,
+                                    query_args=query_args)
 
+    test_signal.subsample()
+    test_signal.save_signal("saved_signal.pickle")
+    test_signal.save_transform("saved_tf.pickle")
     print("test signal generated")
+    test_signal = 0
+    test_signal = PrecomputedSignal(signal="saved_signal.pickle", noise_sd=noise_sd, transform="saved_tf.pickle")
 
     qspright_args = {
         "num_subsample": 3,

@@ -4,7 +4,6 @@ import tqdm
 from src.qspright.reconstruct import singleton_detection
 from src.qspright.utils import bin_to_dec, qary_vec_to_dec
 from src.qspright.query import compute_delayed_gwht, get_Ms, get_D
-from src.qspright.input_signal_long import LongSignal
 from src.rna_transform.input_rna_signal_long import SignalRNA
 
 class QSPRIGHT:
@@ -102,7 +101,7 @@ class QSPRIGHT:
         if timing_verbose:
             print(f"D Generation:{time.time() - start_time}")
             start_time = time.time()
-        if type(signal) == LongSignal or type(signal) == SignalRNA:
+        if type(signal) == SignalRNA:
             signal.set_time_domain(Ms, D, b)
         if timing_verbose:
             print(f"Signal Sampling:{time.time() - start_time}")
@@ -296,8 +295,8 @@ if __name__ == "__main__":
     np.random.seed(10)
 
     from inputsignal import Signal
-    from rna_transform.input_rna_signal import SignalRNA
-    from rna_transform.rna_utils import get_rna_base_seq
+    from src.rna_transform.input_rna_signal import SignalRNA
+    from src.rna_transform.rna_utils import get_rna_base_seq
     q = 4
     n = 10
     N = q ** n
@@ -308,7 +307,7 @@ if __name__ == "__main__":
     noise_sd = 1e-6
     positions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
-    test_signal = SignalRNA(n=n, q=q, noise_sd=800/(q ** n), base_seq=get_rna_base_seq(), positions=positions)
+    #test_signal = Signal(n=n, q=q, noise_sd=800/(q ** n), base_seq=get_rna_base_seq(), positions=positions)
     #test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_values, noise_sd=noise_sd)
     print("test signal generated")
 

@@ -4,10 +4,10 @@ import itertools
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
 from multiprocessing import Pool
-import rna_transform.utils as utils
-from qspright.inputsignal import Signal
-from qspright.qspright_nso import QSPRIGHT
-from qspright.utils import gwht, dec_to_qary_vec, binary_ints
+import src.rna_transform.utils as utils
+from src.qspright.inputsignal import Signal
+from src.qspright.qspright_nso import QSPRIGHT
+from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints
 
 """
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
