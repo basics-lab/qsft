@@ -18,11 +18,14 @@ if __name__ == '__main__':
     query_args = {
         "query_method": "complex",
         "delays_method": "nso",
-        "num_subsample": 3,
+        "num_subsample": 5,
         "num_random_delays": 3,
         "b": b
     }
-
+    """
+    Use the constructor like this to save the computation you've done
+    If you do not pass a `signal` argument, we assume you want to randomly generate the signal
+    """
     test_signal = PrecomputedSignal(n=n,
                                     q=q,
                                     sparsity=sparsity,
@@ -31,13 +34,44 @@ if __name__ == '__main__':
                                     noise_sd=noise_sd,
                                     query_args=query_args)
 
-    test_signal.subsample(foldername="test1")
-    test_signal.save_signal("saved_signal.pickle")
+    """
+    subsample() computes the subsamples and saves the output into a folder "foldername". By default, for each M matrix, a 
+    .pickle file is saved, representing all the samples corresponding to that M
+    all_b - If you want to save sampling patterns for b >=2 up to the value of b passed in the construction
+    save_locally - If you actually want to use this signal object to run qspright, set this to True, otherwise this 
+                  should typically be be False.
+    Parallelization should be implemented, but has not been yet.
+    subsample_nosave() should work as well, and should be faster? (not tested)
+    """
+    test_signal.subsample(foldername="test1", all_b=True, save_locally=True)
+
+    """
+    If you have set save_locally = True, or you ran subsample_nosave(), you can still save all the subsampled entries in
+    a single file
+    """
+    test_signal.save_full_signal("full_signal.pickle")
+    """
+    This function can be called if the signal has a transform variable _signal_w that you want to save
+    """
     test_signal.save_transform("saved_tf.pickle")
     print("test signal generated")
     test_signal = 0
-    test_signal = PrecomputedSignal(signal="saved_signal.pickle", noise_sd=noise_sd, transform="saved_tf.pickle")
-
+    """
+    We can load a signal from a folder. The "M_select" list specifies which Ms are to be used
+    If the b value is provided, it is assumed that the data was generated with all_b=True, if this is not
+    the case, the b value must not be provided (and b is inferred from the saved Ms).
+    """
+    test_signal = PrecomputedSignal(signal="test1",
+                                    M_select=[True, False, True, True, False],
+                                    noise_sd=noise_sd,
+                                    transform="saved_tf.pickle",
+                                    b=4)
+    """
+    We can also load the signal from a file, by providing the transform field, we can also load the transform in file mode,
+    just as we did above, but we do not do that here.
+    """
+    test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
+                                              noise=noise_sd)
     qspright_args = {
         "num_subsample": 3,
         "num_random_delays": 3,
