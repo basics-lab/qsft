@@ -31,7 +31,7 @@ if __name__ == '__main__':
                                     noise_sd=noise_sd,
                                     query_args=query_args)
 
-    test_signal.subsample()
+    test_signal.subsample(foldername="test1")
     test_signal.save_signal("saved_signal.pickle")
     test_signal.save_transform("saved_tf.pickle")
     print("test signal generated")
