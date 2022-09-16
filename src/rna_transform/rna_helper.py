@@ -5,91 +5,59 @@ import random
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
 from multiprocessing import Pool
+import pickle
 
 import src.rna_transform.utils as utils
 from src.qspright.utils import lasso_decode
 from src.qspright.inputsignal import Signal
-from src.qspright.qspright_sparse import QSPRIGHT
+from src.qspright.qspright_precomputed import QSPRIGHT
 from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints
-from src.rna_transform.input_rna_signal_long import SignalRNA
-from src.rna_transform.rna_utils import  insert, dna_to_rna, get_rna_base_seq, _calc_data_inst
+from src.rna_transform.input_rna_signal import SignalRNA
+from src.rna_transform.input_rna_signal_precomputed import PrecomputedSignalRNA
+from src.rna_transform.rna_utils import insert, get_rna_base_seq, _calc_data_inst
 
 
 class RNAHelper:
-    def __init__(self, positions):
+    def __init__(self, positions, subsampling=False, query_args = {}, test_args ={}):
         self.positions = positions
-        self.base_seq = dna_to_rna(get_rna_base_seq())
         self.n = len(positions)
         self.q = 4
-        self.rna_data = self.load_rna_data()
+        self.load_rna_data(subsampling)
+        if self.rna_signal is None:
+            self.calculate_rna_data(subsampling, query_args)
+        self.load_rna_test_data()
+        if self.rna_test_samples is None:
+            self.calculate_test_samples(test_args)
 
-
-    def calculate_rna_data(self, verbose = False, parallel = True):
+    def calculate_rna_data(self, subsampling, query_args, verbose=False, parallel=True):
         """
         Constructs and saves the data corresponding to the quasi-empirical RNA fitness function
         of the Hammerhead ribozyme HH9.
         """
-
-        nucs = ["A", "U", "C", "G"]
-        seqs_as_list = list(itertools.product(nucs, repeat=len(self.positions)))
-        seqs = ["".join(s) for s in seqs_as_list]
-
-        print("Calculating free energies...")
-
-        if parallel:
-
-            with Pool() as pool:
-                y = list(tqdm(pool.imap(_calc_data_inst,
-                                        zip(itertools.repeat(self.base_seq), itertools.repeat(self.positions), seqs)),
-                              total=len(seqs)))
-
+        if not subsampling:
+            self.rna_signal = SignalRNA(n=self.n, q=self.q, positions=self.positions, parallel=parallel)
+            self.rna_signal.sample()
         else:
-            y = []
+            self.rna_signal = PrecomputedSignalRNA(n=self.n,
+                                                   q=self.q,
+                                                   positions=self.positions,
+                                                   query_args = query_args)
+            self.rna_signal.subsample(foldername="results/rna_subsampled", all_b=False, save_locally=True)
+            self.rna_signal.save_full_signal(filename="results/rna_subsampled.pickle")
 
-            for s in tqdm(seqs):
-                full = insert(self.base_seq, self.positions, s)
-                (ss, mfe) = RNA.fold(full)
-                y.append(mfe)
-
-        np.save("results/rna_data.npy", np.array(y))
-
-        self.rna_data = np.array(y)
-
-        return
-
-
-    def load_rna_data(self, centering=True):
+    def load_rna_data(self, subsampling):
         try:
-            y = np.load("results/rna_data.npy")
-            # print(np.mean(y))
-            if centering:
-                return y - np.mean(y)
+            if subsampling:
+                self.rna_signal = PrecomputedSignalRNA(signal="results/rna_subsampled.pickle")
             else:
-                return y
-        except:
-            return None
-
+                y = np.load("results/rna_data.npy")
+                self.rna_signal = Signal(n=self.n, q=self.q, signal=y, noise_sd=noise_sd)
+        except FileNotFoundError:
+            self.rna_signal = None
+            return
 
     def get_rna_data(self):
-        if self.rna_data is None:
-            raise RuntimeError("RNA data is not yet computed.")
-        else:
-            return self.rna_data
-
-
-    def generate_householder_matrix(self):
-        nucs = ["A", "U", "C", "G"]
-        positions = self.positions
-
-        nucs_idx = {nucs[i]: i for i in range(len(nucs))}
-        seqs_as_list = list(itertools.product(nucs, repeat=len(positions)))
-
-        int_seqs = [[nucs_idx[si] for si in s] for s in seqs_as_list]
-
-        print("Constructing Fourier matrix...")
-        X = utils.fourier_from_seqs(int_seqs, [4] * self.n)
-
-        return X
+        return self.rna_signal
 
     def compute_rna_model(self, method, **kwargs):
         if method == "householder":
@@ -131,7 +99,7 @@ class RNAHelper:
             return beta
         except FileNotFoundError:
             alpha = 1e-12
-            y = self.get_rna_data()
+            y = self.rna_signal
             X = self.generate_householder_matrix()
             print("Fitting Lasso coefficients (this may take some time)...")
             model = Lasso(alpha=alpha, fit_intercept=False)
@@ -140,7 +108,6 @@ class RNAHelper:
             if save:
                 np.save("results/rna_beta_lasso.npy", beta)
             return beta
-
 
     def _calculate_rna_gwht(self, save=False):
         """
@@ -154,14 +121,15 @@ class RNAHelper:
             return beta
         except FileNotFoundError:
             n = self.n
-            y = self.get_rna_data()
+            y = self.rna_signal
             beta = gwht(y, q=4, n=n)
             print("Found GWHT coefficients")
             if save:
                 np.save("results/rna_beta_gwht.npy", beta)
             return beta
 
-    def _calculate_rna_qspright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None, sampling_method="full"):
+    def _calculate_rna_qspright(self, save=False, report=False, noise_sd=None, verbose=False, num_subsample=4,
+                                num_random_delays=10, b=None, sampling_method="full"):
         """
         Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -180,22 +148,16 @@ class RNAHelper:
             if noise_sd is None:
                 noise_sd = 300 / (q ** n)
 
-            if sampling_method == "full":
-                signal = Signal(n=n, q=q, signal=self.get_rna_data() , noise_sd=noise_sd)
-            elif sampling_method == "partial":
-                signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
-                                   positions=self.positions, parallel=True)
-
             spright = QSPRIGHT(
-                query_method="complex",
-                delays_method="nso",
                 reconstruct_method="nso",
-                num_subsample = num_subsample,
-                num_random_delays = num_random_delays,
-                b = b
+                num_subsample=num_subsample,
+                num_random_delays=num_random_delays,
+                b=b,
+                noise_sd = noise_sd
             )
 
-            out = spright.transform(signal, verbose=False, report=report)
+            out = spright.transform(self.rna_signal, verbose=False, report=report)
+
             if report:
                 beta, n_used, peeled = out
             else:
@@ -209,7 +171,8 @@ class RNAHelper:
 
             return out
 
-    def _calculate_rna_lasso(self, save=False, report=False, noise_sd=None, verbose=False, on_demand_comp=False, sampling_rate=0.1):
+    def _calculate_rna_lasso(self, save=False, report=False, noise_sd=None, verbose=False, on_demand_comp=False,
+                             sampling_rate=0.1):
         """
         Calculates GWHT coefficients of the RNA fitness function using LASSO. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -220,7 +183,7 @@ class RNAHelper:
             print("Loaded saved beta array for GWHT LASSO.")
             return beta
         except FileNotFoundError:
-            y = self.get_rna_data()
+            y = self.rna_signal
             n = len(self.positions)
             q = 4
             if verbose:
@@ -263,7 +226,6 @@ class RNAHelper:
     #
     #     return y_oh
 
-
     def fill_with_neighbor_mean(self, y):
 
         n = self.n
@@ -304,7 +266,6 @@ class RNAHelper:
 
         return np.reshape(y_oh_filled, [2 ** (n * q)])
 
-
     def _calculate_rna_onehot_wht(self, save=False):
         """
         Calculates WHT coefficients of the one-hot RNA fitness function. This will try to load them
@@ -316,17 +277,17 @@ class RNAHelper:
             print("Loaded saved beta array for GWHT.")
             return beta
         except FileNotFoundError:
-            y = self.get_rna_data()
+            y = self.rna_signal
             y = self.load_rna_data()
             y_oh = self.convert_onehot(y)
-            beta = gwht(y_oh, q=2, n=self.n*self.q)
+            beta = gwht(y_oh, q=2, n=self.n * self.q)
             print("Found one-hot WHT coefficients")
             if save:
                 np.save("results/rna_beta_onehot_wht.npy", beta)
             return beta
 
-
-    def _calculate_rna_onehot_spright(self, save=False, report = False, noise_sd=None, verbose = False, num_subsample = 4, num_random_delays = 10, b = None):
+    def _calculate_rna_onehot_spright(self, save=False, report=False, noise_sd=None, verbose=False, num_subsample=4,
+                                      num_random_delays=10, b=None):
         """
         Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -349,14 +310,14 @@ class RNAHelper:
             if noise_sd is None:
                 noise_sd = 300 / (2 ** (q * n))
 
-            signal = Signal(n=n*q, q=2, signal=y_oh, noise_sd=noise_sd)
+            signal = Signal(n=n * q, q=2, signal=y_oh, noise_sd=noise_sd)
             spright = QSPRIGHT(
                 query_method="complex",
                 delays_method="nso",
                 reconstruct_method="nso",
-                num_subsample = num_subsample,
-                num_random_delays = num_random_delays,
-                b = b
+                num_subsample=num_subsample,
+                num_random_delays=num_random_delays,
+                b=b
             )
 
             out = spright.transform(signal, verbose=False, report=report)
@@ -372,7 +333,7 @@ class RNAHelper:
 
             return out
 
-    def _test_rna_qspright(self, beta, n_samples=10000, sampling_method = "full"):
+    def _test_rna_qspright(self, beta, n_samples=10000, sampling_method="full"):
         """
         :param beta:
         :param test_sample_rate:
@@ -383,25 +344,76 @@ class RNAHelper:
         n = len(self.positions)
         q = 4
         noise_sd = 300 / (q ** n)
-        N = q**n
+        N = q ** n
 
-        print("testing")
-
-        if sampling_method == "full":
-            signal = Signal(n=n, q=q, signal=self.get_rna_data() , noise_sd=noise_sd)
-        elif sampling_method == "partial":
-            signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
+        if len(beta.keys())>0:
+            signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=get_rna_base_seq(),
                                positions=self.positions, parallel=True)
+
+            sample_idx = self.rna_test_indices
+            y = self.rna_test_samples
+
+            freqs = np.array(sample_idx).T @ np.array(list(beta.keys())).T
+            H = np.exp(2j * np.pi * freqs / q)
+            y_hat = H @ np.array(list(beta.values()))
+            return np.linalg.norm(y_hat - y) ** 2 / np.linalg.norm(y) ** 2
+        else:
+            return 1
+
+
+    def calculate_test_samples(self, test_args):
+
+        n_samples = test_args.get("n_samples", 10000)
+        parallel = test_args.get("parallel", True)
+
+        N = self.q ** self.n
+        q = self.q
+        n = self.n
 
         n_samples = np.minimum(n_samples, N)
         sample_idx = random.sample(range(N), n_samples)
         sample_idx = dec_to_qary_vec(sample_idx, q, n)
 
-        signal.sample(np.array(sample_idx))
-        y = signal.get_time_domain(sample_idx)
+        nucs = ["A", "U", "C", "G"]
+        sample_idx = np.array(sample_idx)
+        mean = -21.23934478693991
 
-        freqs = np.array(sample_idx).T @ np.array(list(beta.keys())).T
-        H = np.exp(2j * np.pi * freqs / q)
-        y_hat = H @ np.array(list(beta.values()))
+        if parallel:
 
-        return np.linalg.norm(y_hat - y)**2 / np.linalg.norm(y)**2
+            query = []
+            for i in range(sample_idx.shape[1]):
+                seq = ""
+                for nuc_idx in sample_idx[:, i]:
+                    seq = seq + nucs[nuc_idx]
+                full = insert(get_rna_base_seq(), self.positions, seq)
+                query.append(full)
+
+            with Pool() as pool:
+                y = list(tqdm(pool.imap(_calc_data_inst, query), total=len(query)))
+
+            samples = np.array(y) - mean
+
+        else:
+            y = []
+            for i in tqdm(range(sample_idx.shape[1])):
+                seq = ""
+                for nuc_idx in sample_idx[:, i]:
+                    seq = seq + nucs[nuc_idx]
+                full = insert(get_rna_base_seq(), self.positions, seq)
+                (ss, mfe) = RNA.fold(full)
+                y.append(mfe - self.mean)
+
+            samples = np.array(y) - mean
+
+        self.rna_test_indices, self.rna_test_samples = sample_idx, samples
+
+        with open('results/rna_test.pickle', 'wb') as handle:
+            pickle.dump((sample_idx, samples), handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load_rna_test_data(self):
+        try:
+            with open('results/rna_test.pickle', 'rb') as handle:
+                self.rna_test_indices, self.rna_test_samples = pickle.load(handle)
+        except FileNotFoundError:
+            self.rna_test_indices, self.rna_test_samples = None, None
+            return

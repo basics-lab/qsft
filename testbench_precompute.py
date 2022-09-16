@@ -18,8 +18,8 @@ if __name__ == '__main__':
     query_args = {
         "query_method": "complex",
         "delays_method": "nso",
-        "num_subsample": 5,
-        "num_random_delays": 3,
+        "num_subsample": 2,
+        "num_random_delays": 8,
         "b": b
     }
     """

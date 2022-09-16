@@ -32,14 +32,14 @@ class LongSignal(Signal):
         for D in self.Ds:
             self.set_time_domain(self.Ms, D, self.b)
 
-    def get_MD(self, ret_num_subsample, ret_num_random_delays):
+    def get_MD(self, ret_num_subsample, ret_num_random_delays, b):
         Ms_ret = []
         Ds_ret = []
-        if ret_num_subsample <= self.num_subsample and ret_num_random_delays <= self.num_random_delays:
+        if ret_num_subsample <= self.num_subsample and ret_num_random_delays <= self.num_random_delays and b <= self.b:
             subsample_idx = np.random.choice(self.num_subsample, ret_num_subsample, replace=False)
             delay_idx = np.random.choice(self.num_random_delays, ret_num_random_delays, replace=False)
             for i in subsample_idx:
-                Ms_ret.append(self.Ms[i])
+                Ms_ret.append(self.Ms[i][:, (self.b - b):])
                 Ds_ret.append([])
                 for j in delay_idx:
                     Ds_ret[-1].append(self.Ds[i][j])
@@ -75,10 +75,10 @@ class LongSignal(Signal):
     def get_time_domain(self, base_inds):
         base_inds = np.array(base_inds)
         if len(base_inds.shape) == 3:
-            sample_array = [[tuple(inds[:, i]) for i in range(self.q ** self.b)] for inds in base_inds]
+            sample_array = [[tuple(inds[:, i]) for i in range(inds.shape[1])] for inds in base_inds]
             return [np.array([self._signal_t[tup] for tup in inds]) for inds in sample_array]
         elif len(base_inds.shape) == 2:
-            sample_array = [tuple(base_inds[:, i]) for i in range(self.q ** self.b)]
+            sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
             return np.array([self._signal_t[tup] for tup in sample_array])
 
     def get_nonzero_locations(self):

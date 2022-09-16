@@ -5,6 +5,7 @@ from src.qspright.reconstruct import singleton_detection
 from src.qspright.utils import bin_to_dec, qary_vec_to_dec
 from src.qspright.input_signal_long import LongSignal
 from src.qspright.query import compute_delayed_gwht
+
 class QSPRIGHT:
     """
     Class to store encoder/decoder configurations and carry out encoding/decoding.
@@ -33,6 +34,7 @@ class QSPRIGHT:
         self.num_subsample = kwargs.get("num_subsample")
         self.num_random_delays = kwargs.get("num_random_delays")
         self.b = kwargs.get("b")
+        self.noise_sd = kwargs.get("noise_sd")
 
     def transform(self, signal : LongSignal, verbose=False, report=False, timing_verbose=False, **kwargs):
         '''
@@ -70,7 +72,7 @@ class QSPRIGHT:
 
         gamma = 1.5
 
-        Ms, Ds = signal.get_MD(self.num_subsample, self.num_random_delays)
+        Ms, Ds = signal.get_MD(self.num_subsample, self.num_random_delays, self.b)
         Us = []
         used = []
         # subsample with shifts [D], make the observation [U]
@@ -89,11 +91,14 @@ class QSPRIGHT:
                 used_sub.append(used_i)
             Us.append(U)
             used.append(used_sub)
+
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
             Ds[i] = np.vstack(Ds[i])
 
-        cutoff = 1e-7 + 2 * (1 + gamma) * (signal.noise_sd ** 2) * (q ** (n - b))  # noise threshold
+        print(len(Us), len(Ds[0]))
+
+        cutoff = 1e-7 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
 
         if verbose:

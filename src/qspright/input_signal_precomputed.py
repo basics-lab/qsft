@@ -1,6 +1,6 @@
 from src.qspright.input_signal_long import LongSignal
-from query import get_Ms_and_Ds
-from utils import qary_ints
+from src.qspright.query import get_Ms_and_Ds
+from src.qspright.utils import qary_ints
 import numpy as np
 import pickle
 from pathlib import Path
@@ -8,6 +8,7 @@ from pathlib import Path
 class PrecomputedSignal(LongSignal):
 
     def __init__(self, **kwargs):
+        print(kwargs)
         if kwargs.get("signal") is None:
             self._init_standard_params(**kwargs)
             self._init_random(**kwargs)
@@ -25,6 +26,7 @@ class PrecomputedSignal(LongSignal):
             with open(kwargs.get("transform"), 'rb') as f:
                 self._signal_w, self.locq = pickle.load(f)
             f.close()
+
     def _init_given_filetype(self, **kwargs):
         filename = kwargs.get("signal")
         with open(filename, 'rb') as f:
@@ -53,7 +55,7 @@ class PrecomputedSignal(LongSignal):
                 self.num_random_delays = len(D)
                 self.Ms.append(M)
                 self.Ds.append(D)
-                self._signal_t |= signal_t
+                self._signal_t.update(signal_t)
 
 
     def subsample(self, foldername, all_b=False, save_locally=False):
@@ -61,7 +63,7 @@ class PrecomputedSignal(LongSignal):
         Path(f"./{foldername}").mkdir(exist_ok=True)
         for (M, D, i) in zip(self.Ms, self.Ds, range(self.num_subsample)):
             if save_locally:
-                self._signal_t |= self.set_time_domain(M, D, foldername, i, all_b)
+                self._signal_t.update(self.set_time_domain(M, D, foldername, i, all_b))
             else:
                 self.set_time_domain(M, D, foldername, i, all_b)
 

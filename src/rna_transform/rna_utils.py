@@ -42,7 +42,7 @@ def get_rna_base_seq():
     Returns the sequence of RFAM: AANN01066007.1
     """
     base_seq = "CTGAGCCGTTACCTGCAGCTGATGAGCTCCAAAAAGAGCGAAACCTGCTAGGTCCTGCAGTACTGGCTTAAGAGGCT"
-    return base_seq
+    return dna_to_rna(base_seq)
 
 
 def sample_structures_and_find_pairs(base_seq, positions, samples=10000):
@@ -102,9 +102,27 @@ def find_pairs(ss):
 
 
 def _calc_data_inst(args):
-    sample_index, full = args
-    (ss, mfe) = RNA.fold(full)
-    return (sample_index, mfe)
+    if type(args) == tuple:
+        others, full = args
+        full = args
+        (_, mfe) = RNA.fold(full)
+        return others + (mfe,)
+    else:
+        (_, mfe) = RNA.fold(args)
+        return mfe
+
+def generate_householder_matrix(positions, n):
+    nucs = ["A", "U", "C", "G"]
+
+    nucs_idx = {nucs[i]: i for i in range(len(nucs))}
+    seqs_as_list = list(itertools.product(nucs, repeat=len(positions)))
+
+    int_seqs = [[nucs_idx[si] for si in s] for s in seqs_as_list]
+
+    print("Constructing Fourier matrix...")
+    X = utils.fourier_from_seqs(int_seqs, [4] * n)
+
+    return X
 
 
 '''
