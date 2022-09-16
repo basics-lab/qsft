@@ -90,7 +90,9 @@ class QSPRIGHT:
                 U.append(U_sub)
                 used_sub.append(used_i)
             Us.append(U)
-            used.append(used_sub)
+            used.append(np.concatenate(used_sub, axis = 1))
+
+        used = np.concatenate(used, axis=1)
 
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
