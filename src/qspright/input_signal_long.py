@@ -3,7 +3,7 @@ Class for common interface to an input signal.
 '''
 from src.qspright.inputsignal import Signal
 from src.qspright.inputsignal import random_signal_strength_model
-from src.qspright.utils import qary_vec_to_dec, qary_ints
+from src.qspright.utils import qary_vec_to_dec, qary_ints, sort_qary_vecs
 from src.qspright.query import compute_delayed_gwht, get_Ms, get_D, get_Ms_and_Ds
 import numpy as np
 
@@ -18,7 +18,7 @@ class LongSignal(Signal):
         if self.b is None:
             self.b = np.int(np.maximum(np.log(self.sparsity) / np.log(self.q), 4))
         self.sparsity = kwargs.get("sparsity")
-        self.locq = np.random.randint(self.q, size=(self.n, self.sparsity))
+        self.locq = sort_qary_vecs(np.random.randint(self.q, size=(self.n, self.sparsity)).T).T
         self._signal_t = {}
         self._signal_w = {}
         self.a_min = kwargs.get("a_min")
@@ -82,4 +82,4 @@ class LongSignal(Signal):
             return np.array([self._signal_t[tup] for tup in sample_array])
 
     def get_nonzero_locations(self):
-        return qary_vec_to_dec(self.locq, self.q)
+        return self.locq.T

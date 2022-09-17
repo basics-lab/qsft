@@ -1,3 +1,5 @@
+import time
+
 from src.qspright.input_signal_precomputed import PrecomputedSignal
 import numpy as np
 import itertools
@@ -37,16 +39,23 @@ class PrecomputedSignalRNA(PrecomputedSignal):
 
         sampling_query = []
         b_i = b_min
+        start_time = time.time()
         for r in range(self.q ** self.b):
             for i in range(self.num_random_delays):
                 for j in range(len(D[0])):
-                    if i == 0 and j == 0 and all_b and r == (self.q ** b_i):
-                        group_index[1] += 1
-                    seq = ""
-                    for nuc_idx in base_inds[i][j][:, r]:
-                        seq = seq + self.nucs[nuc_idx]
+                    seq = self.nucs[base_inds[i][j][:, r]]
                     full = insert(self.base_seq, self.positions, seq)
                     sampling_query.append(full)
+        print("Geneartion of query: ", time.time() - start_time, " sec")
+
+        # for r in range(self.q ** self.b):
+        #     for i in range(self.num_random_delays):
+        #         for j in range(len(D[0])):
+        #             seq = ""
+        #             for nuc_idx in base_inds[i][j][:, r]:
+        #                 seq = seq + self.nucs[nuc_idx]
+        #             full = insert(self.base_seq, self.positions, seq)
+        #             sampling_query.append(full)
 
         with Pool() as pool:
             y = list(tqdm(pool.imap(_calc_data_inst, sampling_query), total=len(sampling_query)))

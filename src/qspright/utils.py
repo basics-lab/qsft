@@ -211,3 +211,12 @@ def best_convex_underestimator(points):
         return vertices[first_point_idx:last_point_idx+1]
     else:
         return np.concatenate((vertices[first_point_idx:], vertices[:last_point_idx+1]))
+
+def sort_qary_vecs(qary_vecs):
+    qary_vecs = np.array(qary_vecs)
+    idx = np.lexsort(qary_vecs.T[::-1, :])
+    return qary_vecs[idx]
+
+def calc_hamming_weight(qary_vecs):
+    qary_vecs = np.array(qary_vecs)
+    return np.sum(qary_vecs != 0, axis = 1)

@@ -79,27 +79,28 @@ def _acc_test(i):
     # set model arguments
     model_kwargs = {}
     model_kwargs["save"] = False
-    model_kwargs["noise_sd"] = 400 / (helper_obj.q ** helper_obj.n)
+    model_kwargs["noise_sd"] = 8000 / (helper_obj.q ** helper_obj.n)
     model_kwargs["report"] = True
     model_kwargs["num_subsample"] = num_subsample
     model_kwargs["num_random_delays"] = num_random_delays
     model_kwargs["b"] = b
 
-    gwht, (n_used, n_used_unique, used_unique), peeled = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
-
-    # calculate metrics
-    sample_ratio = n_used / helper_obj.q ** helper_obj.n
-    unique_sample_ratio = n_used_unique / helper_obj.q ** helper_obj.n
+    spright_result = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
 
     test_kwargs = {}
-    test_kwargs["beta"] = gwht
+    test_kwargs["beta"] = spright_result.get("gwht")
     test_kwargs["sampling_method"] = "partial"
 
     acc = helper_obj.test_rna_model(method="qspright", **test_kwargs)
-    return param_idx, sample_ratio, unique_sample_ratio, acc
+
+    test_result = {
+        "acc" : acc,
+    }
+
+    return param_idx, spright_result, test_result
 
 
-def run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list, parallel=False):
+def run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list, parallel=True):
 
     global test_params_list
     global helper_obj
@@ -124,16 +125,19 @@ def run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list
 
     sample_ratios = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
     unique_sample_ratios = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
-    nmses = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
+    accs = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
+    hamming_ws = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
 
     for i, exp_result in enumerate(pred):
         iter_idx = i // len(test_params_list)
         test_params_idx = i % len(test_params_list)
         test_params_idx = test_params_idx_list[test_params_idx]
-        param_idx, sample_ratio, unique_sample_ratio, nmse = exp_result
-        idx = test_params_idx + (iter_idx,)
-        sample_ratios[idx] = sample_ratio
-        unique_sample_ratios[idx] = unique_sample_ratio
-        nmses[idx] = nmse
+        param_idx, spright_result, test_result = exp_result
 
-    return sample_ratios, unique_sample_ratios, nmses
+        idx = test_params_idx + (iter_idx,)
+        sample_ratios[idx] = spright_result.get("n_samples") / helper_obj.q ** helper_obj.n
+        unique_sample_ratios[idx] = spright_result.get("n_unique_samples") / helper_obj.q ** helper_obj.n
+        accs[idx] = test_result.get("acc")
+        hamming_ws[idx] = spright_result.get("max_hamming_weight")
+
+    return sample_ratios, unique_sample_ratios, accs, hamming_ws

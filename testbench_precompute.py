@@ -5,21 +5,23 @@ sys.path.append("./src/qspright/")
 from src.qspright.qspright_precomputed import QSPRIGHT
 from src.qspright.input_signal_precomputed import PrecomputedSignal
 from src.rna_transform.input_rna_signal_precomputed import PrecomputedSignalRNA
+
 if __name__ == '__main__':
-    np.random.seed(10)
+    np.random.seed(20)
     q = 4
-    n = 10
+    n = 8
     N = q ** n
-    sparsity = 200
+    sparsity = 20
     a_min = 1
     a_max = 10
-    b = 4
+    b = 3
     noise_sd = 1e-5
+
     query_args = {
         "query_method": "complex",
         "delays_method": "nso",
         "num_subsample": 2,
-        "num_random_delays": 8,
+        "num_random_delays": 5,
         "b": b
     }
     """
@@ -44,7 +46,7 @@ if __name__ == '__main__':
     test_signal_RNA = PrecomputedSignalRNA(n=n,
                                            q=q,
                                            noise_sd=noise_sd,
-                                           positions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                                           positions = [5, 10, 15, 20, 25, 30, 35, 40],
                                            query_args=query_args)
     """
     subsample() computes the subsamples and saves the output into a folder "foldername". By default, for each M matrix, a 
@@ -67,42 +69,48 @@ if __name__ == '__main__':
     """
     test_signal.save_transform("saved_tf.pickle")
     print("test signal generated")
-    test_signal = 0
     """
     We can load a signal from a folder. The "M_select" list specifies which Ms are to be used
     If the b value is provided, it is assumed that the data was generated with all_b=True, if this is not
     the case, the b value must not be provided (and b is inferred from the saved Ms).
     """
-    test_signal = PrecomputedSignal(signal="test1",
-                                    M_select=[True, True, True, True, True],
-                                    noise_sd=noise_sd,
-                                    transform="saved_tf.pickle",
-                                    b=4)
+    # test_signal = PrecomputedSignal(signal="test1",
+    #                                 M_select=[True, True, True, True, True],
+    #                                 noise_sd=noise_sd,
+    #                                 transform="saved_tf.pickle",
+    #                                 b=4)
     """
     We can also load the signal from a file, by providing the transform field, we can also load the transform in file mode,
     just as we did above, but we do not do that here.
     """
-    test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
-                                              noise=noise_sd)
+    # test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
+    #                                           noise=noise_sd)
     qspright_args = {
-        "num_subsample": 3,
-        "num_random_delays": 3,
-        "b": b
+        "num_subsample": 2,
+        "num_random_delays": 5,
+        "b": b,
+        "noise_sd": noise_sd
     }
 
     spright = QSPRIGHT("nso", **qspright_args)
 
-    gwht, (n_used, n_used_unique, _), peeled = spright.transform(test_signal, verbose=False, timing_verbose=True,
+    result = spright.transform(test_signal, verbose=False, timing_verbose=True,
                                                                  report=True)
+
+    gwht = result.get("gwht")
+    n_used = result.get("n_samples")
+    n_used_unique = result.get("n_unique_samples")
+    peeled = result.get("locations")
+    avg_hamming_weight = result.get("avg_hamming_weight")
 
     # gwht_lasso, non_zero = lasso_decode(test_signal, 0.30)
 
     print("found non-zero indices SPRIGHT: ")
-    print(np.sort(peeled))
+    print(peeled)
     # print("found non-zero indices LASSO: ")
     # print(np.sort(non_zero))
     print("true non-zero indices: ")
-    print(np.sort(test_signal.get_nonzero_locations()))
+    print(test_signal.get_nonzero_locations())
 
     print("total sample ratio = ", n_used / q ** n)
     print("unique sample ratio = ", n_used_unique / q ** n)
@@ -114,4 +122,5 @@ if __name__ == '__main__':
     print("NMSE SPRIGHT= ",
           np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal._signal_w.values())) ** 2))
 
+    print("AVG Hamming Weight of Nonzero Locations = ", avg_hamming_weight)
     #print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))

@@ -2,7 +2,7 @@ import time
 import numpy as np
 import tqdm
 from src.qspright.reconstruct import singleton_detection
-from src.qspright.utils import bin_to_dec, qary_vec_to_dec
+from src.qspright.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight
 from src.qspright.input_signal_long import LongSignal
 from src.qspright.query import compute_delayed_gwht
 
@@ -97,8 +97,6 @@ class QSPRIGHT:
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
             Ds[i] = np.vstack(Ds[i])
-
-        print(len(Us), len(Ds[0]))
 
         cutoff = 1e-7 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
@@ -224,8 +222,7 @@ class QSPRIGHT:
 
         loc = set()
         for k, value in result: # iterating over (i, j)s
-            idx = qary_vec_to_dec(k, q) # converting 'k's of singletons to decimals
-            loc.add(idx)
+            loc.add(tuple(k))
             if tuple(k) in gwht_counts:
                 gwht[tuple(k)] = (gwht[tuple(k)] * gwht_counts[tuple(k)] + value) / (gwht_counts[tuple(k)] + 1)
                 gwht_counts[tuple(k)] = gwht_counts[tuple(k)] + 1
@@ -234,11 +231,26 @@ class QSPRIGHT:
                 gwht_counts[tuple(k)] = 1
         if timing_verbose:
             print(f"Peeling Time:{time.time() - start_time}")
+
         if not report:
             return gwht
         else:
             used_unique = np.unique(used, axis=1)
-            return gwht, (np.shape(used)[-1], np.shape(used_unique)[-1], used_unique), list(loc)
+            if len(loc) > 0:
+                loc = sort_qary_vecs(list(loc))
+                avg_hamming_weight = np.mean(calc_hamming_weight(loc))
+                max_hamming_weight = np.max(calc_hamming_weight(loc))
+            else:
+                loc, avg_hamming_weight, max_hamming_weight = [], 0, 0
+            result = {
+                "gwht": gwht,
+                "n_samples": np.shape(used)[-1],
+                "n_unique_samples": np.shape(used_unique)[-1],
+                "locations": loc,
+                "avg_hamming_weight": avg_hamming_weight,
+                "max_hamming_weight": max_hamming_weight
+            }
+            return result
 
     def method_test(self, signal, num_runs=10):
         '''

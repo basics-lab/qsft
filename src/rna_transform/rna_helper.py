@@ -158,16 +158,11 @@ class RNAHelper:
 
             out = spright.transform(self.rna_signal, verbose=False, report=report)
 
-            if report:
-                beta, n_used, peeled = out
-            else:
-                beta = out
-
             if verbose:
                 print("Found GWHT coefficients")
             if save:
                 # TODO fix the bug here (beta is no longer an array, it is a dict)
-                np.save("results/rna_beta_qspright.npy", beta)
+                np.save("results/rna_beta_qspright.npy", out.get("gwht"))
 
             return out
 
@@ -363,7 +358,7 @@ class RNAHelper:
 
     def calculate_test_samples(self, test_args):
 
-        n_samples = test_args.get("n_samples", 10000)
+        n_samples = test_args.get("n_samples", 100000)
         parallel = test_args.get("parallel", True)
 
         N = self.q ** self.n
@@ -374,7 +369,7 @@ class RNAHelper:
         sample_idx = random.sample(range(N), n_samples)
         sample_idx = dec_to_qary_vec(sample_idx, q, n)
 
-        nucs = ["A", "U", "C", "G"]
+        nucs = np.array(["A", "U", "C", "G"])
         sample_idx = np.array(sample_idx)
         mean = -21.23934478693991
 
@@ -382,9 +377,7 @@ class RNAHelper:
 
             query = []
             for i in range(sample_idx.shape[1]):
-                seq = ""
-                for nuc_idx in sample_idx[:, i]:
-                    seq = seq + nucs[nuc_idx]
+                seq = nucs[sample_idx[:, i]]
                 full = insert(get_rna_base_seq(), self.positions, seq)
                 query.append(full)
 
