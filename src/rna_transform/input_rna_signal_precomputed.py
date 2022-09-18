@@ -8,7 +8,7 @@ import pickle
 from multiprocessing import Pool
 from tqdm import tqdm
 from src.rna_transform.rna_utils import get_rna_base_seq, _calc_data_inst, insert
-from src.qspright.utils import qary_ints
+from src.qspright.utils import qary_ints, zip_to_dict, dict_to_zip
 
 
 class PrecomputedSignalRNA(PrecomputedSignal):
@@ -48,15 +48,6 @@ class PrecomputedSignalRNA(PrecomputedSignal):
                     sampling_query.append(full)
         print("Geneartion of query: ", time.time() - start_time, " sec")
 
-        # for r in range(self.q ** self.b):
-        #     for i in range(self.num_random_delays):
-        #         for j in range(len(D[0])):
-        #             seq = ""
-        #             for nuc_idx in base_inds[i][j][:, r]:
-        #                 seq = seq + self.nucs[nuc_idx]
-        #             full = insert(self.base_seq, self.positions, seq)
-        #             sampling_query.append(full)
-
         with Pool() as pool:
             y = list(tqdm(pool.imap(_calc_data_inst, sampling_query), total=len(sampling_query)))
 
@@ -67,12 +58,14 @@ class PrecomputedSignalRNA(PrecomputedSignal):
                     if i == 0 and j == 0 and all_b and r == (self.q ** b_i):
                         filename = f"{foldername}/M{idx}_b{b_i}.pickle"
                         with open(filename, 'wb') as f:
-                            pickle.dump((M[:, (self.b - b_i):], D, self.q, signal_t), f)
+                            signal_t_arrays = dict_to_zip(signal_t)
+                            pickle.dump((M[:, (self.b - b_i):], D, self.q, signal_t_arrays), f)
                         f.close()
                         b_i += 1
                     signal_t[tuple(base_inds[i][j][:, r])] = np.csingle(y.pop(0) - self.mean)
         filename = f"{foldername}/M{idx}_b{b_i}.pickle" if all_b else f"{foldername}/M{idx}.pickle"
         with open(filename, 'wb') as f:
-            pickle.dump((M, D, self.q, signal_t), f)
+            signal_t_arrays = dict_to_zip(signal_t)
+            pickle.dump((M, D, self.q, signal_t_arrays), f)
         f.close()
         return signal_t

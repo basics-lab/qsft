@@ -1,6 +1,6 @@
 from src.qspright.input_signal_long import LongSignal
 from src.qspright.query import get_Ms_and_Ds
-from src.qspright.utils import qary_ints
+from src.qspright.utils import qary_ints, zip_to_dict, dict_to_zip
 import numpy as np
 import pickle
 from pathlib import Path
@@ -30,9 +30,10 @@ class PrecomputedSignal(LongSignal):
     def _init_given_filetype(self, **kwargs):
         filename = kwargs.get("signal")
         with open(filename, 'rb') as f:
-            self.Ms, self.Ds, self.q, self._signal_t = pickle.load(f)
-        f.close()
+            self.Ms, self.Ds, self.q, signal_t_arrays = pickle.load(f)
+
         self.n, self.b = self.Ms[0].shape
+        self._signal_t = zip_to_dict(signal_t_arrays, self.n)
         self.num_subsample = len(self.Ms)
         self.num_random_delays = len(self.Ds[0])
 
@@ -48,9 +49,10 @@ class PrecomputedSignal(LongSignal):
             if M_select[i]:
                 filename = f"{foldername}/M{i}.pickle" if b is None else f"{foldername}/M{i}_b{b}.pickle"
                 with open(filename, 'rb') as f:
-                    M, D, self.q, signal_t = pickle.load(f)
-                f.close()
+                    M, D, self.n, signal_t_arrays = pickle.load(f)
+
                 self.n, self.b = M.shape
+                signal_t = zip_to_dict(signal_t_arrays, self.n)
                 self.num_subsample += 1
                 self.num_random_delays = len(D)
                 self.Ms.append(M)
@@ -86,20 +88,23 @@ class PrecomputedSignal(LongSignal):
                     if i == 0 and j == 0 and all_b and r == (self.q ** b_i):
                         filename = f"{foldername}/M{idx}_b{b_i}.pickle"
                         with open(filename, 'wb') as f:
-                            pickle.dump((M[:, (self.b - b_i):], D, self.q, signal_t), f)
+                            signal_t_arrays = dict_to_zip(signal_t)
+                            pickle.dump((M[:, (self.b - b_i):], D, self.q, signal_t_arrays), f)
                         f.close()
                         b_i += 1
                     signal_t[tuple(base_inds[i][j][:, r])] = np.csingle(samples[i][j][r] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
                                                                                         size=(1, 2)).view(np.cdouble))
         filename = f"{foldername}/M{idx}_b{b_i}.pickle" if all_b else f"{foldername}/M{idx}.pickle"
         with open(filename, 'wb') as f:
-            pickle.dump((M, D, self.q, signal_t), f)
+            signal_t_arrays = dict_to_zip(signal_t)
+            pickle.dump((M, D, self.q, signal_t_arrays), f)
         f.close()
         return signal_t
 
     def save_full_signal(self, filename):
         with open(filename, 'wb') as f:
-            pickle.dump((self.Ms, self.Ds, self.q, self._signal_t), f)
+            signal_t_arrays = dict_to_zip(self._signal_t)
+            pickle.dump((self.Ms, self.Ds, self.q, signal_t_arrays), f)
         f.close()
 
     def save_transform(self, filename):

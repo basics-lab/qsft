@@ -370,7 +370,7 @@ class RNAHelper:
         sample_idx = dec_to_qary_vec(sample_idx, q, n)
 
         nucs = np.array(["A", "U", "C", "G"])
-        sample_idx = np.array(sample_idx)
+        sample_idx = np.byte(np.array(sample_idx))
         mean = -21.23934478693991
 
         if parallel:
@@ -396,7 +396,7 @@ class RNAHelper:
                 (ss, mfe) = RNA.fold(full)
                 y.append(mfe - self.mean)
 
-            samples = np.array(y) - mean
+            samples = np.csingle(np.array(y) - mean)
 
         self.rna_test_indices, self.rna_test_samples = sample_idx, samples
 
