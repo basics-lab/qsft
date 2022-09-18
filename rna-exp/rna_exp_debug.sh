@@ -7,10 +7,4 @@
 #SBATCH --qos=savio_debug
 module load python
 source activate generalized-wht
-jupyter nbconvert --to script qspright-sample-vs-estimation-accuracy.ipynb
-echo ----------
-python -V
-which python
-which python3
-conda info --envs
-ipython qspright-sample-vs-estimation-accuracy.py
+ipython qspright-sample-vs-estimation-accuracy.ipynb
