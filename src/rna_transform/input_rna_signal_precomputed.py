@@ -12,6 +12,7 @@ from src.qspright.utils import qary_ints, zip_to_dict, dict_to_zip, qary_vec_to_
 from src.rna_transform.query_iterator import QueryIterator
 import sys
 
+
 class PrecomputedSignalRNA(PrecomputedSignal):
     nucs = np.array(["A", "U", "C", "G"])
 
@@ -46,11 +47,12 @@ class PrecomputedSignalRNA(PrecomputedSignal):
         start_time = time.time()
 
         mfes, indices = tuple(zip(*y))
+        indices = np.uint8(np.array(indices))
         signal_t = {tuple(indices[i]): (mfes[i] - self.mean) for i in range(len(indices))}
 
         if idx == 0:
             mfes = np.array(mfes).copy()
-            indices = np.uint8(np.array(indices)).copy()
+            indices = np.array(indices).copy()
             dec_indices = np.array(qary_vec_to_dec(np.array(indices).T, 4)).T.copy()
             signal_t_dec = {dec_indices[i]: (mfes[i] - self.mean) for i in range(len(dec_indices))}
             signal_t = signal_t.copy()

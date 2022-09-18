@@ -15,11 +15,14 @@ from src.qspright.qspright_precomputed import QSPRIGHT
 from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints
 from src.rna_transform.input_rna_signal import SignalRNA
 from src.rna_transform.input_rna_signal_precomputed import PrecomputedSignalRNA
-from src.rna_transform.rna_utils import insert, get_rna_base_seq, _calc_data_inst
+from src.rna_transform.rna_utils import insert, get_rna_base_seq, _calc_data_inst, display_top
+import tracemalloc
 
 
 class RNAHelper:
     def __init__(self, positions, subsampling=False, query_args = {}, test_args ={}):
+        tracemalloc.start()
+
         self.positions = positions
         self.n = len(positions)
         self.q = 4
@@ -29,6 +32,9 @@ class RNAHelper:
         self.load_rna_test_data()
         if self.rna_test_samples is None:
             self.calculate_test_samples(test_args)
+
+        snapshot = tracemalloc.take_snapshot()
+        display_top(snapshot, limit = 20)
 
     def calculate_rna_data(self, subsampling, query_args, verbose=False, parallel=True):
         """
