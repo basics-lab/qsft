@@ -3,8 +3,8 @@
 #SBATCH --account=fc_basics
 #SBATCH --partition=savio
 #SBATCH --time=04:00:00
-#SBATCH --output=rna_exp_debug_%j.out
-#SBATCH --error=rna_exp_debug_%j.err
+#SBATCH --output=slurm_outputs/rna_exp_debug_%j.out
+#SBATCH --error=slurm_outputs/rna_exp_debug_%j.err
 #SBATCH --qos=savio_debug
 module load python
 source activate generalized-wht
