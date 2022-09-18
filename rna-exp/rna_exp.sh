@@ -1,18 +1,13 @@
 #!/bin/bash
-# Job name:
 #SBATCH --job-name=rna_exp
-#
-# Account:
 #SBATCH --account=fc_basics
-#
-# Partition:
 #SBATCH --partition=savio
-#
-# Wall clock limit:
 #SBATCH --time=04:00:00
-#
-## Command(s) to run:
+#SBATCH --output=rna_exp_%j.out
+#SBATCH --error=rna_exp_%j.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=erginbas@berkeley.edu
 module load python
 source activate generalized-wht
-jupyter nbconvert --to script qspright-sample-vs-estimation-accuracy.ipynb
-python qspright-sample-vs-estimation-accuracy.py
+jupyter nbconvert --to script ../qspright-sample-vs-estimation-accuracy.ipynb
+python ../qspright-sample-vs-estimation-accuracy.py
