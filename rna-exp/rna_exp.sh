@@ -12,3 +12,7 @@
 #SBATCH --time=04:00:00
 #
 ## Command(s) to run:
+module load python
+source activate generalized-wht
+jupyter nbconvert --to script qspright-sample-vs-estimation-accuracy.ipynb
+python qspright-sample-vs-estimation-accuracy.py

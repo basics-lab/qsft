@@ -15,4 +15,7 @@
 #SBATCH --qos=savio_debug
 #
 ## Command(s) to run:
-jupyter nbconvert --execute --to notebook qspright-sample-vs-estimation-accuracy.ipynb
+module load python
+source activate generalized-wht
+jupyter nbconvert --to script qspright-sample-vs-estimation-accuracy.ipynb
+python qspright-sample-vs-estimation-accuracy.py
