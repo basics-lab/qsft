@@ -7,4 +7,6 @@
 #SBATCH --qos=savio_debug
 module load python
 source activate generalized-wht
+ipython -V
+which python
 ipython qspright-sample-vs-estimation-accuracy.ipynb
