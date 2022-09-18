@@ -22,7 +22,7 @@ class RNAHelper:
         self.positions = positions
         self.n = len(positions)
         self.q = 4
-        self.load_rna_data(subsampling)
+        self.load_rna_data(subsampling, query_args)
         if self.rna_signal is None:
             self.calculate_rna_data(subsampling, query_args)
         self.load_rna_test_data()
@@ -34,21 +34,23 @@ class RNAHelper:
         Constructs and saves the data corresponding to the quasi-empirical RNA fitness function
         of the Hammerhead ribozyme HH9.
         """
-        if not subsampling:
-            self.rna_signal = SignalRNA(n=self.n, q=self.q, positions=self.positions, parallel=parallel)
-            self.rna_signal.sample()
-        else:
+        if subsampling:
             self.rna_signal = PrecomputedSignalRNA(n=self.n,
                                                    q=self.q,
                                                    positions=self.positions,
-                                                   query_args = query_args)
-            self.rna_signal.subsample(foldername="results/rna_subsampled", all_b=False, save_locally=True)
-            self.rna_signal.save_full_signal(filename="results/rna_subsampled.pickle")
+                                                   query_args=query_args)
+            self.rna_signal.subsample(keep_samples=True, save_samples_to_file=True,
+                                      foldername="results/rna_subsampled", save_all_b=False)
+        else:
+            self.rna_signal = SignalRNA(n=self.n, q=self.q, positions=self.positions, parallel=parallel)
+            self.rna_signal.sample()
 
-    def load_rna_data(self, subsampling):
+    def load_rna_data(self, subsampling, query_args):
         try:
             if subsampling:
-                self.rna_signal = PrecomputedSignalRNA(signal="results/rna_subsampled.pickle")
+                num_subsample = query_args.get("num_subsample")
+                M_select = num_subsample * [True]
+                self.rna_signal = PrecomputedSignalRNA(signal="results/rna_subsampled", M_select = M_select)
             else:
                 y = np.load("results/rna_data.npy")
                 self.rna_signal = Signal(n=self.n, q=self.q, signal=y, noise_sd=noise_sd)
@@ -156,7 +158,7 @@ class RNAHelper:
                 noise_sd = noise_sd
             )
 
-            out = spright.transform(self.rna_signal, verbose=False, report=report)
+            out = spright.transform(self.rna_signal, verbose=False, timing_verbose = True, report=report)
 
             if verbose:
                 print("Found GWHT coefficients")

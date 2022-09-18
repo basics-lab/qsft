@@ -232,7 +232,5 @@ def dict_to_zip(dict):
 def zip_to_dict(zip, n):
     keys_zip, vals_zip = zip
     keys = np.reshape(np.frombuffer(zlib.decompress(keys_zip), dtype=np.uint8), (-1, n))
-
-    print(keys.shape)
     vals = np.frombuffer(zlib.decompress(vals_zip), dtype=np.csingle)
     return {tuple(keys[i]): vals[i] for i in range(len(keys))}
