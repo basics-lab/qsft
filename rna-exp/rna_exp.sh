@@ -11,7 +11,4 @@
 # Wall clock limit:
 #SBATCH --time=04:00:00
 #
-# QOS:
-#SBATCH --QOS=savio_debug
-#
 ## Command(s) to run:

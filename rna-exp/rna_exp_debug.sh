@@ -12,7 +12,7 @@
 #SBATCH --time=00:10:00
 #
 # QOS:
-#SBATCH --QOS=savio_debug
+#SBATCH --qos=savio_debug
 #
 ## Command(s) to run:
 jupyter nbconvert --execute --to notebook qspright-sample-vs-estimation-accuracy.ipynb
