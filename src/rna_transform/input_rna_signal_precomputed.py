@@ -42,17 +42,18 @@ class PrecomputedSignalRNA(PrecomputedSignal):
         with Pool() as pool:
             y = list(tqdm(pool.imap(_calc_data_inst, iterator), total=len(iterator), miniters=2000))
 
+        start_time = time.time()
+
         mfes, indices = tuple(zip(*y))
         signal_t = {tuple(indices[i]): (mfes[i] - self.mean) for i in range(len(indices))}
 
-        start_time = time.time()
         if save:
             signal_t_arrays = dict_to_zip(signal_t)
             filename = f"{foldername}/M{idx}.pickle"
             with open(filename, 'wb') as f:
                 pickle.dump((M, D, self.q, signal_t_arrays), f)
         end_time = time.time()
-        print("Data save time: ", end_time - start_time)
+        print("Dict creation and save time: ", end_time - start_time)
 
         if save_all_b:
             raise Warning("save_all_b is not implemented yet")
