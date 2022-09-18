@@ -8,8 +8,9 @@ import pickle
 from multiprocessing import Pool
 from tqdm import tqdm
 from src.rna_transform.rna_utils import get_rna_base_seq, _calc_data_inst, insert
-from src.qspright.utils import qary_ints, zip_to_dict, dict_to_zip
+from src.qspright.utils import qary_ints, zip_to_dict, dict_to_zip, qary_vec_to_dec
 from src.rna_transform.query_iterator import QueryIterator
+import sys
 
 class PrecomputedSignalRNA(PrecomputedSignal):
     nucs = np.array(["A", "U", "C", "G"])
@@ -47,13 +48,37 @@ class PrecomputedSignalRNA(PrecomputedSignal):
         mfes, indices = tuple(zip(*y))
         signal_t = {tuple(indices[i]): (mfes[i] - self.mean) for i in range(len(indices))}
 
+        if idx == 0:
+            mfes = np.array(mfes).copy()
+            indices = np.uint8(np.array(indices)).copy()
+            dec_indices = np.array(qary_vec_to_dec(np.array(indices).T, 4)).T.copy()
+            signal_t_dec = {dec_indices[i]: (mfes[i] - self.mean) for i in range(len(dec_indices))}
+            signal_t = signal_t.copy()
+            signal_t_dec = signal_t_dec.copy()
+
+            print(dec_indices.shape)
+
+            print("size of samples array: ", sys.getsizeof(mfes))
+
+            print("size of indices array (q-ary vec): ", sys.getsizeof(indices))
+            print("size of signal dict (with q-ary keys): ", sys.getsizeof(signal_t))
+
+            print("size of indices array (decimal): ", sys.getsizeof(dec_indices))
+            print("size of signal dict (with decimal keys): ", sys.getsizeof(signal_t_dec))
+
+        end_time = time.time()
+        print("Dict creation time: ", end_time - start_time)
+
+        start_time = time.time()
+
         if save:
             signal_t_arrays = dict_to_zip(signal_t)
             filename = f"{foldername}/M{idx}.pickle"
             with open(filename, 'wb') as f:
                 pickle.dump((M, D, self.q, signal_t_arrays), f)
+
         end_time = time.time()
-        print("Dict creation and save time: ", end_time - start_time)
+        print("File save time: ", end_time - start_time)
 
         if save_all_b:
             raise Warning("save_all_b is not implemented yet")

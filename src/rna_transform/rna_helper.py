@@ -6,6 +6,7 @@ from tqdm import tqdm
 from sklearn.linear_model import Lasso
 from multiprocessing import Pool
 import pickle
+import sys
 
 import src.rna_transform.utils as utils
 from src.qspright.utils import lasso_decode
