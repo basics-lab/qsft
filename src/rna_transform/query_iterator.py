@@ -21,10 +21,11 @@ class QueryIterator(object):
     def __next__(self):
         if self.r == self.q_pow_b:
             raise StopIteration
-        seq = self.nucs[self.base_inds[self.i][self.j][:, self.r]]
+        idx = self.base_inds[self.i][self.j][:, self.r]
+        seq = self.nucs[idx]
         full = insert(self.base_seq, self.positions, seq)
         self.update_counts()
-        return full
+        return (full, idx)
 
     def update_counts(self):
         self.j += 1

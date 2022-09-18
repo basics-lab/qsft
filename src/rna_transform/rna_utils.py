@@ -103,10 +103,9 @@ def find_pairs(ss):
 
 def _calc_data_inst(args):
     if type(args) == tuple:
-        others, full = args
-        full = args
+        full, others = args
         (_, mfe) = RNA.fold(full)
-        return others + (mfe,)
+        return mfe, others
     else:
         (_, mfe) = RNA.fold(args)
         return mfe

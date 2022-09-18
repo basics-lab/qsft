@@ -28,38 +28,33 @@ class PrecomputedSignalRNA(PrecomputedSignal):
         self._signal_t = {}
         self._signal_w = {}
 
-    def set_time_domain(self, M, D, save=True, foldername = None, idx = None, save_all_b = None):
+    def set_time_domain(self, M, D, save=True, foldername = None, idx = None, save_all_b = False):
         signal_t = {}
         base_inds = []
         freqs = []
         samples = []
-        b_min = 2
+
         for i in range(self.num_random_delays):
             base_inds.append([((M @ self.L) + np.outer(d, np.ones(self.q ** self.b, dtype=int))) % self.q for d in D[i]])
 
         iterator = QueryIterator(base_seq=self.base_seq, positions=self.positions, base_inds=base_inds)
 
         with Pool() as pool:
-            y = list(tqdm(pool.imap(_calc_data_inst, iterator), total=len(iterator)))
+            y = list(tqdm(pool.imap(_calc_data_inst, iterator), total=len(iterator), miniters=2000))
+
+        mfes, indices = tuple(zip(*y))
+        signal_t = {tuple(indices[i]): (mfes[i] - self.mean) for i in range(len(indices))}
 
         start_time = time.time()
-        b_i = b_min
-        for r in range(self.q ** self.b):
-            for i in range(self.num_random_delays):
-                for j in range(len(D[0])):
-                    if i == 0 and j == 0 and save and save_all_b and r == (self.q ** b_i):
-                        filename = f"{foldername}/M{idx}_b{b_i}.pickle"
-                        with open(filename, 'wb') as f:
-                            signal_t_arrays = dict_to_zip(signal_t)
-                            pickle.dump((M[:, (self.b - b_i):], D, self.q, signal_t_arrays), f)
-                        b_i += 1
-                    signal_t[tuple(base_inds[i][j][:, r])] = np.csingle(y.pop(0) - self.mean)
         if save:
-            filename = f"{foldername}/M{idx}_b{b_i}.pickle" if save_all_b else f"{foldername}/M{idx}.pickle"
+            signal_t_arrays = dict_to_zip(signal_t)
+            filename = f"{foldername}/M{idx}.pickle"
             with open(filename, 'wb') as f:
-                signal_t_arrays = dict_to_zip(signal_t)
                 pickle.dump((M, D, self.q, signal_t_arrays), f)
         end_time = time.time()
-        print("Dict creation and save time: ", end_time - start_time)
+        print("Data save time: ", end_time - start_time)
+
+        if save_all_b:
+            raise Warning("save_all_b is not implemented yet")
 
         return signal_t

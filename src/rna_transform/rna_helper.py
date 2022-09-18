@@ -384,7 +384,7 @@ class RNAHelper:
                 query.append(full)
 
             with Pool() as pool:
-                y = list(tqdm(pool.imap(_calc_data_inst, query), total=len(query)))
+                y = list(tqdm(pool.imap(_calc_data_inst, query), total=len(query), miniters=2000))
 
             samples = np.array(y) - mean
 
