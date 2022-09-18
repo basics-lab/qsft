@@ -3,11 +3,9 @@
 #SBATCH --account=fc_basics
 #SBATCH --partition=savio
 #SBATCH --time=04:00:00
-#SBATCH --output=rna_exp_%j.out
-#SBATCH --error=rna_exp_%j.err
+#SBATCH --output=slurm_outputs/rna_exp_%j.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=erginbas@berkeley.edu
-module load python
-source activate generalized-wht
-jupyter nbconvert --to script ../qspright-sample-vs-estimation-accuracy.ipynb
-python ../qspright-sample-vs-estimation-accuracy.py
+ipython -V
+which python
+ipython qspright-sample-vs-estimation-accuracy.ipynb
