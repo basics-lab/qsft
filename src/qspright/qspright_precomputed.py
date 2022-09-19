@@ -141,7 +141,7 @@ class QSPRIGHT:
                             method=self.reconstruct_method,
                             q=q,
                             n=n,
-                            nso_subtype = "nso1"
+                            nso_subtype = "nso2"
                         )  # find the best fit singleton
                         #k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
                         signature = omega ** (D @ k)

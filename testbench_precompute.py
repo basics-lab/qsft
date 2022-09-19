@@ -57,8 +57,8 @@ if __name__ == '__main__':
     Parallelization should be implemented, but has not been yet.
     subsample_nosave() should work as well, and should be faster? (not tested)
     """
-    test_signal.subsample(foldername="test1", all_b=True, save_locally=True)
-    test_signal_RNA.subsample(foldername="test_RNA", all_b=False)
+    test_signal.subsample(foldername="test1", save_all_b=False, keep_samples=True)
+    test_signal_RNA.subsample(foldername="test_RNA", save_all_b=False, keep_samples=True)
     """
     If you have set save_locally = True, or you ran subsample_nosave(), you can still save all the subsampled entries in
     a single file

@@ -1,6 +1,6 @@
 from src.qspright.input_signal_long import LongSignal
 from src.qspright.query import get_Ms_and_Ds
-from src.qspright.utils import qary_ints, zip_to_dict, dict_to_zip
+from src.qspright.utils import qary_ints, zip_to_dict, dict_to_zip, qary_vec_to_dec
 import numpy as np
 import pickle
 from pathlib import Path
@@ -72,7 +72,6 @@ class PrecomputedSignal(LongSignal):
                 self.Ds.append(D)
                 self._signal_t.update(signal_t)
 
-
     def subsample(self, keep_samples=True, save_samples_to_file = False, foldername = None, save_all_b=False):
         self.Ms, self.Ds = get_Ms_and_Ds(self.n, self.q, **self.query_args)
         Path(f"./{foldername}").mkdir(exist_ok=True)
@@ -85,7 +84,7 @@ class PrecomputedSignal(LongSignal):
     def subsample_nosave(self):
         super.subsample(self)
 
-    def set_time_domain(self, M, D, save, foldername = None, idx = None, save_all_b = None):
+    def set_time_domain(self, M, D, save, foldername = None, idx = None, save_all_b = None, dec=True):
         signal_t = {}
         base_inds = []
         freqs = []
@@ -105,7 +104,7 @@ class PrecomputedSignal(LongSignal):
                             signal_t_arrays = dict_to_zip(signal_t)
                             pickle.dump((M[:, (self.b - b_i):], D, self.q, signal_t_arrays), f)
                         b_i += 1
-                    signal_t[tuple(base_inds[i][j][:, r])] = np.csingle(samples[i][j][r] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
+                    signal_t[qary_vec_to_dec(base_inds[i][j][:, r], self.q)] = np.csingle(samples[i][j][r] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
                                                                                         size=(1, 2)).view(np.cdouble))
         if save:
             filename = f"{foldername}/M{idx}_b{b_i}.pickle" if save_all_b else f"{foldername}/M{idx}.pickle"

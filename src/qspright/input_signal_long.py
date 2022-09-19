@@ -61,7 +61,7 @@ class LongSignal(Signal):
             for i in range(D_sub.shape[0]):
                 self.set_time_domain_d(D_sub[i, :])
 
-    def set_time_domain_d(self, d):
+    def set_time_domain_d(self, d, dec=True):
         base_inds = [((M @ self.L) + np.outer(d, np.ones(self.q ** self.b, dtype=int))) % self.q for M in self.Ms]
         freqs = [k.T @ self.locq for k in base_inds]
         samples = [np.exp(2j*np.pi*freq/self.q) @ self.strengths for freq in freqs]
@@ -72,14 +72,22 @@ class LongSignal(Signal):
                 self._signal_t[tuple(K[:, j])] = sample[j] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
                                                                                             size=(1, 2)).view(np.cdouble)
 
-    def get_time_domain(self, base_inds):
+    def get_time_domain(self, base_inds, dec=True):
         base_inds = np.array(base_inds)
-        if len(base_inds.shape) == 3:
-            sample_array = [[tuple(inds[:, i]) for i in range(inds.shape[1])] for inds in base_inds]
-            return [np.array([self._signal_t[tup] for tup in inds]) for inds in sample_array]
-        elif len(base_inds.shape) == 2:
-            sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
-            return np.array([self._signal_t[tup] for tup in sample_array])
+        if dec:
+            if len(base_inds.shape) == 3:
+                sample_array = [qary_vec_to_dec(inds, self.q) for inds in base_inds]
+                return [np.array([self._signal_t[tup] for tup in inds]) for inds in sample_array]
+            elif len(base_inds.shape) == 2:
+                sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
+                return np.array([self._signal_t[tup] for tup in sample_array])
+        else:
+            if len(base_inds.shape) == 3:
+                sample_array = [[tuple(inds[:, i]) for i in range(inds.shape[1])] for inds in base_inds]
+                return [np.array([self._signal_t[tup] for tup in inds]) for inds in sample_array]
+            elif len(base_inds.shape) == 2:
+                sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
+                return np.array([self._signal_t[tup] for tup in sample_array])
 
     def get_nonzero_locations(self):
         return self.locq.T
