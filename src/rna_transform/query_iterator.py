@@ -23,6 +23,8 @@ class QueryIterator(object):
         self.r = 0
         self.i = 0
         self.j = 0
+        self.base_inds_current = self.base_inds[self.i][self.j]
+        self.base_inds_dec_current = self.base_inds_dec[self.i][self.j]
 
     def __iter__(self):
         return self
@@ -30,8 +32,8 @@ class QueryIterator(object):
     def __next__(self):
         if self.r == self.q_pow_b:
             raise StopIteration
-        idx = self.base_inds[self.i][self.j][:, self.r]
-        idx_dec = self.base_inds_dec[self.i][self.j][self.r]
+        idx = self.base_inds_current[:, self.r]
+        idx_dec = self.base_inds_dec_current[self.r]
         seq = self.nucs[idx]
         full = insert(self.base_seq, self.positions, seq)
         self.update_counts()
@@ -45,6 +47,8 @@ class QueryIterator(object):
             if self.i == self.num_random_delays:
                 self.i = 0
                 self.r += 1
+                self.base_inds_current = self.base_inds[self.i][self.j]
+                self.base_inds_dec_current = self.base_inds_dec[self.i][self.j]
 
     def __len__(self):
         return self.q_pow_b * self.num_random_delays * self.num_subdelays

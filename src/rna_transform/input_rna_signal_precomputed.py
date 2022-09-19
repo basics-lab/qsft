@@ -40,7 +40,7 @@ class PrecomputedSignalRNA(PrecomputedSignal):
 
         iterator = QueryIterator(base_seq=self.base_seq, positions=self.positions, base_inds=base_inds)
 
-        with Pool(processes=48) as pool:
+        with Pool() as pool:
             y = list(tqdm(pool.imap(_calc_data_inst, iterator), total=len(iterator), miniters=2000))
 
         start_time = time.time()
