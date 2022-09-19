@@ -13,6 +13,13 @@ class QueryIterator(object):
         self.num_subdelays = len(base_inds[0])
         self.q_pow_b = base_inds[0][0].shape[1]
         self.base_inds = base_inds
+        self.base_inds_dec = []
+        for i in range(self.num_random_delays):
+            base_inds_dec_sub = []
+            for j in range(self.num_subdelays):
+                inds_ij = base_inds[i][j]
+                base_inds_dec_sub.append(qary_vec_to_dec(inds_ij, self.q))
+            self.base_inds_dec.append(base_inds_dec_sub)
         self.r = 0
         self.i = 0
         self.j = 0
@@ -24,7 +31,7 @@ class QueryIterator(object):
         if self.r == self.q_pow_b:
             raise StopIteration
         idx = self.base_inds[self.i][self.j][:, self.r]
-        idx_dec = qary_vec_to_dec(idx, self.q)
+        idx_dec = self.base_inds_dec[self.i][self.j][self.r]
         seq = self.nucs[idx]
         full = insert(self.base_seq, self.positions, seq)
         self.update_counts()
