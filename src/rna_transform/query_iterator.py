@@ -1,8 +1,10 @@
 import numpy as np
 from src.rna_transform.rna_utils import insert
+from src.qspright.utils import qary_vec_to_dec
 
 class QueryIterator(object):
     nucs = np.array(["A", "U", "C", "G"])
+    q = 4
 
     def __init__(self, base_seq, positions, base_inds):
         self.base_seq = base_seq
@@ -22,10 +24,11 @@ class QueryIterator(object):
         if self.r == self.q_pow_b:
             raise StopIteration
         idx = self.base_inds[self.i][self.j][:, self.r]
+        idx_dec = qary_vec_to_dec(idx, self.q)
         seq = self.nucs[idx]
         full = insert(self.base_seq, self.positions, seq)
         self.update_counts()
-        return (full, idx)
+        return (full, idx_dec)
 
     def update_counts(self):
         self.j += 1

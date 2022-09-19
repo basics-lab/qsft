@@ -12,6 +12,7 @@ import random
 import time
 from scipy.spatial import ConvexHull
 import zlib
+import pickle
 
 def fwht(x):
     """Recursive implementation of the 1D Cooley-Tukey FFT"""
@@ -222,15 +223,11 @@ def calc_hamming_weight(qary_vecs):
     qary_vecs = np.array(qary_vecs)
     return np.sum(qary_vecs != 0, axis = 1)
 
-def dict_to_zip(dict):
-    keys = np.uint8(list(dict.keys()))
-    vals = np.csingle(list(dict.values()))
-    keys_zip = zlib.compress(keys)
-    vals_zip = zlib.compress(vals)
-    return keys_zip, vals_zip
+def save_data(data, filename):
+    with open(filename, 'wb') as f:
+        f.write(zlib.compress(pickle.dumps(data, pickle.HIGHEST_PROTOCOL), 9))
 
-def zip_to_dict(zip, n):
-    keys_zip, vals_zip = zip
-    keys = np.reshape(np.frombuffer(zlib.decompress(keys_zip), dtype=np.uint8), (-1, n))
-    vals = np.frombuffer(zlib.decompress(vals_zip), dtype=np.csingle)
-    return {tuple(keys[i]): vals[i] for i in range(len(keys))}
+def load_data(filename):
+    with open(filename, 'rb') as f:
+        data = pickle.loads(zlib.decompress(f.read()))
+    return data

@@ -12,7 +12,7 @@ import src.rna_transform.utils as utils
 from src.qspright.utils import lasso_decode
 from src.qspright.inputsignal import Signal
 from src.qspright.qspright_precomputed import QSPRIGHT
-from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints
+from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints, save_data, load_data
 from src.rna_transform.input_rna_signal import SignalRNA
 from src.rna_transform.input_rna_signal_precomputed import PrecomputedSignalRNA
 from src.rna_transform.rna_utils import insert, get_rna_base_seq, _calc_data_inst, display_top
@@ -409,13 +409,11 @@ class RNAHelper:
 
         self.rna_test_indices, self.rna_test_samples = sample_idx, samples
 
-        with open('results/rna_test.pickle', 'wb') as handle:
-            pickle.dump((sample_idx, samples), handle, protocol=pickle.HIGHEST_PROTOCOL)
+        save_data((sample_idx, samples), 'results/rna_test.pickle')
 
     def load_rna_test_data(self):
         try:
-            with open('results/rna_test.pickle', 'rb') as handle:
-                self.rna_test_indices, self.rna_test_samples = pickle.load(handle)
+            self.rna_test_indices, self.rna_test_samples = load_data('results/rna_test.pickle')
         except FileNotFoundError:
             self.rna_test_indices, self.rna_test_samples = None, None
             return
