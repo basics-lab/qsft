@@ -30,7 +30,7 @@ class QueryIterator(object):
         return self
 
     def __next__(self):
-        if self.r == self.q_pow_b:
+        if self.i == self.num_random_delays:
             raise StopIteration
         idx = self.base_inds_current[:, self.r]
         idx_dec = self.base_inds_dec_current[self.r]
@@ -40,13 +40,14 @@ class QueryIterator(object):
         return (full, idx_dec)
 
     def update_counts(self):
-        self.j += 1
-        if self.j == self.num_subdelays:
-            self.j = 0
-            self.i += 1
-            if self.i == self.num_random_delays:
-                self.i = 0
-                self.r += 1
+        self.r += 1
+        if self.r == self.q_pow_b:
+            self.r = 0
+            self.j += 1
+            if self.j == self.num_subdelays:
+                self.j = 0
+                self.i += 1
+            if not self.i == self.num_random_delays:
                 self.base_inds_current = self.base_inds[self.i][self.j]
                 self.base_inds_dec_current = self.base_inds_dec[self.i][self.j]
 
