@@ -18,7 +18,7 @@ from rna_transform.rna_tests import run_accuracy_tests
 
 np.random.seed(123)
 
-debug = True
+debug = False
 
 if debug:
     positions = np.sort(np.random.choice(50, size=10, replace=False))
@@ -34,7 +34,7 @@ else:
     query_args = {
         "query_method": "complex",
         "delays_method": "nso",
-        "num_subsample": 6,
+        "num_subsample": 4,
         "num_random_delays": 10,
         "b": 8
     }
@@ -58,7 +58,7 @@ if debug:
     b_list = [6]
 else:
     iters = 10
-    num_subsample_list = [4, 5, 6]
+    num_subsample_list = [2, 3, 4]
     num_random_delays_list = [4, 6, 8, 10]
     b_list = [6, 7, 8]
 
