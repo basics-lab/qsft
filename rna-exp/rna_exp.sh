@@ -8,4 +8,4 @@
 #SBATCH --mail-user=erginbas@berkeley.edu
 ipython -V
 which python
-ipython qspright-sample-vs-estimation-accuracy.ipynb
+ipython qspright-sample-vs-estimation-accuracy.py
