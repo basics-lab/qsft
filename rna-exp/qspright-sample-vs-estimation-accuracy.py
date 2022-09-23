@@ -6,8 +6,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 import sys
+import pandas as pd
 
 sys.path.append("..")
 sys.path.append("../src")
@@ -77,8 +77,12 @@ results_df = run_accuracy_tests(helper, iters, num_subsample_list, num_random_de
 means = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).mean()
 stds = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).std()
 
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+
 print(means)
 print(stds)
+
 
 exit()
 
