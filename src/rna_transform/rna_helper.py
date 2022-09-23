@@ -20,18 +20,21 @@ import tracemalloc
 
 
 class RNAHelper:
-    def __init__(self, positions, subsampling=False, query_args = {}, test_args ={}):
+    def __init__(self, positions, subsampling=False, jobid = 0, query_args = {}, test_args ={}):
         tracemalloc.start()
 
         self.positions = positions
         self.n = len(positions)
         self.q = 4
+        self.jobid = jobid
+
         self.load_rna_data(subsampling, query_args)
         if self.rna_signal is None:
             self.calculate_rna_data(subsampling, query_args)
         self.load_rna_test_data()
         if self.rna_test_samples is None:
             self.calculate_test_samples(test_args)
+
 
         snapshot = tracemalloc.take_snapshot()
         display_top(snapshot, limit = 20)
@@ -47,7 +50,7 @@ class RNAHelper:
                                                    positions=self.positions,
                                                    query_args=query_args)
             self.rna_signal.subsample(keep_samples=True, save_samples_to_file=True,
-                                      foldername="results/rna_subsampled", save_all_b=False)
+                                      foldername=f"results/{str(self.jobid)}/rna_subsampled", save_all_b=False)
         else:
             self.rna_signal = SignalRNA(n=self.n, q=self.q, positions=self.positions, parallel=parallel)
             self.rna_signal.sample()
@@ -57,9 +60,9 @@ class RNAHelper:
             if subsampling:
                 num_subsample = query_args.get("num_subsample")
                 M_select = num_subsample * [True]
-                self.rna_signal = PrecomputedSignalRNA(signal="results/rna_subsampled", M_select = M_select)
+                self.rna_signal = PrecomputedSignalRNA(signal=f"results/{str(self.jobid)}/rna_subsampled", M_select = M_select)
             else:
-                y = np.load("results/rna_data.npy")
+                y = np.load(f"results/{str(self.jobid)}/rna_data.npy")
                 self.rna_signal = Signal(n=self.n, q=self.q, signal=y, noise_sd=noise_sd)
         except FileNotFoundError:
             self.rna_signal = None
@@ -409,11 +412,11 @@ class RNAHelper:
 
         self.rna_test_indices, self.rna_test_samples = sample_idx, samples
 
-        save_data((sample_idx, samples), 'results/rna_test.pickle')
+        save_data((sample_idx, samples), f"results/{str(self.jobid)}/rna_test.pickle")
 
     def load_rna_test_data(self):
         try:
-            self.rna_test_indices, self.rna_test_samples = load_data('results/rna_test.pickle')
+            self.rna_test_indices, self.rna_test_samples = load_data(f"results/{str(self.jobid)}/rna_test.pickle")
         except FileNotFoundError:
             self.rna_test_indices, self.rna_test_samples = None, None
             return

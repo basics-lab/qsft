@@ -16,58 +16,71 @@ from rna_transform.rna_helper import RNAHelper
 from qspright.utils import best_convex_underestimator
 from rna_transform.rna_tests import run_accuracy_tests
 
+import argparse
+from pathlib import Path
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', type=bool, default=False)
+parser.add_argument('--num_subsample', type=int, nargs="+", default=[4])
+parser.add_argument('--num_random_delays', type=int, nargs="+", default=[10])
+parser.add_argument('--b', type=int, nargs="+", default=[6, 7, 8])
+parser.add_argument('--noise_sd', type=float, nargs="+", default=np.logspace(0, -10, num=10))
+parser.add_argument('--n', type=int, nargs="+", default=20)
+parser.add_argument('--iters', type=int, nargs="+", default=1)
+parser.add_argument('--jobid', type=int, nargs="+", default="0")
+
+args = parser.parse_args()
+debug = args.debug
+if debug:
+    args.num_subsample = [1]
+    args.num_random_delays = [1]
+    args.b = [6]
+    args.n = 10
+    args.iters = 2
+    args.jobid = args.jobid
+
+num_subsample_list = args.num_subsample
+num_random_delays_list = args.num_random_delays
+b_list = args.b
+noise_sd_list = args.noise_sd
+n = args.n
+iters = args.iters
+jobid = args.jobid
+
+Path(f"./results/{str(jobid)}").mkdir(exist_ok=True)
+
+print("Parameters :", args)
+
 np.random.seed(123)
 
-debug = False
-
-if debug:
-    positions = np.sort(np.random.choice(50, size=10, replace=False))
-    query_args = {
-        "query_method": "complex",
-        "delays_method": "nso",
-        "num_subsample": 1,
-        "num_random_delays": 1,
-        "b": 6
-    }
-else:
-    positions = np.sort(np.random.choice(50, size=20, replace=False))
-    query_args = {
-        "query_method": "complex",
-        "delays_method": "nso",
-        "num_subsample": 4,
-        "num_random_delays": 10,
-        "b": 8
-    }
+positions = np.sort(np.random.choice(50, size=n, replace=False))
+query_args = {
+    "query_method": "complex",
+    "delays_method": "nso",
+    "num_subsample": max(num_subsample_list),
+    "num_random_delays": max(num_random_delays_list),
+    "b": max(b_list)
+}
 
 print("positions: ", positions)
-helper = RNAHelper(positions, subsampling=True, query_args=query_args)
+helper = RNAHelper(positions, subsampling=True, jobid=jobid, query_args=query_args)
 n = helper.n
 q = helper.q
 
 print("n = {}, N = {:.2e}".format(n, q ** n))
 
-
 # ## Test QSPRIGHT with different parameters
 # 
-# Construct a grid of parameters. For each entry, run multiple test rounds. Compute the average for each parameter selection. 
+# Construct a grid of parameters. For each entry, run multiple test rounds. Compute the average for each parameter selection.
+results_df = run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list, noise_sd_list)
 
-if debug:
-    iters = 1
-    num_subsample_list = [1]
-    num_random_delays_list = [1]
-    b_list = [6]
-else:
-    iters = 10
-    num_subsample_list = [2, 3, 4]
-    num_random_delays_list = [4, 6, 8, 10]
-    b_list = [6, 7, 8]
+means = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).mean()
+stds = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).std()
 
-result = run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list)
+print(means)
+print(stds)
 
-sample_ratios, unique_sample_ratios, accs, hamming_ws = result
-
-for i, b in enumerate(b_list):
-    print(b, np.mean(hamming_ws[:, :, i, :]))
+exit()
 
 all_points = np.zeros(shape=[0, 2])
 
@@ -89,7 +102,7 @@ plt.xlabel('Unique Sample Ratio')
 plt.ylabel('Prediction NMSE')
 plt.legend()
 plt.grid()
-plt.savefig('figs/acc-vs-unique-sample-ratio.png')
+plt.savefig(f'results/{jobid}/figs/acc-vs-unique-sample-ratio.png')
 plt.show()
 
 all_points = np.zeros(shape=[0, 2])
@@ -112,7 +125,5 @@ plt.xlabel('Total Sample Ratio')
 plt.ylabel('Prediction NMSE')
 plt.legend()
 plt.grid()
-plt.savefig('figs/acc-vs-total-sample-ratio.png')
+plt.savefig(f'results/{jobid}/figs/acc-vs-total-sample-ratio.png')
 plt.show()
-
-

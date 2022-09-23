@@ -3,6 +3,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from functools import partial
 import numpy as np
+import pandas as pd
 
 tqdm = partial(tqdm, position=0, leave=True)
 
@@ -14,7 +15,7 @@ def _nmse_test(i):
     # set model arguments
     model_kwargs = {}
     model_kwargs["save"] = False
-    model_kwargs["noise_sd"] = 400 / (helper_obj.q ** helper_obj.n)
+    model_kwargs["noise_sd"] = 1e-8
     model_kwargs["report"] = True
     model_kwargs["num_subsample"] = num_subsample
     model_kwargs["num_random_delays"] = num_random_delays
@@ -72,18 +73,17 @@ def run_nmse_tests(helper, iters, num_subsample_list, num_random_delays_list, b_
 
 
 def _acc_test(i):
-    param_idx = i % len(test_params_list)
-    test_params = test_params_list[param_idx]
-    num_subsample, num_random_delays, b = test_params
+    df_row = test_df.iloc[i]
+    num_subsample, num_random_delays, b, noise_sd = int(df_row["num_subsample"]), int(df_row["num_random_delay"]), int(df_row["b"]), df_row["noise_sd"]
 
     # set model arguments
     model_kwargs = {}
     model_kwargs["save"] = False
-    model_kwargs["noise_sd"] = 8000 / (helper_obj.q ** helper_obj.n)
     model_kwargs["report"] = True
     model_kwargs["num_subsample"] = num_subsample
     model_kwargs["num_random_delays"] = num_random_delays
     model_kwargs["b"] = b
+    model_kwargs["noise_sd"] = noise_sd
 
     spright_result = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
 
@@ -91,24 +91,31 @@ def _acc_test(i):
     test_kwargs["beta"] = spright_result.get("gwht")
     test_kwargs["sampling_method"] = "partial"
 
+    del spright_result['gwht']
+    del spright_result['locations']
+
     acc = helper_obj.test_rna_model(method="qspright", **test_kwargs)
 
-    test_result = {
-        "acc" : acc,
-    }
+    result = {}
+    result["ratio_samples"] = spright_result.get("n_samples") / helper_obj.q ** helper_obj.n
+    result["ratio_unique_samples"] = spright_result.get("n_unique_samples") / helper_obj.q ** helper_obj.n
+    result["max_hamming_weight"] = spright_result.get("max_hamming_weight")
+    result["acc"] = acc
 
-    return param_idx, spright_result, test_result
+    return result
 
 
-def run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list, parallel=True):
+def run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list, noise_sd_list, parallel=True):
 
-    global test_params_list
+    global test_df
     global helper_obj
 
     helper_obj = helper
-    test_params_list = list(itertools.product(num_subsample_list, num_random_delays_list, b_list))
 
-    exp_count = iters * len(test_params_list)
+    test_params_list = list(itertools.product(num_subsample_list, num_random_delays_list, b_list, noise_sd_list, range(iters)))
+    test_df = pd.DataFrame(data = test_params_list, columns = ["num_subsample", "num_random_delay", "b", "noise_sd", "iter"])
+
+    exp_count = len(test_df)
 
     if parallel:
         with Pool() as pool:
@@ -119,25 +126,8 @@ def run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list
         for i in tqdm(range(exp_count)):
             pred.append(_acc_test(i))
 
-    test_params_idx_list = list(
-        itertools.product(np.arange(len(num_subsample_list)), np.arange(len(num_random_delays_list)),
-                          np.arange(len(b_list))))
+    results_df = pd.DataFrame(data = pred)
 
-    sample_ratios = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
-    unique_sample_ratios = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
-    accs = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
-    hamming_ws = np.zeros((len(num_subsample_list), len(num_random_delays_list), len(b_list), iters))
+    results_df = pd.concat([test_df, results_df], axis=1, join="inner")
 
-    for i, exp_result in enumerate(pred):
-        iter_idx = i // len(test_params_list)
-        test_params_idx = i % len(test_params_list)
-        test_params_idx = test_params_idx_list[test_params_idx]
-        param_idx, spright_result, test_result = exp_result
-
-        idx = test_params_idx + (iter_idx,)
-        sample_ratios[idx] = spright_result.get("n_samples") / helper_obj.q ** helper_obj.n
-        unique_sample_ratios[idx] = spright_result.get("n_unique_samples") / helper_obj.q ** helper_obj.n
-        accs[idx] = test_result.get("acc")
-        hamming_ws[idx] = spright_result.get("max_hamming_weight")
-
-    return sample_ratios, unique_sample_ratios, accs, hamming_ws
+    return results_df
