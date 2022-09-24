@@ -72,7 +72,7 @@ print("n = {}, N = {:.2e}".format(n, q ** n))
 # ## Test QSPRIGHT with different parameters
 # 
 # Construct a grid of parameters. For each entry, run multiple test rounds. Compute the average for each parameter selection.
-results_df = run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list, noise_sd_list)
+results_df = run_accuracy_tests(helper, iters, num_subsample_list, num_random_delays_list, b_list, noise_sd_list, parallel=False)
 
 means = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).mean()
 stds = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).std()
