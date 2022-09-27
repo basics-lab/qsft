@@ -80,7 +80,7 @@ class QSPRIGHT:
             start_time = time.time()
         # subsample with shifts [D], make the observation [U]
         for (M, D) in zip(Ms, Ds):
-            if verbosity >= 1:
+            if verbosity >= 5:
                 print("------")
                 print("subsampling matrix")
                 print(M)
@@ -158,14 +158,14 @@ class QSPRIGHT:
                             print((i, j), np.linalg.norm(residual) ** 2, cutoff * len(residual))
                         if np.linalg.norm(residual) ** 2 > cutoff * len(residual):
                             multitons.append((i, j))
-                            if verbosity >= 5:
+                            if verbosity >= 6:
                                 print("We have a Multiton")
                         else:  # declare as singleton
                             singletons[(i, j)] = (k, rho)
                             if verbosity >= 3:
                                 print("We have a Singleton at " + str(k))
                     else:
-                        if verbosity >= 5:
+                        if verbosity >= 6:
                             print("We have a zeroton!")
 
             # all singletons and multitons are discovered
@@ -203,7 +203,7 @@ class QSPRIGHT:
 
                 k = np.array(ball)[..., np.newaxis]
                 potential_peels = [(l, qary_vec_to_dec(M.T.dot(k) % q, q)) for l, M in enumerate(Ms)]
-                if verbosity >= 5:
+                if verbosity >= 6:
                     k_dec = qary_vec_to_dec(k, q)
                     peeled.add(int(k_dec))
                     print("Processing Singleton {0}".format(k_dec))
@@ -213,7 +213,7 @@ class QSPRIGHT:
                 for peel in potential_peels:
                     signature_in_stage = omega ** (Ds[peel[0]] @ k)
                     to_subtract = ball_values[ball] * signature_in_stage.reshape(-1, 1)
-                    if verbosity >= 5:
+                    if verbosity >= 6:
                         # print('this is subtracted:')
                         # print(to_subtract)
                         # print('from')
