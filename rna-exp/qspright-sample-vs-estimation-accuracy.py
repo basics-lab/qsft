@@ -49,7 +49,7 @@ jobid = args.jobid
 
 Path(f"./results/{str(jobid)}").mkdir(exist_ok=True)
 
-print("Parameters :", args)
+print("Parameters :", args, flush=True)
 
 np.random.seed(123)
 
@@ -62,12 +62,13 @@ query_args = {
     "b": max(b_list)
 }
 
-print("positions: ", positions)
+print("positions: ", positions, flush=True)
 helper = RNAHelper(positions, subsampling=True, jobid=jobid, query_args=query_args)
 n = helper.n
 q = helper.q
 
 print("n = {}, N = {:.2e}".format(n, q ** n))
+print("Starting the tests", flush=True)
 
 # ## Test QSPRIGHT with different parameters
 # 
