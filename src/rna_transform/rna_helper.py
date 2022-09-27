@@ -20,8 +20,9 @@ import tracemalloc
 
 
 class RNAHelper:
-    def __init__(self, positions, subsampling=False, jobid = 0, query_args = {}, test_args ={}):
-        tracemalloc.start()
+    def __init__(self, positions, subsampling=False, jobid = 0, query_args = {}, test_args ={}, trace_mem=False):
+        if trace_mem:
+            tracemalloc.start()
 
         self.positions = positions
         self.n = len(positions)
@@ -40,8 +41,9 @@ class RNAHelper:
 
         print("Test data calculated/loaded.", flush=True)
 
-        snapshot = tracemalloc.take_snapshot()
-        display_top(snapshot, limit = 20)
+        if trace_mem:
+            snapshot = tracemalloc.take_snapshot()
+            display_top(snapshot, limit = 20)
 
     def calculate_rna_data(self, subsampling, query_args, verbose=False, parallel=True):
         """
