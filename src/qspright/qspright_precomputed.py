@@ -76,6 +76,9 @@ class QSPRIGHT:
         Us = []
         used = []
 
+        if verbosity >= 1:
+            print("Calculating transforms...", flush=True)
+
         if timing_verbose:
             start_time = time.time()
         # subsample with shifts [D], make the observation [U]
@@ -96,7 +99,7 @@ class QSPRIGHT:
             used.append(np.concatenate(used_sub, axis = 1))
 
         if timing_verbose:
-            print(f"Transform Time:{time.time() - start_time}")
+            print(f"Transform Time:{time.time() - start_time}", flush=True)
 
         used = np.concatenate(used, axis=1)
 
@@ -107,9 +110,8 @@ class QSPRIGHT:
         cutoff = 1e-9 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
 
-        if verbosity >= 1:
-            print("b = ", b)
-            print("cutoff = ", cutoff)
+        if verbosity >= 2:
+            print("cutoff = ", cutoff, flush=True)
 
         # begin peeling
         # index convention for peeling: 'i' goes over all M/U/S values
