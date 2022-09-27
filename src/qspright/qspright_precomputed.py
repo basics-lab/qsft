@@ -133,7 +133,7 @@ class QSPRIGHT:
             iter_step += 1
             if verbosity >= 2:
                 print('-----')
-                print("iter ", iter_step)
+                print("iter ", iter_step, flush=True)
                 # print('the measurement matrix')
                 # for U in Us:
                 #     print(U)
