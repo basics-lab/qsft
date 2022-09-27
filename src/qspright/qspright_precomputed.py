@@ -72,6 +72,8 @@ class QSPRIGHT:
 
         gamma = 1.5
 
+        exit()
+
         Ms, Ds = signal.get_MD(self.num_subsample, self.num_random_delays, self.b)
         Us = []
         used = []

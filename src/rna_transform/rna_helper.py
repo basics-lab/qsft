@@ -167,7 +167,7 @@ class RNAHelper:
 
             out = spright.transform(self.rna_signal, verbosity=verbosity, timing_verbose = True, report=report)
 
-            if verbose:
+            if verbosity >= 1:
                 print("Found GWHT coefficients")
             if save:
                 # TODO fix the bug here (beta is no longer an array, it is a dict)
