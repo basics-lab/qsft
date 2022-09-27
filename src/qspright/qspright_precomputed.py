@@ -72,11 +72,12 @@ class QSPRIGHT:
 
         gamma = 1.5
 
-        exit()
-
         Ms, Ds = signal.get_MD(self.num_subsample, self.num_random_delays, self.b)
         Us = []
         used = []
+
+        if timing_verbose:
+            start_time = time.time()
         # subsample with shifts [D], make the observation [U]
         for (M, D) in zip(Ms, Ds):
             if verbosity >= 1:
@@ -93,6 +94,9 @@ class QSPRIGHT:
                 used_sub.append(used_i)
             Us.append(U)
             used.append(np.concatenate(used_sub, axis = 1))
+
+        if timing_verbose:
+            print(f"Transform Time:{time.time() - start_time}")
 
         used = np.concatenate(used, axis=1)
 

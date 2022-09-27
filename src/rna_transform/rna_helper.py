@@ -21,6 +21,7 @@ import tracemalloc
 
 class RNAHelper:
     def __init__(self, positions, subsampling=False, jobid = 0, query_args = {}, test_args ={}, trace_mem=False):
+        ### run memory tracing only with small problem sizes (otherwise it may take too much time)
         if trace_mem:
             tracemalloc.start()
 
