@@ -140,8 +140,8 @@ class RNAHelper:
                 np.save("results/rna_beta_gwht.npy", beta)
             return beta
 
-    def _calculate_rna_qspright(self, save=False, report=False, noise_sd=None, verbose=False, num_subsample=4,
-                                num_random_delays=10, b=None, sampling_method="full"):
+    def _calculate_rna_qspright(self, save=False, report=False, noise_sd=None, verbosity=0, num_subsample=4,
+                                num_random_delays=10, b=None):
         """
         Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
@@ -154,11 +154,8 @@ class RNAHelper:
         except FileNotFoundError:
             n = len(self.positions)
             q = 4
-            if verbose:
+            if verbosity >= 1:
                 print("Finding GWHT coefficients with QSPRIGHT")
-
-            if noise_sd is None:
-                noise_sd = 300 / (q ** n)
 
             spright = QSPRIGHT(
                 reconstruct_method="nso",
@@ -168,7 +165,7 @@ class RNAHelper:
                 noise_sd = noise_sd
             )
 
-            out = spright.transform(self.rna_signal, verbose=False, timing_verbose = True, report=report)
+            out = spright.transform(self.rna_signal, verbosity=verbosity, timing_verbose = True, report=report)
 
             if verbose:
                 print("Found GWHT coefficients")
@@ -340,23 +337,17 @@ class RNAHelper:
 
             return out
 
-    def _test_rna_qspright(self, beta, n_samples=10000, sampling_method="full"):
+    def _test_rna_qspright(self, beta):
         """
         :param beta:
-        :param test_sample_rate:
-        :param sampling_method:
         :return:
         """
 
         n = len(self.positions)
         q = 4
-        noise_sd = 300 / (q ** n)
         N = q ** n
 
         if len(beta.keys())>0:
-            signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=get_rna_base_seq(),
-                               positions=self.positions, parallel=True)
-
             sample_idx = self.rna_test_indices
             y = self.rna_test_samples
 
@@ -370,7 +361,7 @@ class RNAHelper:
 
     def calculate_test_samples(self, test_args):
 
-        n_samples = test_args.get("n_samples", 100000)
+        n_samples = test_args.get("n_samples", 500000)
         parallel = test_args.get("parallel", True)
 
         N = self.q ** self.n
@@ -406,7 +397,7 @@ class RNAHelper:
                     seq = seq + nucs[nuc_idx]
                 full = insert(get_rna_base_seq(), self.positions, seq)
                 (ss, mfe) = RNA.fold(full)
-                y.append(mfe - self.mean)
+                y.append(mfe)
 
             samples = np.csingle(np.array(y) - mean)
 

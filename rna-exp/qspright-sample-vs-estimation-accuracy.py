@@ -80,9 +80,7 @@ stds = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"]
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 
-print(means)
-print(stds)
-
+print(results_df)
 
 exit()
 

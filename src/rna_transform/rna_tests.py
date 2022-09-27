@@ -20,7 +20,7 @@ def _nmse_test(i):
     model_kwargs["num_subsample"] = num_subsample
     model_kwargs["num_random_delays"] = num_random_delays
     model_kwargs["b"] = b
-    model_kwargs["sampling_method"] = "full"
+    model_kwargs["verbose"] = False
 
     gwht, (n_used, n_used_unique, used_unique), peeled = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
     emp_beta_qspright = np.reshape(gwht, -1)
@@ -84,12 +84,12 @@ def _acc_test(i):
     model_kwargs["num_random_delays"] = num_random_delays
     model_kwargs["b"] = b
     model_kwargs["noise_sd"] = noise_sd
+    model_kwargs["verbosity"] = 4
 
     spright_result = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
 
     test_kwargs = {}
     test_kwargs["beta"] = spright_result.get("gwht")
-    test_kwargs["sampling_method"] = "partial"
 
     del spright_result['gwht']
     del spright_result['locations']

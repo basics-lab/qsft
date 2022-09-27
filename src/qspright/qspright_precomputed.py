@@ -36,7 +36,7 @@ class QSPRIGHT:
         self.b = kwargs.get("b")
         self.noise_sd = kwargs.get("noise_sd")
 
-    def transform(self, signal : LongSignal, verbose=False, report=False, timing_verbose=False, **kwargs):
+    def transform(self, signal : LongSignal, verbosity=0, report=False, timing_verbose=False, **kwargs):
         '''
         Full SPRIGHT encoding and decoding. Implements Algorithms 1 and 2 from [2].
         (numbers) in the comments indicate equation numbers in [2].
@@ -77,7 +77,7 @@ class QSPRIGHT:
         used = []
         # subsample with shifts [D], make the observation [U]
         for (M, D) in zip(Ms, Ds):
-            if verbose:
+            if verbosity >= 1:
                 print("------")
                 print("subsampling matrix")
                 print(M)
@@ -98,10 +98,10 @@ class QSPRIGHT:
             Us[i] = np.vstack(Us[i])
             Ds[i] = np.vstack(Ds[i])
 
-        cutoff = 1e-7 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
+        cutoff = 1e-9 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
 
-        if verbose:
+        if verbosity >= 1:
             print("b = ", b)
             print("cutoff = ", cutoff)
 
@@ -123,7 +123,7 @@ class QSPRIGHT:
             start_time = time.time()
         while cont_peeling and num_peeling < peeling_max and iter_step < max_iter:
             iter_step += 1
-            if verbose:
+            if verbosity >= 2:
                 print('-----')
                 print("iter ", iter_step)
                 # print('the measurement matrix')
@@ -148,23 +148,22 @@ class QSPRIGHT:
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature
 
-                        if verbose:
-                            print((i, j), np.linalg.norm(residual) ** 2)
+                        if verbosity >= 3:
+                            print((i, j), np.linalg.norm(residual) ** 2, cutoff * len(residual))
                         if np.linalg.norm(residual) ** 2 > cutoff * len(residual):
                             multitons.append((i, j))
-                            if verbose:
+                            if verbosity >= 5:
                                 print("We have a Multiton")
                         else:  # declare as singleton
                             singletons[(i, j)] = (k, rho)
-                            if verbose:
-                                k_dec = qary_vec_to_dec(k,q)
-                                print("We have a Singleton at " + str(k_dec))
+                            if verbosity >= 3:
+                                print("We have a Singleton at " + str(k))
                     else:
-                        if verbose:
+                        if verbosity >= 3:
                             print("We have a zeroton!")
 
             # all singletons and multitons are discovered
-            if verbose:
+            if verbosity >= 5:
                 print('singletons:')
                 for ston in singletons.items():
                     print("\t{0} {1}\n".format(ston, bin_to_dec(ston[1][0])))
@@ -189,7 +188,7 @@ class QSPRIGHT:
                 ball_values[ball] = rho
                 result.append((k, ball_values[ball]))
 
-            if verbose:
+            if verbosity >= 5:
                 print('these balls will be peeled')
                 print(balls_to_peel)
             # peel
@@ -198,7 +197,7 @@ class QSPRIGHT:
 
                 k = np.array(ball)[..., np.newaxis]
                 potential_peels = [(l, qary_vec_to_dec(M.T.dot(k) % q, q)) for l, M in enumerate(Ms)]
-                if verbose:
+                if verbosity >= 5:
                     k_dec = qary_vec_to_dec(k, q)
                     peeled.add(int(k_dec))
                     print("Processing Singleton {0}".format(k_dec))
@@ -208,7 +207,7 @@ class QSPRIGHT:
                 for peel in potential_peels:
                     signature_in_stage = omega ** (Ds[peel[0]] @ k)
                     to_subtract = ball_values[ball] * signature_in_stage.reshape(-1, 1)
-                    if verbose:
+                    if verbosity >= 5:
                         # print('this is subtracted:')
                         # print(to_subtract)
                         # print('from')
@@ -216,7 +215,7 @@ class QSPRIGHT:
                         print("Peeled ball {0} off bin {1}".format(qary_vec_to_dec(k, q), peel))
                     Us[peel[0]][:, peel[1]] -= to_subtract
 
-                if verbose:
+                if verbosity >= 5:
                     print("Iteration Complete: The peeled indicies are:")
                     print(np.sort(list(peeled)))
 
@@ -308,7 +307,7 @@ if __name__ == "__main__":
         num_subsample=3,
         num_random_delays=20)
 
-    gwht, n_used, peeled = spright.transform(test_signal, verbose=False, report=True)
+    gwht, n_used, peeled = spright.transform(test_signal, verbosity=0, report=True)
 
     print("found non-zero indices: ")
     print(np.sort(peeled))
