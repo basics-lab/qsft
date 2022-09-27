@@ -31,10 +31,14 @@ class RNAHelper:
         self.load_rna_data(subsampling, query_args)
         if self.rna_signal is None:
             self.calculate_rna_data(subsampling, query_args)
+
+        print("Training data calculated/loaded.", flush=True)
+
         self.load_rna_test_data()
         if self.rna_test_samples is None:
             self.calculate_test_samples(test_args)
 
+        print("Test data calculated/loaded.", flush=True)
 
         snapshot = tracemalloc.take_snapshot()
         display_top(snapshot, limit = 20)
