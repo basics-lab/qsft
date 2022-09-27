@@ -154,7 +154,7 @@ class QSPRIGHT:
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature
 
-                        if verbosity >= 3:
+                        if verbosity >= 5:
                             print((i, j), np.linalg.norm(residual) ** 2, cutoff * len(residual))
                         if np.linalg.norm(residual) ** 2 > cutoff * len(residual):
                             multitons.append((i, j))
@@ -165,7 +165,7 @@ class QSPRIGHT:
                             if verbosity >= 3:
                                 print("We have a Singleton at " + str(k))
                     else:
-                        if verbosity >= 3:
+                        if verbosity >= 5:
                             print("We have a zeroton!")
 
             # all singletons and multitons are discovered
