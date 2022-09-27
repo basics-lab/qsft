@@ -237,7 +237,7 @@ class QSPRIGHT:
                 gwht[tuple(k)] = value
                 gwht_counts[tuple(k)] = 1
         if timing_verbose:
-            print(f"Peeling Time:{time.time() - start_time}")
+            print(f"Peeling Time:{time.time() - start_time}", flush=True)
 
         if not report:
             return gwht
