@@ -97,10 +97,8 @@ class QSPRIGHT:
                 used_sub.append(used_i)
             Us.append(U)
             used.append(np.concatenate(used_sub, axis = 1))
-
         if timing_verbose:
             print(f"Transform Time:{time.time() - start_time}", flush=True)
-
         used = np.concatenate(used, axis=1)
 
         for i in range(len(Ds)):
@@ -149,7 +147,7 @@ class QSPRIGHT:
                             method=self.reconstruct_method,
                             q=q,
                             n=n,
-                            nso_subtype = "nso2"
+                            nso_subtype = "nso1"
                         )  # find the best fit singleton
                         #k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
                         signature = omega ** (D @ k)

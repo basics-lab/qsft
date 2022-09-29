@@ -1,9 +1,8 @@
 '''
 Utility functions.
 '''
-
 import numpy as np
-import mkl_fft._scipy_fft as fft
+import scipy.fft as fft
 from group_lasso import GroupLasso
 from sklearn.linear_model import Ridge
 import itertools
@@ -38,7 +37,6 @@ def gwht_tensored(x,q,n):
     """Computes the GWHT of an input signal with forward scaling"""
     x_tf = fft.fftn(x) / (q ** n)
     return x_tf
-
 
 def igwht(x,q,n):
     """Computes the IGWHT of an input signal with forward scaling"""

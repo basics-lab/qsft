@@ -25,7 +25,7 @@ class PrecomputedSignal(LongSignal):
         else:
             self._init_given_filetype(**kwargs)
         if kwargs.get("transform"):
-            self._signal_w, self.locq = load_data("transform")
+            self._signal_w, self.locq = load_data(kwargs.get("transform"))
 
         end_time = time.time()
         print("Data load: ", end_time - start_time)
