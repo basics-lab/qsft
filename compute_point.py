@@ -1,5 +1,5 @@
 import numpy as np
-from src.qspright.inputsignal import Signal
+from src.qspright.input_signal import Signal
 from src.qspright.utils import lasso_decode
 
 

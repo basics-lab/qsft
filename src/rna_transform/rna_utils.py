@@ -1,22 +1,13 @@
-import numpy as np
 import RNA
 import itertools
-from tqdm import tqdm
-from sklearn.linear_model import Lasso
-from multiprocessing import Pool
 import src.rna_transform.utils as utils
-from src.qspright.inputsignal import Signal
-from src.qspright.qspright_nso import QSPRIGHT
-from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints
 
 import linecache
-import os
 import tracemalloc
 
 """
 Utility functions for loading and processing the quasi-empirical RNA fitness function.
 """
-
 
 def dna_to_rna(seq):
     """
@@ -45,8 +36,10 @@ def get_rna_base_seq():
     """
     Returns the sequence of RFAM: AANN01066007.1
     """
-    base_seq = "CTGAGCCGTTACCTGCAGCTGATGAGCTCCAAAAAGAGCGAAACCTGCTAGGTCCTGCAGTACTGGCTTAAGAGGCT"
+    # base_seq = "CTGAGCCGTTACCTGCAGCTGATGAGCTCCAAAAAGAGCGAAACCTGCTAGGTCCTGCAGTACTGGCTTAAGAGGCT"
+    base_seq = "CTGAGCCGTTACCTGCAGCTGATGAGCTCCAAAAAGA"
     return dna_to_rna(base_seq)
+
 
 
 def sample_structures_and_find_pairs(base_seq, positions, samples=10000):
@@ -103,16 +96,6 @@ def find_pairs(ss):
             pair = (op.pop(), i)
             pairs.append(pair)
     return pairs
-
-
-def _calc_data_inst(args):
-    if type(args) == tuple:
-        full, others = args
-        (_, mfe) = RNA.fold(full)
-        return mfe, others
-    else:
-        (_, mfe) = RNA.fold(args)
-        return mfe
 
 def generate_householder_matrix(positions, n):
     nucs = ["A", "U", "C", "G"]

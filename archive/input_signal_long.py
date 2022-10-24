@@ -1,9 +1,8 @@
 '''
 Class for common interface to an input signal.
 '''
-from src.qspright.inputsignal import Signal
-from src.qspright.inputsignal import random_signal_strength_model
-from src.qspright.utils import qary_vec_to_dec, qary_ints, sort_qary_vecs
+from src.qspright.input_signal import Signal
+from src.qspright.utils import qary_vec_to_dec, qary_ints, sort_qary_vecs, random_signal_strength_model
 from src.qspright.query import compute_delayed_gwht, get_Ms, get_D, get_Ms_and_Ds
 import numpy as np
 

@@ -12,6 +12,7 @@ import time
 from scipy.spatial import ConvexHull
 import zlib
 import pickle
+import json
 
 def fwht(x):
     """Recursive implementation of the 1D Cooley-Tukey FFT"""
@@ -199,6 +200,12 @@ def lasso_decode(signal, sample_rate, refine=False, verbose=False):
     return np.reshape(gwht, [q] * n), non_zero
 
 
+def random_signal_strength_model(sparsity, a, b):
+    magnitude = np.random.uniform(a, b, sparsity)
+    phase = np.random.uniform(0, 2*np.pi, sparsity)
+    return magnitude * np.exp(1j*phase)
+
+
 def best_convex_underestimator(points):
     hull = ConvexHull(points)
     vertices = points[hull.vertices]
@@ -226,6 +233,17 @@ def save_data(data, filename):
         f.write(zlib.compress(pickle.dumps(data, pickle.HIGHEST_PROTOCOL), 9))
 
 def load_data(filename):
+    start = time.time()
     with open(filename, 'rb') as f:
         data = pickle.loads(zlib.decompress(f.read()))
     return data
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)

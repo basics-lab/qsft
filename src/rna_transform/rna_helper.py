@@ -1,82 +1,98 @@
 import numpy as np
-import RNA
-import itertools
 import random
 from tqdm import tqdm
+import json
 from sklearn.linear_model import Lasso
 from multiprocessing import Pool
-import pickle
-import sys
+from pathlib import Path
+import RNA
 
-import src.rna_transform.utils as utils
 from src.qspright.utils import lasso_decode
-from src.qspright.inputsignal import Signal
-from src.qspright.qspright_precomputed import QSPRIGHT
-from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, qary_ints, save_data, load_data
-from src.rna_transform.input_rna_signal import SignalRNA
-from src.rna_transform.input_rna_signal_precomputed import PrecomputedSignalRNA
-from src.rna_transform.rna_utils import insert, get_rna_base_seq, _calc_data_inst, display_top
-import tracemalloc
+from src.qspright.input_signal import Signal
+from src.qspright.qspright import QSPRIGHT
+from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, save_data, load_data, NpEncoder
+from src.rna_transform.input_rna_signal import RnaSignal
+from src.rna_transform.input_rna_signal_subsampled import RnaSubsampledSignal
+from src.rna_transform.rna_utils import get_rna_base_seq
 
 
 class RNAHelper:
-    def __init__(self, positions, subsampling=False, jobid = 0, query_args = {}, test_args ={}, trace_mem=False):
-        ### run memory tracing only with small problem sizes (otherwise it may take too much time)
-        if trace_mem:
-            tracemalloc.start()
+    mfe_base = 0
 
-        self.positions = positions
-        self.n = len(positions)
+    @staticmethod
+    def set_mfe_base(x):
+        global mfe_base
+        mfe_base = x
+
+    @staticmethod
+    def _calc_data_inst(args):
+        if type(args) == tuple:
+            index, full = args
+            fc = RNA.fold_compound(full)
+            (_, mfe) = fc.mfe()
+            return index, mfe - mfe_base
+        else:
+            (_, mfe) = RNA.fold(args)
+            return mfe - mfe_base
+
+    def __init__(self, n, subsampling=False, jobid=0, query_args=None, test_args=None):
+
         self.q = 4
         self.jobid = jobid
 
-        self.load_rna_data(subsampling, query_args)
-        if self.rna_signal is None:
-            self.calculate_rna_data(subsampling, query_args)
+        self.exp_dir = Path(f"results/{str(self.jobid)}")
 
-        print("Training data calculated/loaded.", flush=True)
+        config_path = self.exp_dir / "config.json"
+        config_exists = config_path.is_file()
 
-        self.load_rna_test_data()
-        if self.rna_test_samples is None:
-            self.calculate_test_samples(test_args)
+        if config_exists:
+            with open(config_path) as f:
+                config_dict = json.load(f)
+            query_args = config_dict["query_args"]
+        else:
+            positions = list(np.sort(np.random.choice(len(get_rna_base_seq()), size=n, replace=False)))
+            config_dict = {"base_seq": get_rna_base_seq(), "positions": positions, "query_args": query_args}
+            with open(config_path, "w") as f:
+                json.dump(config_dict, f, cls=NpEncoder)
 
-        print("Test data calculated/loaded.", flush=True)
+        self.positions = config_dict["positions"]
+        self.base_seq = config_dict["base_seq"]
+        self.n = len(self.positions)
+        self.subsampling = subsampling
 
-        if trace_mem:
-            snapshot = tracemalloc.take_snapshot()
-            display_top(snapshot, limit = 20)
+        (_, mfe_base) = RNA.fold("".join(self.base_seq))
+        self.set_mfe_base(mfe_base)
+        self.sampling_function = self._calc_data_inst
 
-    def calculate_rna_data(self, subsampling, query_args, verbose=False, parallel=True):
+        print("Positions: ", self.positions)
+        print("Sampling Query: ", query_args)
+
+        self.load_train_data(query_args)
+        print("Training data loaded.", flush=True)
+        self.load_test_data(test_args)
+        print("Test data loaded.", flush=True)
+
+    def load_train_data(self, query_args):
         """
         Constructs and saves the data corresponding to the quasi-empirical RNA fitness function
         of the Hammerhead ribozyme HH9.
         """
-        if subsampling:
-            self.rna_signal = PrecomputedSignalRNA(n=self.n,
-                                                   q=self.q,
-                                                   positions=self.positions,
-                                                   query_args=query_args)
-            self.rna_signal.subsample(keep_samples=True, save_samples_to_file=True,
-                                      foldername=f"results/{str(self.jobid)}/rna_subsampled", save_all_b=False)
+        if self.subsampling:
+            query_args["subsampling_method"] = "qspright"
+            self.rna_signal = RnaSubsampledSignal(n=self.n,
+                                                  q=self.q,
+                                                  query_args=query_args,
+                                                  base_seq=self.base_seq,
+                                                  positions=self.positions,
+                                                  sampling_function=self.sampling_function,
+                                                  folder=self.exp_dir / "train")
         else:
-            self.rna_signal = SignalRNA(n=self.n, q=self.q, positions=self.positions, parallel=parallel)
-            self.rna_signal.sample()
-
-    def load_rna_data(self, subsampling, query_args):
-        try:
-            if subsampling:
-                num_subsample = query_args.get("num_subsample")
-                M_select = num_subsample * [True]
-                self.rna_signal = PrecomputedSignalRNA(signal=f"results/{str(self.jobid)}/rna_subsampled", M_select = M_select)
-            else:
-                y = np.load(f"results/{str(self.jobid)}/rna_data.npy")
-                self.rna_signal = Signal(n=self.n, q=self.q, signal=y, noise_sd=noise_sd)
-        except FileNotFoundError:
-            self.rna_signal = None
-            return
-
-    def get_rna_data(self):
-        return self.rna_signal
+            self.rna_signal = RnaSignal(n=self.n,
+                                        q=self.q,
+                                        positions=self.positions,
+                                        base_seq=self.base_seq,
+                                        sampling_function=self.sampling_function,
+                                        folder=self.exp_dir / "train")
 
     def compute_rna_model(self, method, **kwargs):
         if method == "householder":
@@ -154,33 +170,24 @@ class RNAHelper:
         from the results folder, but will otherwise calculate from scratch. If save=True,
         then coefficients will be saved to the results folder.
         """
-        try:
-            beta = np.load("results/rna_beta_qspright.npy")
-            print("Loaded saved beta array for GWHT QSPRIGHT.")
-            return beta
-        except FileNotFoundError:
-            n = len(self.positions)
-            q = 4
-            if verbosity >= 1:
-                print("Finding GWHT coefficients with QSPRIGHT")
 
-            spright = QSPRIGHT(
-                reconstruct_method="nso",
-                num_subsample=num_subsample,
-                num_random_delays=num_random_delays,
-                b=b,
-                noise_sd = noise_sd
-            )
+        if verbosity >= 1:
+            print("Finding GWHT coefficients with QSPRIGHT")
 
-            out = spright.transform(self.rna_signal, verbosity=verbosity, timing_verbose = True, report=report)
+        qspright = QSPRIGHT(
+            reconstruct_method="nso",
+            num_subsample=num_subsample,
+            num_random_delays=num_random_delays,
+            b=b,
+            noise_sd=noise_sd
+        )
 
-            if verbosity >= 1:
-                print("Found GWHT coefficients")
-            if save:
-                # TODO fix the bug here (beta is no longer an array, it is a dict)
-                np.save("results/rna_beta_qspright.npy", out.get("gwht"))
+        out = qspright.transform(self.rna_signal, verbosity=verbosity, timing_verbose=True, report=report)
 
-            return out
+        if verbosity >= 1:
+            print("Found GWHT coefficients")
+
+        return out
 
     def _calculate_rna_lasso(self, save=False, report=False, noise_sd=None, verbose=False, on_demand_comp=False,
                              sampling_rate=0.1):
@@ -204,7 +211,7 @@ class RNAHelper:
                 noise_sd = 300 / (q ** n)
 
             if on_demand_comp:
-                signal = SignalRNA(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
+                signal = RnaSignal(n=n, q=q, noise_sd=noise_sd, base_seq=self.base_seq,
                                    positions=self.positions, parallel=True)
             else:
                 signal = Signal(n=n, q=q, signal=y, noise_sd=noise_sd)
@@ -310,16 +317,13 @@ class RNAHelper:
             return beta
 
         except FileNotFoundError:
-            y = self.get_rna_data()
+            y = self.rna_signal
             y_oh = self.convert_onehot(y)
             n = len(self.positions)
             q = 4
 
             if verbose:
                 print("Finding WHT coefficients with SPRIGHT")
-
-            if noise_sd is None:
-                noise_sd = 300 / (2 ** (q * n))
 
             signal = Signal(n=n * q, q=2, signal=y_oh, noise_sd=noise_sd)
             spright = QSPRIGHT(
@@ -349,72 +353,44 @@ class RNAHelper:
         :param beta:
         :return:
         """
+        if len(beta.keys()) > 0:
+            test_signal = self.test_signal.signal_t
+            (sample_idx_dec, samples) = list(test_signal.keys()), list(test_signal.values())
+            batch_size = 10000
 
-        n = len(self.positions)
-        q = 4
-        N = q ** n
+            beta_keys = list(beta.keys())
+            beta_values = list(beta.values())
 
-        if len(beta.keys())>0:
-            sample_idx = self.rna_test_indices
-            y = self.rna_test_samples
+            y_hat = []
+            for i in range(0, len(sample_idx_dec), batch_size):
+                sample_idx_dec_batch = sample_idx_dec[i:i + batch_size]
+                sample_idx_batch = dec_to_qary_vec(sample_idx_dec_batch, self.q, self.n)
+                freqs = np.array(sample_idx_batch).T @ np.array(beta_keys).T
+                H = np.exp(2j * np.pi * freqs / self.q)
+                y_hat.append(H @ np.array(beta_values))
 
-            freqs = np.array(sample_idx).T @ np.array(list(beta.keys())).T
-            H = np.exp(2j * np.pi * freqs / q)
-            y_hat = H @ np.array(list(beta.values()))
-            return np.linalg.norm(y_hat - y) ** 2 / np.linalg.norm(y) ** 2
+            y_hat = np.concatenate(y_hat)
+
+            return np.linalg.norm(y_hat - samples) ** 2 / np.linalg.norm(samples) ** 2
         else:
             return 1
 
+    def load_test_data(self, test_args=None):
 
-    def calculate_test_samples(self, test_args):
+        (self.exp_dir / "test").mkdir(exist_ok=True)
+        test_signal_t_path = self.exp_dir / "test/signal_t.pickle"
 
-        n_samples = test_args.get("n_samples", 500000)
-        parallel = test_args.get("parallel", True)
+        if not test_args:
+            test_args = {}
 
-        N = self.q ** self.n
-        q = self.q
-        n = self.n
-
-        n_samples = np.minimum(n_samples, N)
-        sample_idx = random.sample(range(N), n_samples)
-        sample_idx = dec_to_qary_vec(sample_idx, q, n)
-
-        nucs = np.array(["A", "U", "C", "G"])
-        sample_idx = np.byte(np.array(sample_idx))
-        mean = -21.23934478693991
-
-        if parallel:
-
-            query = []
-            for i in range(sample_idx.shape[1]):
-                seq = nucs[sample_idx[:, i]]
-                full = insert(get_rna_base_seq(), self.positions, seq)
-                query.append(full)
-
-            with Pool() as pool:
-                y = list(tqdm(pool.imap(_calc_data_inst, query), total=len(query), miniters=2000))
-
-            samples = np.array(y) - mean
-
+        if self.subsampling:
+            query_args = {"subsampling_method": "uniform", "n_samples": test_args.get("n_samples", 50000)}
+            self.test_signal = RnaSubsampledSignal(n=self.n,
+                                                   q=self.q,
+                                                   query_args=query_args,
+                                                   base_seq=self.base_seq,
+                                                   positions=self.positions,
+                                                   sampling_function=self.sampling_function,
+                                                   folder=self.exp_dir / "test")
         else:
-            y = []
-            for i in tqdm(range(sample_idx.shape[1])):
-                seq = ""
-                for nuc_idx in sample_idx[:, i]:
-                    seq = seq + nucs[nuc_idx]
-                full = insert(get_rna_base_seq(), self.positions, seq)
-                (ss, mfe) = RNA.fold(full)
-                y.append(mfe)
-
-            samples = np.csingle(np.array(y) - mean)
-
-        self.rna_test_indices, self.rna_test_samples = sample_idx, samples
-
-        save_data((sample_idx, samples), f"results/{str(self.jobid)}/rna_test.pickle")
-
-    def load_rna_test_data(self):
-        try:
-            self.rna_test_indices, self.rna_test_samples = load_data(f"results/{str(self.jobid)}/rna_test.pickle")
-        except FileNotFoundError:
-            self.rna_test_indices, self.rna_test_samples = None, None
-            return
+            self.test_signal = self.rna_signal

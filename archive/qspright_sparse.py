@@ -294,9 +294,7 @@ class QSPRIGHT:
 if __name__ == "__main__":
     np.random.seed(10)
 
-    from inputsignal import Signal
     from src.rna_transform.input_rna_signal import SignalRNA
-    from src.rna_transform.rna_utils import get_rna_base_seq
     q = 4
     n = 10
     N = q ** n

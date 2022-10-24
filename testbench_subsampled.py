@@ -2,39 +2,42 @@ import numpy as np
 import sys
 
 sys.path.append("./src/qspright/")
-from src.qspright.qspright_precomputed import QSPRIGHT
-from src.qspright.input_signal_precomputed import PrecomputedSignal
-from src.rna_transform.input_rna_signal_precomputed import PrecomputedSignalRNA
+from src.qspright.qspright import QSPRIGHT
+from src.qspright.synthetic_signal import get_random_subsampled_signal
 
 if __name__ == '__main__':
     np.random.seed(20)
     q = 4
-    n = 20
+    n = 10
     N = q ** n
-    sparsity = 20
+    sparsity = 10
     a_min = 1
     a_max = 10
-    b = 8
+    b = 6
     noise_sd = 1e-5
+    num_subsample = 2
+    num_random_delays = 4
 
     query_args = {
         "query_method": "complex",
         "delays_method": "nso",
-        "num_subsample": 2,
-        "num_random_delays": 4,
+        "num_subsample": num_subsample,
+        "num_random_delays": num_random_delays,
         "b": b
     }
     """
     Use the constructor like this to save the computation you've done
     If you do not pass a `signal` argument, we assume you want to randomly generate the signal
     """
-    #test_signal = PrecomputedSignal(n=n,
-    #                                q=q,
-    #                                sparsity=sparsity,
-    #                                a_min=a_min,
-    #                                a_max=a_max,
-    #                                noise_sd=noise_sd,
-    #                                query_args=query_args)
+    test_signal = get_random_subsampled_signal(n=n,
+                                               q=q,
+                                               sparsity=sparsity,
+                                               a_min=a_min,
+                                               a_max=a_max,
+                                               noise_sd=noise_sd,
+                                               query_args=query_args)
+
+
 
     """
     The PrecomputeSignalRNA Class is only slightly different from the standard PrecomputedSignal Class, If constructed without 
@@ -43,7 +46,7 @@ if __name__ == '__main__':
     chosen based on the query args. Note that you must include the positions argument, which should be a list of
     integers < q ** n of length n
     """
-    #test_signal_RNA = PrecomputedSignalRNA(n=n,
+    # test_signal_RNA = PrecomputedSignalRNA(n=n,
     #                                       q=q,
     #                                       noise_sd=noise_sd,
     #                                       positions = [5, 10, 15, 20, 25, 30, 35, 40],
@@ -57,27 +60,26 @@ if __name__ == '__main__':
     Parallelization should be implemented, but has not been yet.
     subsample_nosave() should work as well, and should be faster? (not tested)
     """
-    #test_signal.subsample(foldername="test1", save_samples_to_file=True, keep_samples=True)
-    #test_signal_RNA.subsample(foldername="test_RNA", save_all_b=False, keep_samples=True)
+    # test_signal_RNA.subsample(foldername="test_RNA", save_all_b=False, keep_samples=True)
     """
     If you have set save_locally = True, or you ran subsample_nosave(), you can still save all the subsampled entries in
     a single file
     """
-    #test_signal.save_full_signal("full_signal.pickle")
+    # test_signal.save_full_signal("full_signal.pickle")
     """
     This function can be called if the signal has a transform variable _signal_w that you want to save
     """
-    #test_signal.save_transform("saved_tf.pickle")
-    #print("test signal generated")
+    # test_signal.save_transform("saved_tf.pickle")
+    # print("test signal generated")
     """
     We can load a signal from a folder. The "M_select" list specifies which Ms are to be used
     If the b value is provided, it is assumed that the data was generated with all_b=True, if this is not
     the case, the b value must not be provided (and b is inferred from the saved Ms).
     """
-    test_signal = PrecomputedSignal(signal="test1",
-                                     M_select=[True, True],
-                                     noise_sd=noise_sd,
-                                     transform="saved_tf.pickle")
+    # test_signal = PrecomputedSignal(signal="test1",
+    #                                  M_select=[True, True],
+    #                                  noise_sd=noise_sd,
+    #                                  transform="saved_tf.pickle")
     """
     We can also load the signal from a file, by providing the transform field, we can also load the transform in file mode,
     just as we did above, but we do not do that here.
@@ -85,16 +87,15 @@ if __name__ == '__main__':
     # test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
     #                                           noise=noise_sd)
     qspright_args = {
-        "num_subsample": 2,
-        "num_random_delays": 4,
+        "num_subsample": num_subsample,
+        "num_random_delays": num_random_delays,
         "b": b,
         "noise_sd": noise_sd
     }
 
     spright = QSPRIGHT("nso", **qspright_args)
 
-    result = spright.transform(test_signal, verbose=False, timing_verbose=True,
-                                                                 report=True)
+    result = spright.transform(test_signal, verbose=False, timing_verbose=True, report=True, sort=True)
 
     gwht = result.get("gwht")
     n_used = result.get("n_samples")
@@ -109,17 +110,17 @@ if __name__ == '__main__':
     # print("found non-zero indices LASSO: ")
     # print(np.sort(non_zero))
     print("true non-zero indices: ")
-    print(test_signal.get_nonzero_locations())
+    print(test_signal.locq.T)
 
     print("total sample ratio = ", n_used / q ** n)
     print("unique sample ratio = ", n_used_unique / q ** n)
 
-    signal_w_diff = test_signal._signal_w.copy()
+    signal_w_diff = test_signal.signal_w.copy()
 
     for key in gwht.keys():
         signal_w_diff[key] = signal_w_diff.get(key, 0) - gwht[key]
     print("NMSE SPRIGHT= ",
-          np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal._signal_w.values())) ** 2))
+          np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal.signal_w.values())) ** 2))
 
     print("AVG Hamming Weight of Nonzero Locations = ", avg_hamming_weight)
-    #print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))
+    # print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))

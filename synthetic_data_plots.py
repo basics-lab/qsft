@@ -1,7 +1,7 @@
 import numpy as np
 from multiprocessing import Pool
 import sys
-from src.qspright.qspright_nso import QSPRIGHT
+from archive.qspright_nso import QSPRIGHT
 from itertools import repeat
 from compute_point import compute_point_qspright
 from compute_point import compute_point_lasso
