@@ -6,9 +6,18 @@ from src.qspright.input_signal import Signal
 from src.qspright.input_signal_subsampled import SubsampledSignal
 
 
-def generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=True):
+def generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=True, max_weight=None):
+    max_weight = n if max_weight is None else max_weight
     N = q ** n
-    locq = sort_qary_vecs(np.random.randint(q, size=(n, sparsity)).T).T
+    if max_weight == n:
+        locq = sort_qary_vecs(np.random.randint(q, size=(n, sparsity)).T).T
+    else:
+        non_zero_idx_vals = np.random.randint(q-1, size=(max_weight, sparsity))+1
+        non_zero_idx_pos = np.random.choice(a=n, size=(sparsity, max_weight))
+        locq = np.zeros((n, sparsity), dtype=int)
+        for i in range(sparsity):
+            locq[non_zero_idx_pos[i, :], i] = non_zero_idx_vals[:, i]
+        locq = sort_qary_vecs(locq.T).T
     loc = qary_vec_to_dec(locq, q)
     strengths = random_signal_strength_model(sparsity, a_min, a_max)
     if full:
@@ -44,8 +53,8 @@ class SyntheticSignal(Signal):
         self.strengths = strengths
 
 
-def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_args):
-    signal_w, locq, strengths = generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=False)
+def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_args, max_weight=None):
+    signal_w, locq, strengths = generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=False, max_weight=max_weight)
     signal_params = {
         "n": n,
         "q": q,
@@ -60,26 +69,17 @@ class SyntheticSubsampledSignal(SubsampledSignal):
     def __init__(self, signal_w, locq, strengths, noise_sd, **kwargs):
         self.locq = locq
         self.strengths = strengths
-        self.signal_w = signal_w
         self.noise_sd = noise_sd
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, signal_w=signal_w)
 
-    def subsample(self, M, D):
+    def subsample(self, query_indices):
         signal_t = {}
-        base_inds = []
-        samples = []
-        L = self.get_all_qary_vectors()
-        for i in range(self.num_random_delays):
-            base_inds.append([((M @ L) + np.outer(d, np.ones(self.q ** self.b, dtype=int))) % self.q for d in D[i]])
-            freqs = [(k.T @ self.locq) % self.q for k in base_inds[i]]
-            samples.append([np.exp(2j * np.pi * freq / self.q) @ self.strengths for freq in freqs])
-        for r in range(self.q ** self.b):
-            for i in range(self.num_random_delays):
-                for j in range(len(D[0])):
-                    signal_t[qary_vec_to_dec(base_inds[i][j][:, r], self.q)] = \
-                        np.csingle(samples[i][j][r] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
-                                                                                        size=(1, 2)).view(np.cdouble))
+        N = len(query_indices)
+        k = np.array([query_indices[i][0] for i in range(N)]).T
+        freq = (k.T @ self.locq) % self.q
+        samples = np.exp(2j * np.pi * freq / self.q) @ self.strengths
+        for i in range(N):
+            signal_t[query_indices[i][1]] = \
+                np.csingle(samples[i] + self.noise_sd * np.random.normal(loc=0, scale=np.sqrt(2) / 2,
+                                                                               size=(1, 2)).view(np.cdouble))
         return signal_t
-
-
-    

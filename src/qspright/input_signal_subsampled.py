@@ -1,11 +1,12 @@
 from src.qspright.input_signal import Signal
 from src.qspright.query import get_Ms_and_Ds
 from src.qspright.utils import qary_ints, qary_vec_to_dec, dec_to_qary_vec, load_data, save_data
+from src.qspright.coded_sampling.BCH import BCH
 import numpy as np
 from pathlib import Path
 import time
 import random
-
+import galois as gl
 
 class SubsampledSignal(Signal):
 
@@ -18,8 +19,9 @@ class SubsampledSignal(Signal):
         self.query_args = kwargs.get("query_args")
         self.b = self.query_args.get("b")
         self.num_subsample = self.query_args.get("num_subsample")
-        self.num_random_delays = self.query_args.get("num_random_delays")
+        self.num_random_delays = self.query_args.get("num_repeat", 1)
         self.subsampling_method = self.query_args.get("subsampling_method")
+        self.delays_method_source = self.query_args.get("delays_method_source")
 
         self.L = None  # List of all length b qary vectors
         self.foldername = kwargs.get("folder")

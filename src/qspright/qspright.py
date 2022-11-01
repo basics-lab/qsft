@@ -28,12 +28,14 @@ class QSPRIGHT:
         "noiseless" : decode according to [2], section 4.2, with the assumption the signal is noiseless.
         "mle" : naive noisy decoding; decode by taking the maximum-likelihood singleton that could be at that bin.
     """
-    def __init__(self, reconstruct_method, **kwargs):
-        self.reconstruct_method = reconstruct_method
+    def __init__(self, **kwargs):
+        self.reconstruct_method_source = kwargs.get("reconstruct_method_source")
+        self.reconstruct_method_channel = kwargs.get("reconstruct_method_channel")
         self.num_subsample = kwargs.get("num_subsample")
         self.num_random_delays = kwargs.get("num_random_delays")
         self.b = kwargs.get("b")
         self.noise_sd = kwargs.get("noise_sd")
+        self.source_decoder = kwargs.get("source_decoder", None)
 
     def transform(self, signal, verbosity=0, report=False, timing_verbose=False, **kwargs):
         '''
@@ -143,10 +145,12 @@ class QSPRIGHT:
 
                         k = singleton_detection(
                             col,
-                            method=self.reconstruct_method,
+                            method_channel=self.reconstruct_method_channel,
+                            method_source=self.reconstruct_method_source,
                             q=q,
                             n=n,
-                            nso_subtype = "nso1"
+                            nso_subtype="nso1",
+                            source_decoder=self.source_decoder
                         )  # find the best fit singleton
                         #k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
                         signature = omega ** (D @ k)

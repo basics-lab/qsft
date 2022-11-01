@@ -3,6 +3,7 @@ import sys
 
 sys.path.append("./src/qspright/")
 from src.qspright.qspright import QSPRIGHT
+from src.qspright.query import get_reed_solomon_dec
 from src.qspright.synthetic_signal import get_random_subsampled_signal
 
 if __name__ == '__main__':
@@ -14,16 +15,31 @@ if __name__ == '__main__':
     a_min = 1
     a_max = 10
     b = 6
-    noise_sd = 1e-5
+    noise_sd = 1e-6
     num_subsample = 2
-    num_random_delays = 4
-
+    num_random_delays = 10
+    t = 4
+    decoder = None  # get_reed_solomon_dec(n, t)
+    delays_method_source = "identity"
+    delays_method_channel = "nso"
     query_args = {
         "query_method": "complex",
-        "delays_method": "nso",
+        "num_subsample": num_subsample,
+        "delays_method_source": delays_method_source,
+        "subsampling_method": "qspright",
+        "delays_method_channel": delays_method_channel,
+        "num_repeat": num_random_delays,
+        "b": b,
+        "t": t
+    }
+    qspright_args = {
         "num_subsample": num_subsample,
         "num_random_delays": num_random_delays,
-        "b": b
+        "reconstruct_method_source": delays_method_source,
+        "reconstruct_method_channel": delays_method_channel,
+        "b": b,
+        "noise_sd": noise_sd,
+        "source_decoder": decoder
     }
     """
     Use the constructor like this to save the computation you've done
@@ -35,9 +51,8 @@ if __name__ == '__main__':
                                                a_min=a_min,
                                                a_max=a_max,
                                                noise_sd=noise_sd,
-                                               query_args=query_args)
-
-
+                                               query_args=query_args,
+                                               max_weight=t)
 
     """
     The PrecomputeSignalRNA Class is only slightly different from the standard PrecomputedSignal Class, If constructed without 
@@ -86,14 +101,9 @@ if __name__ == '__main__':
     """
     # test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
     #                                           noise=noise_sd)
-    qspright_args = {
-        "num_subsample": num_subsample,
-        "num_random_delays": num_random_delays,
-        "b": b,
-        "noise_sd": noise_sd
-    }
 
-    spright = QSPRIGHT("nso", **qspright_args)
+
+    spright = QSPRIGHT(**qspright_args)
 
     result = spright.transform(test_signal, verbose=False, timing_verbose=True, report=True, sort=True)
 
@@ -114,13 +124,13 @@ if __name__ == '__main__':
 
     print("total sample ratio = ", n_used / q ** n)
     print("unique sample ratio = ", n_used_unique / q ** n)
-
     signal_w_diff = test_signal.signal_w.copy()
 
     for key in gwht.keys():
         signal_w_diff[key] = signal_w_diff.get(key, 0) - gwht[key]
     print("NMSE SPRIGHT= ",
-          np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal.signal_w.values())) ** 2))
+         np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal.signal_w.values())) ** 2))
 
     print("AVG Hamming Weight of Nonzero Locations = ", avg_hamming_weight)
     # print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))
+

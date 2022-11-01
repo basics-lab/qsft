@@ -8,7 +8,9 @@ Methods for the query generator: specifically, to
 import time
 import numpy as np
 from src.qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
-
+import galois as gl
+import math
+from src.qspright.coded_sampling.BCH import BCH
 
 def get_Ms_simple(n, b, q, num_to_get=None):
     '''
@@ -66,12 +68,12 @@ def get_Ms(n, b, q, num_to_get=None, method="simple"):
         "complex": get_Ms_complex
     }.get(method)(n, b, q, num_to_get)
 
+
 def get_D_identity(n, **kwargs):
-    q=kwargs.get("q")
     int_delays = np.zeros(n, )
-    for i in range(1): # Previously, q-1, but should just be 1
-        int_delays = np.vstack((int_delays, (i+1)*np.eye(n)))
+    int_delays = np.vstack((int_delays, np.eye(n)))
     return int_delays.astype(int)
+
 
 def get_D_random(n, **kwargs):
     '''
@@ -81,22 +83,48 @@ def get_D_random(n, **kwargs):
     num_delays = kwargs.get("num_delays")
     return np.random.choice(q, (num_delays, n))
 
-def get_D_nso(n, **kwargs):
+
+def get_D_source_coded(n, **kwargs):
+    q = kwargs.get("q")
+    t_max = kwargs.get("t")
+    valid = gl.bch_valid_codes(n)
+    for n, k, t in valid:
+        if t >= t_max:
+            bch = BCH(n, k)
+            t = t
+            break
+    s = math.ceil(math.log2(n))
+    p = 2*t*s
+    H = bch.H.vector()
+    GF = bch.field
+    print(GF.ufunc_mode)
+    D = gl.GF2.Zeros((p+1, n))
+    for i in range(n):
+        for j in range(2*t):
+            D[(s*j + 1):(s*(j+1) + 1), i] = H[j, i, :]
+    return np.array(D, dtype=int)
+
+
+def get_D_nso(n, D_source, **kwargs):
     '''
     Get a repetition code based (NSO-SPRIGHT) delays matrix. See get_D for full signature.
     '''
-    num_delays = kwargs.get("num_delays")
-    q=kwargs.get("q")
-    p1 = num_delays // (n + 1) # is this what we want?
+    num_repeat = kwargs.get("num_repeat")
+    q = kwargs.get("q")
+    p1 = num_repeat
     random_offsets = get_D_random(n, q=q, num_delays=p1)
     D = []
-    identity_like = get_D_identity(n)
     for row in random_offsets:
-        modulated_offsets = (row - identity_like) % q
+        modulated_offsets = (row - D_source) % q
         D.append(modulated_offsets)
     return D
-    
-def get_D(n, method="random", **kwargs):
+
+
+def get_D_channel_coded(n, D, **kwargs):
+    print("One day this might be implemented")
+
+
+def get_D(n, **kwargs):
     '''
     Delay generator: gets a delays matrix.
 
@@ -110,11 +138,23 @@ def get_D(n, method="random", **kwargs):
     D : numpy.ndarray of binary ints, dimension (num_delays, n).
     The delays matrix; if num_delays is not specified in kwargs, see the relevant sub-function for a default.
     '''
-    return {
-        "random" : get_D_random,
-        "identity" : get_D_identity,
-        "nso" : get_D_nso
-    }.get(method)(n, **kwargs)
+    delays_method_source = kwargs.get("delays_method_source", "random")
+    D = {
+        "random": get_D_random,
+        "identity": get_D_identity,
+        "coded": get_D_source_coded
+    }.get(delays_method_source)(n, **kwargs)
+
+    delays_method_channel = kwargs.get("delays_method_channel", None)
+    if delays_method_channel is not None:
+        D = {
+            "nso": get_D_nso,
+            "coded": get_D_channel_coded
+        }.get(delays_method_channel)(n, D, **kwargs)
+    else:
+        D = [D]
+    return D
+
 
 def subsample_indices(M, d):
     '''
@@ -149,33 +189,27 @@ def compute_delayed_gwht(signal, M, D, q, parallel = True):
 
     return transform, used_inds
 
+
 def get_Ms_and_Ds(n, q, **kwargs):
-    query_method = kwargs.get("query_method")
-    delays_method = kwargs.get("delays_method")
-    num_subsample = kwargs.get("num_subsample")
-    num_random_delays = kwargs.get("num_random_delays")
-    b = kwargs.get("b")
     timing_verbose = kwargs.get("timing_verbose", True)
     if timing_verbose:
         start_time = time.time()
+    query_method = kwargs.get("query_method")
+    b = kwargs.get("b")
+    num_subsample = kwargs.get("num_subsample")
     Ms = get_Ms(n, b, q, method=query_method, num_to_get=num_subsample)
     if timing_verbose:
         print(f"M Generation:{time.time() - start_time}")
     Ds = []
-    if delays_method == "identity":
-        num_delays = n + 1
-    elif delays_method == "nso":
-        num_delays = num_random_delays * (n + 1)
-    else:
-        num_delays = num_random_delays
     if timing_verbose:
         start_time = time.time()
-    D = get_D(n, method=delays_method, num_delays=num_delays, q=q)
+    D = get_D(n, q=q, **kwargs)
     if timing_verbose:
         print(f"D Generation:{time.time() - start_time}")
     for M in Ms:
         Ds.append(D)
     return Ms, Ds
+
 
 def compute_delayed_wht(signal, M, D):
     '''
@@ -200,4 +234,14 @@ def compute_delayed_wht(signal, M, D):
     used_inds = set(np.unique(inds))
     samples_to_transform = signal.signal_t[np.array([subsample_indices(M, d) for d in D])] # subsample to allow small WHTs
     return np.array([fwht(row) for row in samples_to_transform]), used_inds # compute the small WHTs
-    
+
+
+def get_reed_solomon_dec(n, t_max):
+    t_max = t_max
+    valid = gl.bch_valid_codes(n)
+    for n, k, t in valid:
+        if t >= t_max:
+            bch = BCH(n, k)
+            break
+    return bch.syndrome_decode
+
