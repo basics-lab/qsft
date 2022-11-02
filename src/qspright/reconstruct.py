@@ -76,7 +76,7 @@ def singleton_detection_mle(U_slice, **kwargs):
     The index of the singleton.
 
     '''
-    selection, S_slice, q, n = kwargs.get("selection"), kwargs.get("S_slice"), kwargs.get("q"), kwargs.get("n")
+    selection, S_slice, q, n = kwargs.get("selection"), kwargs.get("S_slice"), kwargs.get("q"), kwargs.get("source_parity")
     P = S_slice.shape[0]
     alphas = 1/P * np.dot(np.conjugate(S_slice).T, U_slice)
     residuals = np.linalg.norm(U_slice - (alphas * S_slice).T, ord=2, axis=1)
@@ -102,15 +102,14 @@ def singleton_detection_nso(U_slice, **kwargs):
 
 
 def singleton_detection_nso1(U_slice, **kwargs):
-    q, n = kwargs.get("q"), kwargs.get("n")
+    q, p1 = kwargs.get("q"), kwargs.get("source_parity")
     import matplotlib.pyplot as plt
     q_roots = 2 * np.pi / q * np.arange(q + 1)
-    U_slice_zero = U_slice[0::n+1]
-    k_sel_qary = np.zeros((n, ), dtype=int)
-    for i in range(1, n+1):
-        U_slice_i = U_slice[i::n+1]
+    U_slice_zero = U_slice[0::p1]
+    k_sel_qary = np.zeros((p1-1, ), dtype=int)
+    for i in range(1, p1):
+        U_slice_i = U_slice[i::p1]
         angle = np.angle(np.mean(U_slice_zero * np.conjugate(U_slice_i))) % (2 * np.pi)
-        plt.scatter([x.real for x in U_slice_i], [x.imag for x in U_slice_i])
         idx = (np.abs(q_roots - angle)).argmin() % q
         k_sel_qary[i-1] = idx
 
@@ -119,12 +118,12 @@ def singleton_detection_nso1(U_slice, **kwargs):
 
 
 def singleton_detection_nso2(U_slice, **kwargs):
-    q, n = kwargs.get("q"), kwargs.get("n")
-    U_slice_zero = U_slice[0::n+1]
+    q, p1 = kwargs.get("q"), kwargs.get("source_parity")
+    U_slice_zero = U_slice[0::p1]
     angle_0 = angle_q(U_slice_zero, q)
-    k_sel_qary = np.zeros((n, ), dtype=int)
-    for i in range(1, n+1):
-        U_slice_i = U_slice[i::n+1]
+    k_sel_qary = np.zeros((p1-1, ), dtype=int)
+    for i in range(1, p1):
+        U_slice_i = U_slice[i::p1]
         angle = angle_q(U_slice_i, q)
         idx = np.round(np.mean((angle_0 - angle) % q)) % q
         k_sel_qary[i-1] = idx

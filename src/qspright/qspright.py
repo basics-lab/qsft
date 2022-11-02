@@ -148,11 +148,10 @@ class QSPRIGHT:
                             method_channel=self.reconstruct_method_channel,
                             method_source=self.reconstruct_method_source,
                             q=q,
-                            n=n,
+                            source_parity=signal.get_source_parity(),
                             nso_subtype="nso1",
                             source_decoder=self.source_decoder
-                        )  # find the best fit singleton
-                        #k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
+                        )
                         signature = omega ** (D @ k)
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature

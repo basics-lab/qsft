@@ -10,7 +10,7 @@ import numpy as np
 from src.qspright.utils import fwht, gwht, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 import galois as gl
 import math
-from src.qspright.coded_sampling.BCH import BCH
+from src.qspright.coded_sampling.ReedSolomon import ReedSolomon
 
 def get_Ms_simple(n, b, q, num_to_get=None):
     '''
@@ -87,21 +87,7 @@ def get_D_random(n, **kwargs):
 def get_D_source_coded(n, **kwargs):
     q = kwargs.get("q")
     t_max = kwargs.get("t")
-    valid = gl.bch_valid_codes(n)
-    for n, k, t in valid:
-        if t >= t_max:
-            bch = BCH(n, k)
-            t = t
-            break
-    s = math.ceil(math.log2(n))
-    p = 2*t*s
-    H = bch.H.vector()
-    GF = bch.field
-    print(GF.ufunc_mode)
-    D = gl.GF2.Zeros((p+1, n))
-    for i in range(n):
-        for j in range(2*t):
-            D[(s*j + 1):(s*(j+1) + 1), i] = H[j, i, :]
+    D = ReedSolomon(n, t_max, q).get_delay_matrix()
     return np.array(D, dtype=int)
 
 
@@ -236,12 +222,6 @@ def compute_delayed_wht(signal, M, D):
     return np.array([fwht(row) for row in samples_to_transform]), used_inds # compute the small WHTs
 
 
-def get_reed_solomon_dec(n, t_max):
-    t_max = t_max
-    valid = gl.bch_valid_codes(n)
-    for n, k, t in valid:
-        if t >= t_max:
-            bch = BCH(n, k)
-            break
-    return bch.syndrome_decode
+def get_reed_solomon_dec(n, t_max, q):
+    return ReedSolomon(n, t_max, q).syndrome_decode
 

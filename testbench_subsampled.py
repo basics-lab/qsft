@@ -8,19 +8,19 @@ from src.qspright.synthetic_signal import get_random_subsampled_signal
 
 if __name__ == '__main__':
     np.random.seed(20)
-    q = 4
-    n = 10
+    q = 3
+    n = 80
     N = q ** n
     sparsity = 10
     a_min = 1
     a_max = 10
     b = 6
-    noise_sd = 1e-6
-    num_subsample = 2
-    num_random_delays = 10
+    noise_sd = 0
+    num_subsample = 3
+    num_random_delays = 1
     t = 4
-    decoder = None  # get_reed_solomon_dec(n, t)
-    delays_method_source = "identity"
+    decoder = get_reed_solomon_dec(n, t, q)
+    delays_method_source = "coded"
     delays_method_channel = "nso"
     query_args = {
         "query_method": "complex",

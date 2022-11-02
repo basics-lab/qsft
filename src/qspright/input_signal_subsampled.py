@@ -1,7 +1,6 @@
 from src.qspright.input_signal import Signal
 from src.qspright.query import get_Ms_and_Ds
 from src.qspright.utils import qary_ints, qary_vec_to_dec, dec_to_qary_vec, load_data, save_data
-from src.qspright.coded_sampling.BCH import BCH
 import numpy as np
 from pathlib import Path
 import time
@@ -135,3 +134,6 @@ class SubsampledSignal(Signal):
             return Ms_ret, Ds_ret
         else:
             raise Exception()
+
+    def get_source_parity(self):
+        return self.Ds[0][0].shape[0]
