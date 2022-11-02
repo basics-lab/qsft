@@ -10,7 +10,7 @@ import RNA
 from src.qspright.utils import lasso_decode
 from src.qspright.input_signal import Signal
 from src.qspright.qspright import QSPRIGHT
-from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, save_data, load_data, NpEncoder
+from src.qspright.utils import gwht, dec_to_qary_vec, binary_ints, NpEncoder
 from src.rna_transform.input_rna_signal import RnaSignal
 from src.rna_transform.input_rna_signal_subsampled import RnaSubsampledSignal
 from src.rna_transform.rna_utils import get_rna_base_seq
@@ -35,7 +35,7 @@ class RNAHelper:
             (_, mfe) = RNA.fold(args)
             return mfe - mfe_base
 
-    def __init__(self, n, subsampling=False, jobid=0, query_args=None, test_args=None):
+    def __init__(self, n, baseline_methods, query_args, test_args, subsampling=False, jobid=0, ):
 
         self.q = 4
         self.jobid = jobid
@@ -66,45 +66,63 @@ class RNAHelper:
 
         print("Positions: ", self.positions)
         print("Sampling Query: ", query_args)
+        print("Baseline Methods: ", baseline_methods)
 
-        self.load_train_data(query_args)
-        print("Training data loaded.", flush=True)
-        self.load_test_data(test_args)
-        print("Test data loaded.", flush=True)
+        if self.subsampling:
+            self.train_signal = self.load_train_data(query_args)
+            print("Quaternary Training data loaded.", flush=True)
+            if "binary" in baseline_methods:
+                self.train_signal_binary = self.load_train_data_binary(query_args)
+                print("Binary Training data loaded.", flush=True)
+            self.test_signal = self.load_test_data(test_args)
+            print("Test data loaded.", flush=True)
+        else:
+            self.train_signal = self.load_full_data()
+            self.test_signal = self.train_signal
+            if "binary" in baseline_methods:
+                raise NotImplementedError  # TODO: implement the conversion
+            print("Full data loaded.", flush=True)
 
     def load_train_data(self, query_args):
-        """
-        Constructs and saves the data corresponding to the quasi-empirical RNA fitness function
-        of the Hammerhead ribozyme HH9.
-        """
-        if self.subsampling:
-            query_args["subsampling_method"] = "qspright"
-            self.rna_signal = RnaSubsampledSignal(n=self.n,
-                                                  q=self.q,
-                                                  query_args=query_args,
-                                                  base_seq=self.base_seq,
-                                                  positions=self.positions,
-                                                  sampling_function=self.sampling_function,
-                                                  folder=self.exp_dir / "train")
-        else:
-            self.rna_signal = RnaSignal(n=self.n,
-                                        q=self.q,
-                                        positions=self.positions,
-                                        base_seq=self.base_seq,
-                                        sampling_function=self.sampling_function,
-                                        folder=self.exp_dir / "train")
+        query_args = query_args.copy()
+        query_args["subsampling_method"] = "qspright"
+        return RnaSubsampledSignal(q=4,
+                                   query_args=query_args, base_seq=self.base_seq, positions=self.positions,
+                                   sampling_function=self.sampling_function, folder=self.exp_dir / "train")
+
+    def load_train_data_binary(self, query_args):
+        query_args = query_args.copy()
+        query_args["subsampling_method"] = "qspright"
+        query_args["b"] = 2 * query_args["b"]
+        query_args["num_random_delays"] = query_args["num_random_delays"] // 2
+        return RnaSubsampledSignal(q=2,
+                                   query_args=query_args, base_seq=self.base_seq, positions=self.positions,
+                                   sampling_function=self.sampling_function, folder=self.exp_dir / "train_binary")
+
+    def load_full_data(self):
+        return RnaSignal(q=4, positions=self.positions, base_seq=self.base_seq,
+                         sampling_function=self.sampling_function, folder=self.exp_dir / "full")
+
+    def load_test_data(self, test_args=None):
+        (self.exp_dir / "test").mkdir(exist_ok=True)
+        query_args = {"subsampling_method": "uniform", "n_samples": test_args.get("n_samples")}
+        return RnaSubsampledSignal(n=self.n, q=self.q, query_args=query_args,
+                                   base_seq=self.base_seq, positions=self.positions,
+                                   sampling_function=self.sampling_function, folder=self.exp_dir / "test")
 
     def compute_rna_model(self, method, **kwargs):
         if method == "householder":
-            return self._calculate_rna_householder(**kwargs)
+            return NotImplementedError()
         elif method == "gwht":
             return self._calculate_rna_gwht(**kwargs)
         elif method == "qspright":
             return self._calculate_rna_qspright(**kwargs)
         elif method == "onehot_wht":
-            return self._calculate_rna_onehot_wht(**kwargs)
+            return NotImplementedError()
         elif method == "onehot_spright":
-            return self._calculate_rna_onehot_spright(**kwargs)
+            return NotImplementedError()
+        elif method == "binary_qspright":
+            return self._calculate_rna_qspright(**kwargs)
         else:
             raise NotImplementedError()
 
@@ -122,57 +140,47 @@ class RNAHelper:
         else:
             raise NotImplementedError()
 
-    def _calculate_rna_householder(self, save=False):
-        """
-        Calculates Fourier coefficients of the RNA fitness function. This will try to load them
-        from the results folder, but will otherwise calculate from scratch. If save=True,
-        then coefficients will be saved to the results folder.
-        """
-        try:
-            beta = np.load("results/rna_beta_lasso.npy")
-            print("Loaded saved beta array.")
-            return beta
-        except FileNotFoundError:
-            alpha = 1e-12
-            y = self.rna_signal
-            X = self.generate_householder_matrix()
-            print("Fitting Lasso coefficients (this may take some time)...")
-            model = Lasso(alpha=alpha, fit_intercept=False)
-            model.fit(X, y)
-            beta = model.coef_
-            if save:
-                np.save("results/rna_beta_lasso.npy", beta)
-            return beta
+    # def _calculate_rna_householder(self, save=False):
+    #     """
+    #     Calculates Fourier coefficients of the RNA fitness function. This will try to load them
+    #     from the results folder, but will otherwise calculate from scratch. If save=True,
+    #     then coefficients will be saved to the results folder.
+    #     """
+    #     try:
+    #         beta = np.load("results/rna_beta_lasso.npy")
+    #         print("Loaded saved beta array.")
+    #         return beta
+    #     except FileNotFoundError:
+    #         alpha = 1e-12
+    #         y = self.train_signal
+    #         X = self.generate_householder_matrix()
+    #         print("Fitting Lasso coefficients (this may take some time)...")
+    #         model = Lasso(alpha=alpha, fit_intercept=False)
+    #         model.fit(X, y)
+    #         beta = model.coef_
+    #         if save:
+    #             np.save("results/rna_beta_lasso.npy", beta)
+    #         return beta
 
-    def _calculate_rna_gwht(self, save=False):
+    def _calculate_rna_gwht(self, verbosity=0):
         """
         Calculates GWHT coefficients of the RNA fitness function. This will try to load them
         from the results folder, but will otherwise calculate from scratch. If save=True,
         then coefficients will be saved to the results folder.
         """
-        try:
-            beta = np.load("results/rna_beta_gwht.npy")
-            print("Loaded saved beta array for GWHT.")
-            return beta
-        except FileNotFoundError:
-            n = self.n
-            y = self.rna_signal
-            beta = gwht(y, q=4, n=n)
-            print("Found GWHT coefficients")
-            if save:
-                np.save("results/rna_beta_gwht.npy", beta)
-            return beta
-
-    def _calculate_rna_qspright(self, save=False, report=False, noise_sd=None, verbosity=0, num_subsample=4,
-                                num_random_delays=10, b=None):
-        """
-        Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT. This will try to load them
-        from the results folder, but will otherwise calculate from scratch. If save=True,
-        then coefficients will be saved to the results folder.
-        """
-
         if verbosity >= 1:
-            print("Finding GWHT coefficients with QSPRIGHT")
+            print("Finding all GWHT coefficients")
+
+        beta = gwht(self.train_signal, q=4, n=self.n)
+        print("Found GWHT coefficients")
+        return beta
+
+    def _calculate_rna_qspright(self, num_subsample, num_random_delays, b, noise_sd, report=False, verbosity=0):
+        """
+        Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT.
+        """
+        if verbosity >= 1:
+            print("Estimating GWHT coefficients with QSPRIGHT")
 
         qspright = QSPRIGHT(
             reconstruct_method="nso",
@@ -182,7 +190,7 @@ class RNAHelper:
             noise_sd=noise_sd
         )
 
-        out = qspright.transform(self.rna_signal, verbosity=verbosity, timing_verbose=True, report=report)
+        out = qspright.transform(self.train_signal, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
 
         if verbosity >= 1:
             print("Found GWHT coefficients")
@@ -201,7 +209,7 @@ class RNAHelper:
             print("Loaded saved beta array for GWHT LASSO.")
             return beta
         except FileNotFoundError:
-            y = self.rna_signal
+            y = self.train_signal
             n = len(self.positions)
             q = 4
             if verbose:
@@ -295,7 +303,7 @@ class RNAHelper:
             print("Loaded saved beta array for GWHT.")
             return beta
         except FileNotFoundError:
-            y = self.rna_signal
+            y = self.train_signal
             y = self.load_rna_data()
             y_oh = self.convert_onehot(y)
             beta = gwht(y_oh, q=2, n=self.n * self.q)
@@ -317,7 +325,7 @@ class RNAHelper:
             return beta
 
         except FileNotFoundError:
-            y = self.rna_signal
+            y = self.train_signal
             y_oh = self.convert_onehot(y)
             n = len(self.positions)
             q = 4
@@ -374,23 +382,3 @@ class RNAHelper:
             return np.linalg.norm(y_hat - samples) ** 2 / np.linalg.norm(samples) ** 2
         else:
             return 1
-
-    def load_test_data(self, test_args=None):
-
-        (self.exp_dir / "test").mkdir(exist_ok=True)
-        test_signal_t_path = self.exp_dir / "test/signal_t.pickle"
-
-        if not test_args:
-            test_args = {}
-
-        if self.subsampling:
-            query_args = {"subsampling_method": "uniform", "n_samples": test_args.get("n_samples", 50000)}
-            self.test_signal = RnaSubsampledSignal(n=self.n,
-                                                   q=self.q,
-                                                   query_args=query_args,
-                                                   base_seq=self.base_seq,
-                                                   positions=self.positions,
-                                                   sampling_function=self.sampling_function,
-                                                   folder=self.exp_dir / "test")
-        else:
-            self.test_signal = self.rna_signal
