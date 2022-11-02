@@ -32,13 +32,13 @@ parser.add_argument('--jobid', type=int)
 args = parser.parse_args()
 debug = args.debug
 if debug:
-    args.num_subsample = [3, 5]
-    args.num_random_delays = [3, 5, 10, 15]
+    args.num_subsample = [1, 2, 3]
+    args.num_random_delays = [1, 2, 3, 4, 5]
     args.b = [6, 7]
-    args.n = 15
-    args.noise_sd = np.logspace(-3, -4, num=5)
+    args.n = 10
+    args.noise_sd = np.logspace(-2.5, -3, num=1)
     args.iters = 1
-    args.jobid = 4
+    args.jobid = 888
     args.subsampling = True
 
 num_subsample_list = args.num_subsample
@@ -60,12 +60,20 @@ query_args = {
     "delays_method": "nso",
     "num_subsample": max(num_subsample_list),
     "num_random_delays": max(num_random_delays_list),
-    "b": max(b_list)
+    "b": max(b_list),
+    "all_bs": b_list
+}
+
+baseline_methods = []
+
+test_args = {
+    "n_samples": 500000
 }
 
 print("Loading/Calculating data...", flush=True)
 
-helper = RNAHelper(n, subsampling=subsampling, jobid=jobid, query_args=query_args)
+helper = RNAHelper(n, baseline_methods=baseline_methods, subsampling=subsampling,
+                   jobid=jobid, query_args=query_args, test_args=test_args)
 n = helper.n
 q = 4
 print("n = {}, N = {:.2e}".format(n, q ** n))
@@ -91,10 +99,10 @@ all_points = []
 for i in means.index:
     mean_row = means.iloc[i]
     std_row = stds.iloc[i]
-    plt.errorbar(mean_row['ratio_unique_samples'], mean_row['nmse'],
-                 xerr=std_row['ratio_unique_samples'], yerr=std_row['nmse'], fmt="o")
+    plt.errorbar(mean_row['ratio_samples'], mean_row['nmse'],
+                 xerr=std_row['ratio_samples'], yerr=std_row['nmse'], fmt="o")
 
-    all_points.append([mean_row['ratio_unique_samples'], mean_row['nmse']])
+    all_points.append([mean_row['ratio_samples'], mean_row['nmse']])
 
 try:
     if len(all_points) > 3:

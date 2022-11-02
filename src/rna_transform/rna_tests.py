@@ -13,12 +13,11 @@ def _test(i):
 
     # set model arguments
     model_kwargs = {}
-    model_kwargs["save"] = False
-    model_kwargs["report"] = True
     model_kwargs["num_subsample"] = num_subsample
     model_kwargs["num_random_delays"] = num_random_delays
     model_kwargs["b"] = b
     model_kwargs["noise_sd"] = noise_sd
+    model_kwargs["report"] = True
     model_kwargs["verbosity"] = 0
 
     spright_result = helper_obj.compute_rna_model(method="qspright", **model_kwargs)
@@ -33,7 +32,6 @@ def _test(i):
 
     result = {}
     result["ratio_samples"] = spright_result.get("n_samples") / helper_obj.q ** helper_obj.n
-    result["ratio_unique_samples"] = spright_result.get("n_unique_samples") / helper_obj.q ** helper_obj.n
     result["max_hamming_weight"] = spright_result.get("max_hamming_weight")
     result["nmse"] = nmse
 

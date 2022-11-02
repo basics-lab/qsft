@@ -101,7 +101,7 @@ class QSPRIGHT:
         if timing_verbose:
             print(f"D Generation:{time.time() - start_time}")
             start_time = time.time()
-        if type(signal) == SignalRNA:
+        if type(signal) == RnaSignal:
             signal.set_time_domain(Ms, D, b)
         if timing_verbose:
             print(f"Signal Sampling:{time.time() - start_time}")
@@ -294,7 +294,7 @@ class QSPRIGHT:
 if __name__ == "__main__":
     np.random.seed(10)
 
-    from src.rna_transform.input_rna_signal import SignalRNA
+    from src.rna_transform.input_rna_signal import RnaSignal
     q = 4
     n = 10
     N = q ** n

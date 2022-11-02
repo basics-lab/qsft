@@ -1,33 +1,12 @@
 import time
 import numpy as np
 from src.qspright.reconstruct import singleton_detection
-from src.qspright.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight
+from src.qspright.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight, dec_to_qary_vec
 from src.qspright.query import compute_delayed_gwht
 
 
 class QSPRIGHT:
-    """
-    Class to store encoder/decoder configurations and carry out encoding/decoding.
 
-    Attributes
-    ----------
-    query_method : str
-    The method to generate the sparsity coefficient and the subsampling matrices.
-    Currently implemented methods:
-        "simple" : choose some predetermined matrices based on problem size.
-
-    delays_method : str
-    The method to generate the matrix of delays.
-    Currently implemented methods:
-        "identity_like" : return a zero row and the identity matrix vertically stacked together.
-        "random" : make a random set of delays.
-
-    reconstruct_method : str
-    The method to detect singletons.
-    Currently implemented methods:
-        "noiseless" : decode according to [2], section 4.2, with the assumption the signal is noiseless.
-        "mle" : naive noisy decoding; decode by taking the maximum-likelihood singleton that could be at that bin.
-    """
     def __init__(self, **kwargs):
         self.reconstruct_method_source = kwargs.get("reconstruct_method_source")
         self.reconstruct_method_channel = kwargs.get("reconstruct_method_channel")
@@ -38,27 +17,10 @@ class QSPRIGHT:
         self.source_decoder = kwargs.get("source_decoder", None)
 
     def transform(self, signal, verbosity=0, report=False, timing_verbose=False, **kwargs):
-        '''
-        Full SPRIGHT encoding and decoding. Implements Algorithms 1 and 2 from [2].
-        (numbers) in the comments indicate equation numbers in [2].
 
-        Arguments
-        ---------
-        signal : Signal object.
-        The signal to be transformed / compared to.
-
-        verbose : boolean
-        Whether to print intermediate steps.
-
-        Returns
-        -------
-        wht : ndarray
-        The WHT constructed by subsampling and peeling.
-        '''
-
-        num_peeling = 0
         q = signal.q
         n = signal.n
+        b = self.b
 
         omega = np.exp(2j * np.pi / q)
         result = []
@@ -66,45 +28,16 @@ class QSPRIGHT:
         gwht = {}
         gwht_counts = {}
 
-        peeling_max = q ** n
+        peeling_max = 20000
         peeled = set([])
 
-        b = self.b
-
-        gamma = 1.5
-
-        Ms, Ds = signal.get_MD(self.num_subsample, self.num_random_delays, self.b)
-        Us = []
-        used = []
-
-        if verbosity >= 1:
-            print("Calculating transforms...", flush=True)
-
-        if timing_verbose:
-            start_time = time.time()
-        # subsample with shifts [D], make the observation [U]
-        for (M, D) in zip(Ms, Ds):
-            if verbosity >= 5:
-                print("------")
-                print("subsampling matrix")
-                print(M)
-                print("delay matrix")
-                print(D)
-            U = []
-            used_sub = []
-            for D_sub in D:
-                U_sub, used_i = compute_delayed_gwht(signal, M, D_sub, q)
-                U.append(U_sub)
-                used_sub.append(used_i)
-            Us.append(U)
-            used.append(np.concatenate(used_sub, axis = 1))
-        if timing_verbose:
-            print(f"Transform Time:{time.time() - start_time}", flush=True)
-        used = np.concatenate(used, axis=1)
+        Ms, Ds, Us, Ss = signal.get_MDUS(self.num_subsample, self.num_random_delays, self.b)
 
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
             Ds[i] = np.vstack(Ds[i])
+
+        gamma = 1.5
 
         cutoff = 1e-9 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
@@ -126,6 +59,8 @@ class QSPRIGHT:
         max_iter = 8
         iter_step = 0
         cont_peeling = True
+        num_peeling = 0
+
         if timing_verbose:
             start_time = time.time()
         while cont_peeling and num_peeling < peeling_max and iter_step < max_iter:
@@ -139,7 +74,7 @@ class QSPRIGHT:
             # first step: find all the singletons and multitons.
             singletons = {}  # dictionary from (i, j) values to the true index of the singleton, k.
             multitons = []  # list of (i, j) values indicating where multitons are.
-            for i, (U, D) in enumerate(zip(Us, Ds)):
+            for i, (U, M, D) in enumerate(zip(Us, Ms, Ds)):
                 for j, col in enumerate(U.T):
                     if np.linalg.norm(col) ** 2 > cutoff * len(col):
 
@@ -156,9 +91,12 @@ class QSPRIGHT:
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature
 
+                        j_qary = dec_to_qary_vec([j], q, b).T[0]
+                        bin_matching = np.all((M.T @ k) % q == j_qary)
+
                         if verbosity >= 5:
                             print((i, j), np.linalg.norm(residual) ** 2, cutoff * len(residual))
-                        if np.linalg.norm(residual) ** 2 > cutoff * len(residual):
+                        if (not bin_matching) or np.linalg.norm(residual) ** 2 > cutoff * len(residual):
                             multitons.append((i, j))
                             if verbosity >= 6:
                                 print("We have a Multiton")
@@ -239,8 +177,7 @@ class QSPRIGHT:
         if not report:
             return gwht
         else:
-            used_unique = np.unique(used, axis=1)
-
+            n_samples = np.sum(np.array(Ss))
             if len(loc) > 0:
                 loc = list(loc)
                 if kwargs.get("sort", False):
@@ -251,8 +188,7 @@ class QSPRIGHT:
                 loc, avg_hamming_weight, max_hamming_weight = [], 0, 0
             result = {
                 "gwht": gwht,
-                "n_samples": np.shape(used)[-1],
-                "n_unique_samples": np.shape(used_unique)[-1],
+                "n_samples": n_samples,
                 "locations": loc,
                 "avg_hamming_weight": avg_hamming_weight,
                 "max_hamming_weight": max_hamming_weight

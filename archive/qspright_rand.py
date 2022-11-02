@@ -265,7 +265,7 @@ class QSPRIGHT:
 
 if __name__ == "__main__":
     np.random.seed(10)
-    from qspright.inputsignal import Signal
+    from qspright.input_signal import Signal
 
     q = 4
     n = 5

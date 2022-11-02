@@ -80,7 +80,7 @@ def dec_to_qary_vec(x, q, n, dtype=int):
     for i in range(n):
         qary_vec.append(np.array([a // (q ** (n - (i + 1))) for a in x], dtype=dtype))
         x = x - (q ** (n-(i + 1))) * qary_vec[i]
-    return qary_vec
+    return np.array(qary_vec)
 
 
 def dec_to_bin(x, num_bits):

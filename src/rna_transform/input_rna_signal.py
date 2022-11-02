@@ -14,6 +14,7 @@ class RnaSignal(Signal):
     def __init__(self, **kwargs):
         self.base_seq = kwargs.get("base_seq")
         self.positions = kwargs.get("positions")
+        self.n = len(self.positions)
         self.sampling_function = kwargs.get("sampling_function")
         super().__init__(**kwargs)
 

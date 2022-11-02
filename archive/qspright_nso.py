@@ -270,7 +270,7 @@ if __name__ == "__main__":
     np.random.seed(10)
 
     from inputsignal import Signal
-    from rna_transform.input_rna_signal import SignalRNA
+    from rna_transform.input_rna_signal import RnaSignal
     from rna_transform.rna_utils import get_rna_base_seq
     q = 4
     n = 10
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     noise_sd = 1e-6
     positions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
-    test_signal = SignalRNA(n=n, q=q, noise_sd=800/(q ** n), base_seq=get_rna_base_seq(), positions=positions)
+    test_signal = RnaSignal(n=n, q=q, noise_sd=800 / (q ** n), base_seq=get_rna_base_seq(), positions=positions)
     #test_signal = Signal(n=n, q=q, loc=nonzero_indices, strengths=nonzero_values, noise_sd=noise_sd)
     print("test signal generated")
 
