@@ -31,7 +31,7 @@ class SubsampledSignal(Signal):
     def _init_signal(self):
         start_time = time.time()
 
-        if self.subsampling_method == "qspright" and self.all_bs:
+        if self.subsampling_method == "qspright":
             self._set_Ms_and_Ds_qspright()
             transforms_exist = self._check_transforms_qspright()
         else:
@@ -53,6 +53,12 @@ class SubsampledSignal(Signal):
             self._transform_qspright()
             end_time = time.time()
             print(f"Sub-transform generation/load time: {end_time - start_time} s")
+        elif self.subsampling_method == "qspright":
+            start_time = time.time()
+            print("Computing/loading transform...", flush=True)
+            self._transform_qspright()
+            end_time = time.time()
+            print(f"Transform generation/load time: {end_time - start_time} s")
 
     def _check_transforms_qspright(self):
         if self.foldername:
@@ -85,6 +91,17 @@ class SubsampledSignal(Signal):
                     used_b.append(used_ib)
                 self.Us[b] = U_b
                 self.used_samples[b] = used_b
+        else:
+            U_b = []
+            used_b = []
+            for i in range(len(self.Ms)):
+                U_ib, used_ib = self._calc_transforms(self.Ms[i], self.Ds[i], self.b)
+                U_b.append(U_ib)
+                used_b.append(used_ib)
+            self.Us[self.b] = U_b
+            self.used_samples[self.b] = used_b
+
+
 
     def _set_Ms_and_Ds_qspright(self):
         if self.foldername:
@@ -195,7 +212,6 @@ class SubsampledSignal(Signal):
         else:
             raise ValueError("There are not enough Ms or Ds.")
 
-
     def _calc_transforms(self, M, D, b):
         U = []
         used_samples = []
@@ -204,7 +220,6 @@ class SubsampledSignal(Signal):
             U.append(U_sub)
             used_samples.append(len(used_i))
         return U, used_samples
-
 
     def get_source_parity(self):
         return self.Ds[0][0].shape[0]

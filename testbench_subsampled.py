@@ -109,7 +109,6 @@ if __name__ == '__main__':
 
     gwht = result.get("gwht")
     n_used = result.get("n_samples")
-    n_used_unique = result.get("n_unique_samples")
     peeled = result.get("locations")
     avg_hamming_weight = result.get("avg_hamming_weight")
 
@@ -123,7 +122,6 @@ if __name__ == '__main__':
     print(test_signal.locq.T)
 
     print("total sample ratio = ", n_used / q ** n)
-    print("unique sample ratio = ", n_used_unique / q ** n)
     signal_w_diff = test_signal.signal_w.copy()
 
     for key in gwht.keys():
