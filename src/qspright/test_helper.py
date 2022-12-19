@@ -1,54 +1,116 @@
 import numpy as np
 from src.qspright.lasso import lasso_decode
 from src.qspright.qspright import QSPRIGHT
-from src.qspright.utils import gwht, dec_to_qary_vec
+from src.qspright.utils import gwht, dec_to_qary_vec, NpEncoder
+import json
 
 
 class TestHelper:
 
-    def __init__(self, n, q, baseline_methods, query_args, test_args, exp_dir, subsampling=False):
+    def __init__(self, signal_args, methods, subsampling_args, test_args, exp_dir, subsampling=False):
 
-        self.n = n
-        self.q = q
+        self.n = signal_args["n"]
+        self.q = signal_args["q"]
 
         self.exp_dir = exp_dir
         self.subsampling = subsampling
 
-        print("Sampling Query: ", query_args)
-        print("Baseline Methods: ", baseline_methods)
+        config_path = self.exp_dir / "config.json"
+        config_exists = config_path.is_file()
+
+        if not config_exists:
+            config_dict = {"query_args": subsampling_args}
+            with open(config_path, "w") as f:
+                json.dump(config_dict, f, cls=NpEncoder)
+
+        self.signal_args = signal_args
+        self.subsampling_args = subsampling_args
+        self.test_args = test_args
 
         if self.subsampling:
             self.train_signal = self.load_train_data()
-            print("Quaternary Training data loaded.", flush=True)
-            if any([m.startswith("binary") for m in baseline_methods]):
+            # print("Quaternary Training data loaded.", flush=True)
+            if any([m.startswith("binary") for m in methods]):
                 self.train_signal_binary = self.load_train_data_binary()
-                print("Binary Training data loaded.", flush=True)
-            if any([m.startswith("uniform") for m in baseline_methods]):
+                # print("Binary Training data loaded.", flush=True)
+            if any([m.startswith("uniform") for m in methods]):
                 self.train_signal_uniform = self.load_train_data_uniform()
-                print("Uniform Training data loaded.", flush=True)
-            self.test_signal = self.load_test_data(test_args)
-            print("Test data loaded.", flush=True)
+                # print("Uniform Training data loaded.", flush=True)
+            self.test_signal = self.load_test_data()
+            # print("Test data loaded.", flush=True)
         else:
             self.train_signal = self.load_full_data()
             self.test_signal = self.train_signal
-            if any([m.startswith("binary") for m in baseline_methods]):
+            if any([m.startswith("binary") for m in methods]):
                 raise NotImplementedError  # TODO: implement the conversion
-            print("Full data loaded.", flush=True)
+            # print("Full data loaded.", flush=True)
+
+    def generate_signal(self, signal_args):
+        raise NotImplementedError
 
     def load_train_data(self):
-        raise NotImplementedError()
+        signal_args = self.signal_args.copy()
+        query_args = self.subsampling_args.copy()
+        query_args.update({
+            "subsampling_method": "qspright",
+            "query_method": "complex",
+            "delays_method_source": "identity",
+            "delays_method_channel": "nso"
+        })
+        signal_args["folder"] = self.exp_dir / "train"
+        signal_args["query_args"] = query_args
+        return self.generate_signal(signal_args)
+
+    def load_train_data_coded(self):
+        signal_args = self.signal_args.copy()
+        query_args = self.subsampling_args.copy()
+        query_args.update({
+            "subsampling_method": "qspright",
+            "query_method": "complex",
+            "delays_method_source": "coded",
+            "delays_method_channel": "nso"
+        })
+        signal_args["folder"] = self.exp_dir / "train"
+        signal_args["query_args"] = query_args
+        return self.generate_signal(signal_args)
 
     def load_train_data_binary(self):
-        raise NotImplementedError()
+        return None
+    #     signal_args = self.signal_args.copy()
+    #     query_args = signal_args["query_args"]
+    #     signal_args["n_orig"] = signal_args["n"]
+    #     signal_args["q_orig"] = signal_args["q"]
+    #     factor = round(np.log(signal_args["q"]) / np.log(2))
+    #     signal_args["n"] = factor * signal_args["n"]
+    #     signal_args["q"] = 2
+    #     signal_args["query_args"]["subsampling_method"] = "qspright"
+    #     signal_args["query_args"]["b"] = factor * query_args["b"]
+    #     signal_args["query_args"]["all_bs"] = [factor * b for b in query_args["all_bs"]]
+    #     signal_args["query_args"]["num_repeat"] = max(1, query_args["num_repeat"] // factor)
+    #     signal_args["folder"] = self.exp_dir / "train_binary"
+    #     return self.generate_signal(signal_args)
 
     def load_train_data_uniform(self):
-        raise NotImplementedError()
+        signal_args = self.signal_args.copy()
+        query_args = self.subsampling_args.copy()
+        n_samples = query_args["num_subsample"] * (signal_args["q"] ** query_args["b"]) *\
+                    query_args["num_repeat"] * (signal_args["n"] + 1)
+        query_args = {"subsampling_method": "uniform", "n_samples": n_samples}
+        signal_args["folder"] = self.exp_dir / "train_uniform"
+        signal_args["query_args"] = query_args
+        return self.generate_signal(signal_args)
+
+    def load_test_data(self):
+        signal_args = self.signal_args.copy()
+        (self.exp_dir / "test").mkdir(exist_ok=True)
+        signal_args["query_args"] = {"subsampling_method": "uniform", "n_samples": self.test_args.get("n_samples")}
+        signal_args["folder"] = self.exp_dir / "test"
+        signal_args["noise_sd"] = 0
+        return self.generate_signal(signal_args)
 
     def load_full_data(self):
-        raise NotImplementedError()
-
-    def load_test_data(self, test_args=None):
-        raise NotImplementedError()
+        #   TODO: implement
+        return None
 
     def compute_model(self, method, model_kwargs, report=False, verbosity=0):
         if method == "gwht":
@@ -92,9 +154,10 @@ class TestHelper:
         if verbosity >= 1:
             print("Estimating GWHT coefficients with QSPRIGHT")
         qspright = QSPRIGHT(
-            reconstruct_method="nso",
+            reconstruct_method_source="identity",
+            reconstruct_method_channel="nso",
             num_subsample=model_kwargs["num_subsample"],
-            num_random_delays=model_kwargs["num_random_delays"],
+            num_repeat=model_kwargs["num_repeat"],
             b=model_kwargs["b"],
             noise_sd=model_kwargs["noise_sd"]
         )
@@ -112,9 +175,10 @@ class TestHelper:
         if verbosity >= 1:
             print("Estimating GWHT coefficients with QSPRIGHT")
         qspright = QSPRIGHT(
-            reconstruct_method="nso",
+            reconstruct_method_source="identity",
+            reconstruct_method_channel="nso",
             num_subsample=model_kwargs["num_subsample"],
-            num_random_delays=max(1, model_kwargs["num_random_delays"] // factor),
+            num_repeat=max(1, model_kwargs["num_repeat"] // factor),
             b=factor * model_kwargs["b"],
             noise_sd=model_kwargs["noise_sd"] / factor
         )

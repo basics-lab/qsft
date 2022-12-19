@@ -21,7 +21,7 @@ if __name__ == '__main__':
         delays_method="nso",
         reconstruct_method="noiseless",
         num_subsample=3,
-        num_random_delays=3,
+        num_repeat=3,
         b=4
     )
 

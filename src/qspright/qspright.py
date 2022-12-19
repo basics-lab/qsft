@@ -11,7 +11,7 @@ class QSPRIGHT:
         self.reconstruct_method_source = kwargs.get("reconstruct_method_source")
         self.reconstruct_method_channel = kwargs.get("reconstruct_method_channel")
         self.num_subsample = kwargs.get("num_subsample")
-        self.num_random_delays = kwargs.get("num_random_delays")
+        self.num_repeat = kwargs.get("num_repeat")
         self.b = kwargs.get("b")
         self.noise_sd = kwargs.get("noise_sd")
         self.source_decoder = kwargs.get("source_decoder", None)
@@ -31,7 +31,7 @@ class QSPRIGHT:
         peeling_max = q ** n
         peeled = set([])
 
-        Ms, Ds, Us, Ts = signal.get_MDU(self.num_subsample, self.num_random_delays, self.b, trans_times=True)
+        Ms, Ds, Us, Ts = signal.get_MDU(self.num_subsample, self.num_repeat, self.b, trans_times=True)
 
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
@@ -91,17 +91,10 @@ class QSPRIGHT:
                             method_channel=self.reconstruct_method_channel,
                             method_source=self.reconstruct_method_source,
                             q=q,
-<<<<<<< .merge_file_TS9lRx
-                            n=n,
-                            nso_subtype="nso1"
-                        )  # find the best fit singleton
-
-=======
                             source_parity=signal.get_source_parity(),
                             nso_subtype="nso1",
                             source_decoder=self.source_decoder
                         )
->>>>>>> .merge_file_KKqjyH
                         signature = omega ** (D @ k)
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature

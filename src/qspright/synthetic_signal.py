@@ -6,13 +6,26 @@ from src.qspright.utils import igwht_tensored, random_signal_strength_model, qar
 from src.qspright.input_signal import Signal
 from src.qspright.input_signal_subsampled import SubsampledSignal
 from src.qspright.utils import dec_to_qary_vec
-from multiprocessing import Pool
+from multiprocess import Pool
 
-def generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=True):
+
+def generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=True, max_weight=None):
+    max_weight = n if max_weight is None else max_weight
     N = q ** n
-    locq = sort_qary_vecs(np.random.randint(q, size=(n, sparsity)).T).T
+
+    if max_weight == n:
+        locq = sort_qary_vecs(np.random.randint(q, size=(n, sparsity)).T).T
+    else:
+        non_zero_idx_vals = np.random.randint(q-1, size=(max_weight, sparsity))+1
+        non_zero_idx_pos = np.random.choice(a=n, size=(sparsity, max_weight))
+        locq = np.zeros((n, sparsity), dtype=int)
+        for i in range(sparsity):
+            locq[non_zero_idx_pos[i, :], i] = non_zero_idx_vals[:, i]
+        locq = sort_qary_vecs(locq.T).T
+
     loc = qary_vec_to_dec(locq, q)
     strengths = random_signal_strength_model(sparsity, a_min, a_max)
+
     if full:
         wht = np.zeros((N,), dtype=complex)
         for l, s in zip(loc, strengths):
@@ -46,8 +59,8 @@ class SyntheticSignal(Signal):
         self.strengths = strengths
 
 
-def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_args):
-    signal_w, locq, strengths = generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=False)
+def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_args, max_weight=None):
+    signal_w, locq, strengths = generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=False, max_weight=max_weight)
     signal_params = {
         "n": n,
         "q": q,
@@ -59,21 +72,20 @@ def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_a
 
 class SyntheticSubsampledSignal(SubsampledSignal):
 
-    q = None
-    n = None
-    freq_normalized = None
-    strengths = None
+    def __init__(self, **kwargs):
+        self.q = kwargs["q"]
+        self.n = kwargs["n"]
+        self.locq = kwargs["locq"]
 
-    @staticmethod
-    def sampling_function(query_batch):
-        query_indices_qary_batch = np.array(dec_to_qary_vec(query_batch, SyntheticSubsampledSignal.q, SyntheticSubsampledSignal.n)).T
-        return np.exp(query_indices_qary_batch @ SyntheticSubsampledSignal.freq_normalized) @ SyntheticSubsampledSignal.strengths
+        freq_normalized = 2j * np.pi * kwargs["locq"] / kwargs["q"]
+        strengths = kwargs["strengths"]
 
-    def __init__(self, locq, strengths, **kwargs):
-        SyntheticSubsampledSignal.q = kwargs["q"]
-        SyntheticSubsampledSignal.n = kwargs["n"]
-        SyntheticSubsampledSignal.strengths = strengths
-        SyntheticSubsampledSignal.freq_normalized = 2j * np.pi * locq / kwargs["q"]
+        def sampling_function(query_batch):
+            query_indices_qary_batch = np.array(dec_to_qary_vec(query_batch, self.q, self.n)).T
+            return np.exp(query_indices_qary_batch @ freq_normalized) @ strengths
+
+        self.sampling_function = sampling_function
+
         super().__init__(**kwargs)
 
     def subsample(self, query_indices):
@@ -81,35 +93,6 @@ class SyntheticSubsampledSignal(SubsampledSignal):
         res = []
         query_indices_batches = np.array_split(query_indices, len(query_indices)//batch_size + 1)
         with Pool() as pool:
-            for new_res in pool.imap(SyntheticSubsampledSignal.sampling_function, query_indices_batches):
+            for new_res in pool.imap(self.sampling_function, query_indices_batches):
                 res = np.concatenate((res, new_res))
         return res
-
-class SyntheticSubsampledBinarySignal(SubsampledSignal):
-
-    q = None
-    n = None
-    freq_normalized = None
-    strengths = None
-
-    @staticmethod
-    def sampling_function(query_batch):
-        query_indices_qary_batch = np.array(dec_to_qary_vec(query_batch, SyntheticSubsampledBinarySignal.q, SyntheticSubsampledBinarySignal.n)).T
-        return np.exp(query_indices_qary_batch @ SyntheticSubsampledBinarySignal.freq_normalized) @ SyntheticSubsampledBinarySignal.strengths
-
-    def __init__(self, locq, strengths, **kwargs):
-        SyntheticSubsampledBinarySignal.q = kwargs["q_orig"]
-        SyntheticSubsampledBinarySignal.n = kwargs["n_orig"]
-        SyntheticSubsampledBinarySignal.strengths = strengths
-        SyntheticSubsampledBinarySignal.freq_normalized = 2j * np.pi * locq / kwargs["q_orig"]
-        super().__init__(**kwargs)
-
-    def subsample(self, query_indices):
-        batch_size = 10000
-        res = []
-        query_indices_batches = np.array_split(query_indices, len(query_indices)//batch_size + 1)
-        with Pool() as pool:
-            for new_res in pool.imap(SyntheticSubsampledBinarySignal.sampling_function, query_indices_batches):
-                res = np.concatenate((res, new_res))
-        return res
-    

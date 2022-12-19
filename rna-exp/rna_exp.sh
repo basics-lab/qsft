@@ -8,9 +8,9 @@
 #SBATCH --mail-user=erginbas@berkeley.edu
 
 #python qspright-sample-vs-nmse.py --jobid=$SLURM_JOB_ID \
-#--num_subsample 2 4 6 --num_random_delays 6 8 10 15 20  --b 7 8 \
+#--num_subsample 2 4 6 --num_repeat 6 8 10 15 20  --b 7 8 \
 #--noise_sd 5e-8 --n 15 --iters 5
 
 python qspright-sample-vs-nmse.py --jobid=13554482 \
---num_subsample 4 6 --num_random_delays 6 10  --b 7 8 \
+--num_subsample 4 6 --num_repeat 6 10  --b 7 8 \
 --noise_sd 8e-8 5e-8 --n 25 --iters 1

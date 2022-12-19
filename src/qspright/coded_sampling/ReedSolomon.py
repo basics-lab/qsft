@@ -3,6 +3,7 @@ from galois._codes._reed_solomon import decode_jit
 import numpy as np
 import math
 
+
 class ReedSolomon(galois.ReedSolomon):
 
     def __init__(self, n: int, t: int, q: int):

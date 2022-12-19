@@ -75,7 +75,7 @@ class RNAHelper(TestHelper):
         query_args["subsampling_method"] = "qspright"
         query_args["b"] = 2 * query_args["b"]
         query_args["all_bs"] = [2 * b for b in query_args["all_bs"]]
-        query_args["num_random_delays"] = query_args["num_random_delays"] // 2
+        query_args["num_repeat"] = query_args["num_repeat"] // 2
         return RnaSubsampledSignal(q=2,
                                    query_args=query_args, base_seq=self.base_seq, positions=self.positions,
                                    sampling_function=RNAHelper._calc_data_inst_q2, folder=self.exp_dir / "train_binary")
@@ -87,7 +87,7 @@ class RNAHelper(TestHelper):
     def load_train_data_uniform(self):
         signal_params = self.signal_params.copy()
         qa = signal_params["query_args"]
-        n_samples = qa["num_subsample"] * (qa["q"] ** qa["b"]) * qa["num_random_delays"] * (qa["n"] + 1)
+        n_samples = qa["num_subsample"] * (qa["q"] ** qa["b"]) * qa["num_repeat"] * (qa["n"] + 1)
         signal_params["query_args"] = {"subsampling_method": "uniform", "n_samples": n_samples}
         signal_params["folder"] = self.exp_dir / "train_uniform"
         return RnaSubsampledSignal(q=2,

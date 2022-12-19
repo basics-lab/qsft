@@ -22,7 +22,7 @@ from qspright.parallel_tests import run_tests
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', type=bool, default=False)
 parser.add_argument('--num_subsample', type=int, nargs="+")
-parser.add_argument('--num_random_delays', type=int, nargs="+")
+parser.add_argument('--num_repeat', type=int, nargs="+")
 parser.add_argument('--b', type=int, nargs="+")
 parser.add_argument('--a', type=int)
 parser.add_argument('--noise_sd', type=float, nargs="+")
@@ -37,7 +37,7 @@ args = parser.parse_args()
 debug = args.debug
 if debug:
     args.num_subsample = [3]
-    args.num_random_delays = [2]
+    args.num_repeat = [2]
     args.b = [4]
     args.a = 1
     args.n = 6
@@ -59,7 +59,7 @@ query_args = {
     "query_method": "complex",
     "delays_method": "nso",
     "num_subsample": max(args.num_subsample),
-    "num_random_delays": max(args.num_random_delays),
+    "num_repeat": max(args.num_repeat),
     "b": max(args.b),
     "all_bs": args.b
 }
@@ -91,13 +91,13 @@ for m in range(len(methods)):
     # Test QSPRIGHT with different parameters
     # Construct a grid of parameters. For each entry, run multiple test rounds.
     # Compute the average for each parameter selection.
-    results_df = run_tests(methods[m], helper, args.iters, args.num_subsample, args.num_random_delays,
+    results_df = run_tests(methods[m], helper, args.iters, args.num_subsample, args.num_repeat,
                            args.b, args.noise_sd, parallel=False)
 
     # results_df.to_csv(f'results/{str(args.jobid)}/results_df_{methods[m]}.csv')
 
-    means = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).mean()
-    stds = results_df.groupby(["num_subsample", "num_random_delay", "b", "noise_sd"], as_index=False).std()
+    means = results_df.groupby(["num_subsample", "num_repeat", "b", "noise_sd"], as_index=False).mean()
+    stds = results_df.groupby(["num_subsample", "num_repeat", "b", "noise_sd"], as_index=False).std()
 
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
@@ -116,7 +116,7 @@ for m in range(len(methods)):
         ax.errorbar(mean_row['n_samples'], mean_row['nmse'],
                     xerr=std_row['n_samples'], yerr=std_row['nmse'], fmt="o", color=colors[m])
         all_points.append([mean_row['n_samples'], mean_row['nmse']])
-        label = f'({int(mean_row["b"])},{int(mean_row["num_subsample"])},{int(mean_row["num_random_delay"])})'
+        label = f'({int(mean_row["b"])},{int(mean_row["num_subsample"])},{int(mean_row["num_repeat"])})'
         labels.append(label)
 
     for i in range(len(all_points)):
