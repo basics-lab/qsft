@@ -1,10 +1,12 @@
 import random
 import numpy as np
+from tqdm import tqdm
 
 from src.qspright.utils import igwht_tensored, random_signal_strength_model, qary_vec_to_dec, sort_qary_vecs
 from src.qspright.input_signal import Signal
 from src.qspright.input_signal_subsampled import SubsampledSignal
-
+from src.qspright.utils import dec_to_qary_vec
+from multiprocessing import Pool
 
 def generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=True):
     N = q ** n
@@ -57,29 +59,57 @@ def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_a
 
 class SyntheticSubsampledSignal(SubsampledSignal):
 
-    def __init__(self, signal_w, locq, strengths, noise_sd, **kwargs):
-        self.locq = locq
-        self.strengths = strengths
-        self.signal_w = signal_w
-        self.noise_sd = noise_sd
+    q = None
+    n = None
+    freq_normalized = None
+    strengths = None
+
+    @staticmethod
+    def sampling_function(query_batch):
+        query_indices_qary_batch = np.array(dec_to_qary_vec(query_batch, SyntheticSubsampledSignal.q, SyntheticSubsampledSignal.n)).T
+        return np.exp(query_indices_qary_batch @ SyntheticSubsampledSignal.freq_normalized) @ SyntheticSubsampledSignal.strengths
+
+    def __init__(self, locq, strengths, **kwargs):
+        SyntheticSubsampledSignal.q = kwargs["q"]
+        SyntheticSubsampledSignal.n = kwargs["n"]
+        SyntheticSubsampledSignal.strengths = strengths
+        SyntheticSubsampledSignal.freq_normalized = 2j * np.pi * locq / kwargs["q"]
         super().__init__(**kwargs)
 
-    def subsample(self, M, D):
-        signal_t = {}
-        base_inds = []
-        samples = []
-        L = self.get_all_qary_vectors()
-        for i in range(self.num_random_delays):
-            base_inds.append([((M @ L) + np.outer(d, np.ones(self.q ** self.b, dtype=int))) % self.q for d in D[i]])
-            freqs = [(k.T @ self.locq) % self.q for k in base_inds[i]]
-            samples.append([np.exp(2j * np.pi * freq / self.q) @ self.strengths for freq in freqs])
-        for r in range(self.q ** self.b):
-            for i in range(self.num_random_delays):
-                for j in range(len(D[0])):
-                    signal_t[qary_vec_to_dec(base_inds[i][j][:, r], self.q)] = \
-                        np.csingle(samples[i][j][r] + self.noise_sd*np.random.normal(loc=0, scale=np.sqrt(2)/2,
-                                                                                        size=(1, 2)).view(np.cdouble))
-        return signal_t
+    def subsample(self, query_indices):
+        batch_size = 10000
+        res = []
+        query_indices_batches = np.array_split(query_indices, len(query_indices)//batch_size + 1)
+        with Pool() as pool:
+            for new_res in pool.imap(SyntheticSubsampledSignal.sampling_function, query_indices_batches):
+                res = np.concatenate((res, new_res))
+        return res
 
+class SyntheticSubsampledBinarySignal(SubsampledSignal):
 
+    q = None
+    n = None
+    freq_normalized = None
+    strengths = None
+
+    @staticmethod
+    def sampling_function(query_batch):
+        query_indices_qary_batch = np.array(dec_to_qary_vec(query_batch, SyntheticSubsampledBinarySignal.q, SyntheticSubsampledBinarySignal.n)).T
+        return np.exp(query_indices_qary_batch @ SyntheticSubsampledBinarySignal.freq_normalized) @ SyntheticSubsampledBinarySignal.strengths
+
+    def __init__(self, locq, strengths, **kwargs):
+        SyntheticSubsampledBinarySignal.q = kwargs["q_orig"]
+        SyntheticSubsampledBinarySignal.n = kwargs["n_orig"]
+        SyntheticSubsampledBinarySignal.strengths = strengths
+        SyntheticSubsampledBinarySignal.freq_normalized = 2j * np.pi * locq / kwargs["q_orig"]
+        super().__init__(**kwargs)
+
+    def subsample(self, query_indices):
+        batch_size = 10000
+        res = []
+        query_indices_batches = np.array_split(query_indices, len(query_indices)//batch_size + 1)
+        with Pool() as pool:
+            for new_res in pool.imap(SyntheticSubsampledBinarySignal.sampling_function, query_indices_batches):
+                res = np.concatenate((res, new_res))
+        return res
     

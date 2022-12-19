@@ -5,6 +5,7 @@ import numpy as np
 from multiprocessing import Pool
 from tqdm import tqdm
 from src.rna_transform.query_iterator import QueryIterator
+from src.qspright.utils import dec_to_qary_vec
 
 
 class RnaSubsampledSignal(SubsampledSignal):
@@ -25,17 +26,16 @@ class RnaSubsampledSignal(SubsampledSignal):
 
     def subsample(self, query_indices):
 
-        iterator = QueryIterator(base_seq=self.base_seq, positions=self.positions,
-                                 query_indices=query_indices, q=self.q)
-        # input_query = list(tqdm(iterator))
+        batch_size = 10000
+        res = []
 
-        with Pool() as pool:
-            y = list(tqdm(pool.imap(self.sampling_function, iterator), total=len(iterator),
-                          miniters=5000, position=0))
+        #pbar = tqdm(total=len(query_indices), miniters=1000, position=0)
+        for i in range(0, len(query_indices), batch_size):
+            query_indices_batch_dec = query_indices[i: i+batch_size]
+            query_indices_batch = np.array(dec_to_qary_vec(query_indices_batch_dec, self.q, self.n)).T
+            with Pool() as pool:
+                for new_res in pool.imap(self.sampling_function, query_indices_batch):
+                    res.append(new_res)
+                    #pbar.update()
 
-        start_time = time.time()
-        signal_t = dict(y)
-        end_time = time.time()
-        print("Dict creation time: ", end_time - start_time)
-
-        return signal_t
+        return res

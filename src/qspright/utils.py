@@ -13,6 +13,7 @@ from scipy.spatial import ConvexHull
 import zlib
 import pickle
 import json
+import matplotlib.pyplot as plt
 
 def fwht(x):
     """Recursive implementation of the 1D Cooley-Tukey FFT"""
@@ -156,49 +157,6 @@ def flip(x):
     Flip all bits in the binary array x.
     '''
     return np.bitwise_xor(x, 1)
-
-
-def lasso_decode(signal, sample_rate, refine=False, verbose=False):
-    q = signal.q
-    n = signal.n
-    N = q ** n
-    dtype = int if (q ** 2)*n > 255 else np.uint8
-    n_samples = np.round(sample_rate*N).astype(int)
-    sample_idx = random.sample(range(N), n_samples)
-    sample_idx = dec_to_qary_vec(sample_idx, q, n, dtype=dtype)
-    if verbose:
-        start_time = time.time()
-        print("Setting up LASSO problem")
-    y = signal.get_time_domain(tuple(sample_idx))
-    y = np.concatenate((np.real(y), np.imag(y)))
-    freqs = np.array(sample_idx).T @ qary_ints(n, q, dtype=dtype)
-    X = np.exp(2j*np.pi*freqs/q).astype(np.csingle)
-    freqs = 0
-    X = np.concatenate((np.concatenate((np.real(X), -np.imag(X)), axis=1), np.concatenate((np.imag(X), np.real(X)), axis=1)))
-    groups = [i % N for i in range(2*N)]
-    if verbose:
-        print(f"Setup Time:{time.time() - start_time}sec")
-        print("Running Iterations...")
-        start_time = time.time()
-    lasso = GroupLasso(groups=groups,
-                       group_reg=0.1,
-                       l1_reg=0,
-                       tol=1e-2,
-                       n_iter=1000,
-                       supress_warning=True,
-                       fit_intercept=False)
-    lasso.fit(X, y)
-    if verbose:
-        print(f"LASSO fit time:{time.time() - start_time}sec")
-    w = lasso.coef_
-    non_zero = np.nonzero(w[:N, 0])[0]
-    if refine:
-        ridge = Ridge(alpha=0.1, tol=1e-8)
-        ridge.fit(X[:, non_zero], y)
-        w[non_zero] = ridge.coef_[:, np.newaxis]
-    gwht = w[0:N] + 1j*w[N:(2*N)]
-    return np.reshape(gwht, [q] * n), non_zero
-
 
 def random_signal_strength_model(sparsity, a, b):
     magnitude = np.random.uniform(a, b, sparsity)

@@ -1,8 +1,7 @@
 import numpy as np
 import sys
 sys.path.append("./src/qspright/")
-from src.qspright.qspright_sparse import QSPRIGHT
-from src.qspright.utils import lasso_decode, qary_vec_to_dec
+from archive.qspright_sparse import QSPRIGHT
 
 if __name__ == '__main__':
     np.random.seed(10)

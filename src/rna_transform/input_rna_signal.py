@@ -28,6 +28,8 @@ class RnaSignal(Signal):
             full = insert(self.base_seq, self.positions, s)
             query.append(full)
 
+        raise NotImplementedError("things need to be changed")
+
         with Pool() as pool:
             y = list(tqdm(pool.imap(self.sampling_function, query), total=len(seqs)))
 

@@ -2,7 +2,7 @@ import time
 import numpy as np
 from src.qspright.reconstruct import singleton_detection
 from src.qspright.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight, dec_to_qary_vec
-from src.qspright.query import compute_delayed_gwht
+from src.qspright.synthetic_signal import SyntheticSubsampledSignal
 
 
 class QSPRIGHT:
@@ -26,14 +26,23 @@ class QSPRIGHT:
         gwht = {}
         gwht_counts = {}
 
-        peeling_max = 20000
+        peeling_max = q ** n
         peeled = set([])
 
-        Ms, Ds, Us, Ss = signal.get_MDUS(self.num_subsample, self.num_random_delays, self.b)
+        Ms, Ds, Us, Ts = signal.get_MDU(self.num_subsample, self.num_random_delays, self.b, trans_times=True)
 
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
             Ds[i] = np.vstack(Ds[i])
+
+        transform_time = np.sum(Ts)
+
+        peeling_start = time.time()
+
+        Us = np.array(Us)
+
+        if type(signal) is SyntheticSubsampledSignal:
+            Us += np.random.normal(0, self.noise_sd, size=Us.shape + (2,)).view(np.complex).reshape(Us.shape)
 
         gamma = 1.5
 
@@ -54,7 +63,7 @@ class QSPRIGHT:
         # a singleton will map from the (i, j)s to the true (binary) values k.
         # e.g. the singleton (0, 0), which in the example of section 3.2 is X[0100] + W1[00]
         # would be stored as the dictionary entry (0, 0): array([0, 1, 0, 0]).
-        max_iter = 8
+        max_iter = 20
         iter_step = 0
         cont_peeling = True
         num_peeling = 0
@@ -75,7 +84,6 @@ class QSPRIGHT:
             for i, (U, M, D) in enumerate(zip(Us, Ms, Ds)):
                 for j, col in enumerate(U.T):
                     if np.linalg.norm(col) ** 2 > cutoff * len(col):
-
                         k = singleton_detection(
                             col,
                             method=self.reconstruct_method,
@@ -84,7 +92,6 @@ class QSPRIGHT:
                             nso_subtype="nso1"
                         )  # find the best fit singleton
 
-                        #k = np.array(dec_to_qary_vec([k_dec], signal.q, signal.n)).T[0]
                         signature = omega ** (D @ k)
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature
@@ -104,7 +111,7 @@ class QSPRIGHT:
                                 print("We have a Singleton at " + str(k))
                     else:
                         if verbosity >= 6:
-                            print("We have a zeroton!")
+                            print("We have a Zeroton")
 
             # all singletons and multitons are discovered
             if verbosity >= 5:
@@ -114,12 +121,10 @@ class QSPRIGHT:
 
                 print("Multitons : {0}\n".format(multitons))
 
-            # raise RuntimeError("stop")
-            # TODO WARNING: this is not a correct thing to do
-            # in the last iteration of peeling, everything will be singletons and there
-            # will be no multitons
-            if len(multitons) == 0 or len(singletons) == 0: # no more multitons or no more singletons, and can construct final WHT
+            # if there were no multi-tons or single-tons, decrease cutoff
+            if len(multitons) == 0 or len(singletons) == 0:
                 cont_peeling = False
+
 
             # balls to peel
             balls_to_peel = set()
@@ -172,10 +177,12 @@ class QSPRIGHT:
         if timing_verbose:
             print(f"Peeling Time:{time.time() - start_time}", flush=True)
 
+        peeling_time = time.time() - peeling_start
+
         if not report:
             return gwht
         else:
-            n_samples = np.sum(np.array(Ss))
+            n_samples = np.prod(np.shape(np.array(Us)))
             if len(loc) > 0:
                 loc = list(loc)
                 if kwargs.get("sort", False):
@@ -186,6 +193,7 @@ class QSPRIGHT:
                 loc, avg_hamming_weight, max_hamming_weight = [], 0, 0
             result = {
                 "gwht": gwht,
+                "runtime": transform_time + peeling_time,
                 "n_samples": n_samples,
                 "locations": loc,
                 "avg_hamming_weight": avg_hamming_weight,

@@ -142,6 +142,7 @@ def compute_delayed_gwht(signal, M, D, q, parallel = True):
     b = M.shape[1]
     L = np.array(qary_ints(b, q))  # List of all length b qary vectors
     base_inds = [(M @ L + np.outer(d, np.ones(q ** b, dtype=int))) % q for d in D]
+    print(b, np.array(base_inds))
     used_inds = np.swapaxes(np.array(base_inds), 0, 1)
     used_inds = np.reshape(used_inds, (used_inds.shape[0], -1))
     samples_to_transform = signal.get_time_domain(base_inds)
@@ -155,12 +156,12 @@ def get_Ms_and_Ds(n, q, **kwargs):
     num_subsample = kwargs.get("num_subsample")
     num_random_delays = kwargs.get("num_random_delays")
     b = kwargs.get("b")
-    timing_verbose = kwargs.get("timing_verbose", True)
+    timing_verbose = kwargs.get("timing_verbose", False)
     if timing_verbose:
         start_time = time.time()
     Ms = get_Ms(n, b, q, method=query_method, num_to_get=num_subsample)
     if timing_verbose:
-        print(f"M Generation:{time.time() - start_time}")
+        print(f"M Generation:{time.time() - start_time}", flush=True)
     Ds = []
     if delays_method == "identity":
         num_delays = n + 1
@@ -172,7 +173,7 @@ def get_Ms_and_Ds(n, q, **kwargs):
         start_time = time.time()
     D = get_D(n, method=delays_method, num_delays=num_delays, q=q)
     if timing_verbose:
-        print(f"D Generation:{time.time() - start_time}")
+        print(f"D Generation:{time.time() - start_time}", flush=True)
     for M in Ms:
         Ds.append(D)
     return Ms, Ds
