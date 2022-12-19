@@ -5,8 +5,13 @@ import numpy as np
 from pathlib import Path
 import time
 import random
+<<<<<<< .merge_file_qFtufq
 from tqdm import tqdm
 
+=======
+from src.qspright.query import compute_delayed_gwht
+import galois as gl
+>>>>>>> .merge_file_j5gClo
 
 class SubsampledSignal(Signal):
 
@@ -19,9 +24,14 @@ class SubsampledSignal(Signal):
         self.b = self.query_args.get("b")
         self.all_bs = self.query_args.get("all_bs")
         self.num_subsample = self.query_args.get("num_subsample")
-        self.num_random_delays = self.query_args.get("num_random_delays")
+        self.num_random_delays = self.query_args.get("num_repeat", 1)
         self.subsampling_method = self.query_args.get("subsampling_method")
+<<<<<<< .merge_file_qFtufq
         self.samples_t = None
+=======
+        self.delays_method_source = self.query_args.get("delays_method_source")
+
+>>>>>>> .merge_file_j5gClo
         self.L = None  # List of all length b qary vectors
         self.foldername = kwargs.get("folder")
 
@@ -38,6 +48,65 @@ class SubsampledSignal(Signal):
         end_time = time.time()
         print(f"Sample generation/load time: {end_time - start_time} s")
 
+<<<<<<< .merge_file_qFtufq
+=======
+        if self.subsampling_method == "qspright" and self.all_bs:
+            start_time = time.time()
+            print("Computing/loading sub-transforms...", flush=True)
+            self._transform_qspright()
+            end_time = time.time()
+            print(f"Sub-transform generation/load time: {end_time - start_time} s")
+        elif self.subsampling_method == "qspright":
+            start_time = time.time()
+            print("Computing/loading transform...", flush=True)
+            self._transform_qspright()
+            end_time = time.time()
+            print(f"Transform generation/load time: {end_time - start_time} s")
+
+    def _check_transforms_qspright(self):
+        if self.foldername:
+            Path(f"{self.foldername}/transforms/").mkdir(exist_ok=True)
+            for b in self.all_bs:
+                for i in range(len(self.Ms)):
+                    Us_path = Path(f"{self.foldername}/transforms/U{i}_b{b}.pickle")
+                    if not Us_path.is_file():
+                        return False
+            return True
+        else:
+            return False
+
+    def _transform_qspright(self):
+        self.Us = {}
+        self.used_samples = {}
+        if self.foldername:
+            Path(f"{self.foldername}/transforms/").mkdir(exist_ok=True)
+            for b in self.all_bs:
+                U_b = []
+                used_b = []
+                for i in range(len(self.Ms)):
+                    Us_path = Path(f"{self.foldername}/transforms/U{i}_b{b}.pickle")
+                    if Us_path.is_file():
+                        U_ib, used_ib = load_data(Us_path)
+                    else:
+                        U_ib, used_ib = self._calc_transforms(self.Ms[i], self.Ds[i], b)
+                        save_data((U_ib, used_ib), Us_path)
+                    U_b.append(U_ib)
+                    used_b.append(used_ib)
+                self.Us[b] = U_b
+                self.used_samples[b] = used_b
+        else:
+            U_b = []
+            used_b = []
+            for i in range(len(self.Ms)):
+                U_ib, used_ib = self._calc_transforms(self.Ms[i], self.Ds[i], self.b)
+                U_b.append(U_ib)
+                used_b.append(used_ib)
+            self.Us[self.b] = U_b
+            self.used_samples[self.b] = used_b
+
+
+
+>>>>>>> .merge_file_j5gClo
     def _set_Ms_and_Ds_qspright(self):
         if self.foldername:
             Path(f"{self.foldername}").mkdir(exist_ok=True)
@@ -175,8 +244,22 @@ class SubsampledSignal(Signal):
         else:
             raise ValueError("There are not enough Ms or Ds.")
 
+<<<<<<< .merge_file_qFtufq
     def _compute_subtransform(self, samples, b):
         transform = [gwht(row[::(self.q ** (self.b - b))], self.q, b) for row in samples]
         return transform
 
 
+=======
+    def _calc_transforms(self, M, D, b):
+        U = []
+        used_samples = []
+        for D_sub in D:
+            U_sub, used_i = compute_delayed_gwht(self, M[:, (self.b - b):], D_sub, self.q)
+            U.append(U_sub)
+            used_samples.append(len(used_i))
+        return U, used_samples
+
+    def get_source_parity(self):
+        return self.Ds[0][0].shape[0]
+>>>>>>> .merge_file_j5gClo

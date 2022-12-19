@@ -7,12 +7,14 @@ from src.qspright.synthetic_signal import SyntheticSubsampledSignal
 
 class QSPRIGHT:
 
-    def __init__(self, reconstruct_method, **kwargs):
-        self.reconstruct_method = reconstruct_method
+    def __init__(self, **kwargs):
+        self.reconstruct_method_source = kwargs.get("reconstruct_method_source")
+        self.reconstruct_method_channel = kwargs.get("reconstruct_method_channel")
         self.num_subsample = kwargs.get("num_subsample")
         self.num_random_delays = kwargs.get("num_random_delays")
         self.b = kwargs.get("b")
         self.noise_sd = kwargs.get("noise_sd")
+        self.source_decoder = kwargs.get("source_decoder", None)
 
     def transform(self, signal, verbosity=0, report=False, timing_verbose=False, **kwargs):
 
@@ -86,12 +88,20 @@ class QSPRIGHT:
                     if np.linalg.norm(col) ** 2 > cutoff * len(col):
                         k = singleton_detection(
                             col,
-                            method=self.reconstruct_method,
+                            method_channel=self.reconstruct_method_channel,
+                            method_source=self.reconstruct_method_source,
                             q=q,
+<<<<<<< .merge_file_TS9lRx
                             n=n,
                             nso_subtype="nso1"
                         )  # find the best fit singleton
 
+=======
+                            source_parity=signal.get_source_parity(),
+                            nso_subtype="nso1",
+                            source_decoder=self.source_decoder
+                        )
+>>>>>>> .merge_file_KKqjyH
                         signature = omega ** (D @ k)
                         rho = np.dot(np.conjugate(signature), col) / D.shape[0]
                         residual = col - rho * signature
