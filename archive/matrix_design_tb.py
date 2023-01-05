@@ -1,7 +1,7 @@
 import numpy as np
 import tqdm
 import sys
-sys.path.append("src")
+sys.path.append("../src")
 from src.reconstruct import singleton_detection
 from src.utils import qary_ints,  bin_to_dec, qary_vec_to_dec, dec_to_qary_vec
 from src.query import compute_delayed_gwht, get_Ms, get_b, get_D

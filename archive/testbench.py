@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 import time
-sys.path.append("./src/qspright/")
+sys.path.append("../src/qspright/")
 from src.qspright.synthetic_signal import get_random_signal
 from archive.qspright_nso import QSPRIGHT
 
