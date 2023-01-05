@@ -1,10 +1,10 @@
 import time
 import numpy as np
 import tqdm
-from src.qspright.reconstruct import singleton_detection
-from src.qspright.utils import bin_to_dec, qary_vec_to_dec
-from src.qspright.query import compute_delayed_gwht, get_Ms, get_D
-from src.rna_transform.input_rna_signal_long import SignalRNA
+from qspright import singleton_detection
+from qspright import bin_to_dec, qary_vec_to_dec
+from qspright import compute_delayed_gwht, get_Ms, get_D
+
 
 class QSPRIGHT:
     """

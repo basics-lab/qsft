@@ -11,7 +11,7 @@ import galois
 import sys
 import tqdm
 import time
-sys.path.append("..")
+sys.path.append("../src")
 
 from archive.qspright_rand import dec_to_bin, bin_to_dec, qary_vec_to_dec, binary_ints, qary_ints
 from archive.qspright_rand import compute_delayed_wht, compute_delayed_gwht, get_Ms, get_b, get_D

@@ -1,10 +1,10 @@
 import numpy as np
 import sys
 
-sys.path.append("../src/qspright/")
-from src.qspright.qspright import QSPRIGHT
-from src.qspright.query import get_reed_solomon_dec
-from src.qspright.synthetic_signal import get_random_subsampled_signal
+sys.path.append("../qspright/")
+from qspright.qspright import QSPRIGHT
+from qspright.query import get_reed_solomon_dec
+from qspright.synthetic_signal import get_random_subsampled_signal
 
 
 if __name__ == '__main__':

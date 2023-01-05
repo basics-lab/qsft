@@ -1,9 +1,9 @@
 import time
 import numpy as np
 import tqdm
-from src.qspright.reconstruct import singleton_detection
-from src.qspright.utils import bin_to_dec, qary_vec_to_dec
-from src.qspright.query import compute_delayed_gwht, get_Ms, get_D
+from qspright import singleton_detection
+from qspright import bin_to_dec, qary_vec_to_dec
+from qspright import compute_delayed_gwht, get_Ms, get_D
 
 
 class QSPRIGHT:
@@ -269,7 +269,6 @@ class QSPRIGHT:
 if __name__ == "__main__":
     np.random.seed(10)
 
-    from inputsignal import Signal
     from rna_transform.input_rna_signal import RnaSignal
     from rna_transform.rna_utils import get_rna_base_seq
     q = 4

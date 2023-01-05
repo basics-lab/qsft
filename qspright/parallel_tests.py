@@ -4,9 +4,8 @@ from tqdm import tqdm
 from functools import partial
 import numpy as np
 import pandas as pd
-import time
 
-from src.qspright.test_helper import TestHelper
+from qspright.test_helper import TestHelper
 tqdm = partial(tqdm, position=0, leave=True)
 
 

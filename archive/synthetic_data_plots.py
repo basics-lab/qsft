@@ -6,7 +6,7 @@ from itertools import repeat
 from compute_point import compute_point_qspright
 from compute_point import compute_point_lasso
 import matplotlib.pyplot as plt
-sys.path.append("../src/qspright/")
+sys.path.append("../qspright/")
 np.random.seed(10)
 
 if __name__ == '__main__':

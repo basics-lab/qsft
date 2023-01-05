@@ -6,7 +6,7 @@ Methods for the reconstruction engine; specifically, to
 '''
 
 import numpy as np
-from src.qspright.utils import angle_q
+from qspright.utils import angle_q
 
 
 def singleton_detection_noiseless(U_slice, **kwargs):
@@ -103,7 +103,6 @@ def singleton_detection_nso(U_slice, **kwargs):
 
 def singleton_detection_nso1(U_slice, **kwargs):
     q, p1 = kwargs.get("q"), kwargs.get("source_parity")
-    import matplotlib.pyplot as plt
     q_roots = 2 * np.pi / q * np.arange(q + 1)
     U_slice_zero = U_slice[0::p1]
     k_sel_qary = np.zeros((p1-1, ), dtype=int)

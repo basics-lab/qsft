@@ -1,6 +1,6 @@
 import numpy as np
-from src.qspright.input_signal import Signal
-from src.qspright.utils import lasso_decode
+from qspright.input_signal import Signal
+from qspright.utils import lasso_decode
 
 
 def compute_point_qspright(sparsity, spright, config):

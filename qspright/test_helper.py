@@ -1,7 +1,7 @@
 import numpy as np
-from src.qspright.lasso import lasso_decode
-from src.qspright.qspright import QSPRIGHT
-from src.qspright.utils import gwht, dec_to_qary_vec, NpEncoder
+from qspright.lasso import lasso_decode
+from qspright.qspright import QSPRIGHT
+from qspright.utils import gwht, dec_to_qary_vec, NpEncoder
 import json
 
 

@@ -1,8 +1,8 @@
 import time
 import numpy as np
-from src.qspright.reconstruct import singleton_detection
-from src.qspright.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight, dec_to_qary_vec
-from src.qspright.synthetic_signal import SyntheticSubsampledSignal
+from qspright.reconstruct import singleton_detection
+from qspright.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight, dec_to_qary_vec
+from qspright.synthetic_signal import SyntheticSubsampledSignal
 
 
 class QSPRIGHT:

@@ -1,5 +1,5 @@
-from src.qspright.test_helper import TestHelper
-from src.qspright.synthetic_signal import SyntheticSubsampledSignal
+from qspright.test_helper import TestHelper
+from qspright.synthetic_signal import SyntheticSubsampledSignal
 
 
 class SyntheticHelper(TestHelper):

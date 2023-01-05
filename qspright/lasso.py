@@ -2,7 +2,7 @@ import numpy as np
 from group_lasso import GroupLasso
 from sklearn.linear_model import Ridge
 import time
-from qspright.utils import dec_to_qary_vec, qary_ints, calc_hamming_weight
+from qspright.qspright import dec_to_qary_vec, qary_ints, calc_hamming_weight
 
 
 def lasso_decode(signal, n_samples, refine=False, verbose=False, report=True):

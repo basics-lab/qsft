@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-sys.path.append("../src/qspright/")
+sys.path.append("../qspright/")
 from archive.qspright_sparse import QSPRIGHT
 
 if __name__ == '__main__':
