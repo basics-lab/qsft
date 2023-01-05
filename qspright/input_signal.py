@@ -13,9 +13,9 @@ class Signal:
     Attributes
     ---------
     n : int
-    number of bits: log2 of the signal length.
+    number of bits: number of function inputs.
     
-    loc : iterable
+    q : int
     Locations of true peaks in the W-H spectrum. Elements must be integers in [0, q ** n - 1].
     
     strengths : iterable
