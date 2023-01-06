@@ -23,7 +23,9 @@ start_time = time.time()
 ft, (n_used, n_used_unique, _), peeled = spright.transform(test_signal, verbose=False, report=True)
 ```
 
-![fig1](figs/complexity-vs-n-lasso-1.png | width=500px)
+<img src="figs/complexity-vs-n-lasso-1.png" width="300">
+
+![fig1]( width=500px)
 ![fig2](figs/complexity-vs-n-qspright-1.png | width=500px)
 ![fig3](figs/complexity-vs-n-rna-1.png | width=500px)
 ![fig4](figs/complexity-vs-n-runtime-1.png | width=500px)
