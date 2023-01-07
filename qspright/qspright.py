@@ -73,6 +73,24 @@ class QSPRIGHT:
      
      Returns
      -------
+     gwht : dict
+     Fourier transform (WHT) of the input signal
+     
+     runtime : scalar
+     transform time + peeling time.
+     
+     n_samples : int
+     number of samples used in computing the transform.
+     
+     locations : list
+     List of nonzero indicies in the transform.
+     
+     avg_hamming_weight : scalar
+     Average hamming wieght of non-zero indicies.
+     
+     
+     max_hamming_weight : int
+     Max hamming weight among the non-zero indicies.
     '''
     def transform(self, signal, verbosity=0, report=False, timing_verbose=False, **kwargs):
 
