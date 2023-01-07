@@ -12,9 +12,8 @@ sys.path.append("../src")
 
 import argparse
 from pathlib import Path
-from qspright.synthetic_helper import SyntheticHelper
+from rna_transform.rna_helper import RNAHelper
 from qspright.parallel_tests import run_tests
-from src.qspright.synthetic_signal import generate_signal_w
 
 
 if __name__ == '__main__':
@@ -23,11 +22,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_subsample', type=int, nargs="+")
     parser.add_argument('--num_repeat', type=int, nargs="+")
     parser.add_argument('--b', type=int, nargs="+")
-    parser.add_argument('--a', type=int)
-    parser.add_argument('--snr', type=float, nargs="+")
+    parser.add_argument('--noise_sd', type=float, nargs="+")
     parser.add_argument('--n', type=int, nargs="+")
-    parser.add_argument('--q', type=int)
-    parser.add_argument('--sparsity', type=int)
     parser.add_argument('--iters', type=int, default=1)
     parser.add_argument('--subsampling', type=int, default=True)
     parser.add_argument('--jobid', type=int)
@@ -35,29 +31,29 @@ if __name__ == '__main__':
     args = parser.parse_args()
     debug = args.debug
     if debug:
-        args.num_subsample = [1, 2]
-        args.num_repeat = [1, 2]
-        args.b = [1, 2, 3, 4, 5, 6, 7]
-        args.a = 1
-        args.n = np.linspace(3, 10, num=8, dtype=int)
-        args.q = 3
-        args.sparsity = 10
-        args.snr = [20]
+        args.num_subsample = [4]
+        args.num_repeat = [3]
+        args.b = [7]
+        args.n = [15]
         args.iters = 1
         args.jobid = "debug-" + str(uuid.uuid1())[:8]
         args.subsampling = True
+
+    args.noise_sd = np.logspace(-3, -5, num=10)
 
     if debug:
         exp_dir_base = Path(f"results/{str(args.jobid)}")
     else:
         exp_dir_base = Path(f"/global/scratch/users/erginbas/qspright/synt-exp-results/{str(args.jobid)}")
 
+    args.q = 4
+
     exp_dir_base.mkdir(parents=True, exist_ok=True)
     (exp_dir_base / "figs").mkdir(exist_ok=True)
 
     print("Parameters :", args, flush=True)
 
-    methods = ["qspright", "lasso"]
+    methods = ["qspright"]
 
     dataframes = []
 
@@ -66,8 +62,6 @@ if __name__ == '__main__':
     for n_idx in range(len(args.n)):
 
         n = args.n[n_idx]
-
-        noise_sd = np.sqrt((args.sparsity * args.a ** 2) / (args.q ** n * np.exp(np.array(args.snr) / 10)))
 
         b_valid = [b for b in args.b if b <= n]
 
@@ -79,35 +73,32 @@ if __name__ == '__main__':
         }
 
         test_args = {
-            "n_samples": 50000
+            "n_samples": 5000
         }
 
         print()
-        print(fr"n = {n}, N = {args.q ** n}, sigma = {noise_sd}")
+        print(fr"n = {n}, N = {args.q ** n}, sigma = {args.noise_sd}")
 
         for it in range(args.iters):
-            exp_dir = exp_dir_base / f"n{n}_i{it}"
+            exp_dir = exp_dir_base / f"i{it}"
             exp_dir.mkdir(parents=True, exist_ok=True)
-
-            _, locq, strengths = generate_signal_w(n, args.q, args.sparsity, args.a, args.a, full=False)
 
             signal_args = {
                 "n": n,
-                "q": args.q,
-                "locq": locq,
-                "strengths": strengths,
+                "q": args.q
             }
 
-            helper = SyntheticHelper(signal_args=signal_args, methods=methods, subsampling=args.subsampling,
-                                     exp_dir=exp_dir, subsampling_args=subsampling_args, test_args=test_args)
+            helper = RNAHelper(signal_args=signal_args, methods=methods, subsampling=args.subsampling,
+                               exp_dir=exp_dir, subsampling_args=subsampling_args, test_args=test_args)
 
             for method in methods:
-                if method == "lasso" and args.q ** n > 8000:
+                if method == "lasso" and args.q ** n > 3000:
                     pass
                 else:
                     dataframes.append(run_tests(method, helper, 1, args.num_subsample, args.num_repeat,
-                                                b_valid, noise_sd, parallel=False))
-
+                                                b_valid, args.noise_sd, parallel=False))
 
     results_df = pd.concat(dataframes, ignore_index=True)
+    print()
+    print(results_df)
     results_df.to_pickle(exp_dir_base / "result.pkl")

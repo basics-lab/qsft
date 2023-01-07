@@ -28,12 +28,13 @@ class TestHelper:
         self.test_args = test_args
 
         if self.subsampling:
-            self.train_signal = self.load_train_data()
+            if len(set(methods).intersection(["qspright"])) > 0:
+                self.train_signal = self.load_train_data()
             # print("Quaternary Training data loaded.", flush=True)
-            if any([m.startswith("binary") for m in methods]):
+            if len(set(methods).intersection(["binary_qspright"])) > 0:
                 self.train_signal_binary = self.load_train_data_binary()
                 # print("Binary Training data loaded.", flush=True)
-            if any([m.startswith("uniform") for m in methods]):
+            if len(set(methods).intersection(["lasso"])) > 0:
                 self.train_signal_uniform = self.load_train_data_uniform()
                 # print("Uniform Training data loaded.", flush=True)
             self.test_signal = self.load_test_data()
@@ -119,7 +120,7 @@ class TestHelper:
             return self._calculate_qspright(model_kwargs, report, verbosity)
         elif method == "binary_qspright":
             return self._calculate_binary_qspright(model_kwargs, report, verbosity)
-        elif method == "uniform_lasso":
+        elif method == "lasso":
             return self._calculate_lasso(model_kwargs, report, verbosity)
         else:
             raise NotImplementedError()
@@ -129,7 +130,7 @@ class TestHelper:
             return self._test_qary(**kwargs)
         elif method == "binary_qspright":
             return self._test_binary(**kwargs)
-        elif method == "uniform_lasso":
+        elif method == "lasso":
             return self._test_qary(**kwargs)
         else:
             raise NotImplementedError()
@@ -196,7 +197,7 @@ class TestHelper:
         if verbosity > 0:
             print("Finding Fourier coefficients with LASSO")
 
-        out = lasso_decode(self.train_signal_uniform, model_kwargs["n_samples"])
+        out = lasso_decode(self.train_signal_uniform, model_kwargs["n_samples"], noise_sd=model_kwargs["noise_sd"])
 
         if verbosity > 0:
             print("Found Fourier coefficients")

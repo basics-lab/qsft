@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 import random
 from tqdm import tqdm
-
+import timeit
 
 class SubsampledSignal(Signal):
 
@@ -60,8 +60,8 @@ class SubsampledSignal(Signal):
             self.Ms, self.Ds = get_Ms_and_Ds(self.n, self.q, **self.query_args)
 
     def _subsample_qspright(self):
-        self.Us = []
-        self.transformTimes = []
+        self.Us = [[{} for j in range(len(self.Ds[i]))] for i in range(len(self.Ms))]
+        self.transformTimes = [[{} for j in range(len(self.Ds[i]))] for i in range(len(self.Ms))]
 
         if self.foldername:
             Path(f"{self.foldername}/samples").mkdir(exist_ok=True)
@@ -69,17 +69,13 @@ class SubsampledSignal(Signal):
 
         pbar = tqdm(total=0, position=0)
         for i in range(len(self.Ms)):
-            U_i = []
-            T_i = []
-            for j in range(len(self.Ds[0])):
+            for j in range(len(self.Ds[i])):
                 transform_file = Path(f"{self.foldername}/transforms/U{i}_{j}.pickle")
                 if self.foldername and transform_file.is_file():
-                    U_ij, T_ij = load_data(transform_file)
-                    pbar.total = len(self.Ms) * len(self.Ds[0]) * len(U_ij)
-                    pbar.update(len(U_ij))
+                    self.Us[i][j], self.transformTimes[i][j] = load_data(transform_file)
+                    pbar.total = len(self.Ms) * len(self.Ds[0]) * len(self.Us[i][j])
+                    pbar.update(len(self.Us[i][j]))
                 else:
-                    U_ij = {}
-                    T_ij = {}
                     sample_file = Path(f"{self.foldername}/samples/M{i}_D{j}.pickle")
                     if self.foldername and sample_file.is_file():
                         samples = load_data(sample_file)
@@ -87,25 +83,19 @@ class SubsampledSignal(Signal):
                         pbar.update(len(samples))
                     else:
                         query_indices = self._get_qspright_query_indices(self.Ms[i], self.Ds[i][j])
-                        samples = []
+                        samples = np.zeros((len(query_indices), len(query_indices[0])))
                         pbar.total = len(self.Ms) * len(self.Ds[0]) * len(query_indices)
                         for k in range(len(query_indices)):
-                            samples.append(self.subsample(query_indices[k]))
+                            samples[k] = self.subsample(query_indices[k])
                             pbar.update()
                         if self.foldername:
                             save_data(samples, sample_file)
                     for b in self.all_bs:
                         start_time = time.time()
-                        U_ij[b] = self._compute_subtransform(samples, b)
-                        T_ij[b] = time.time() - start_time
+                        self.Us[i][j][b] = self._compute_subtransform(samples, b)
+                        self.transformTimes[i][j][b] = time.time() - start_time
                     if self.foldername:
-                        save_data((U_ij, T_ij), transform_file)
-
-                U_i.append(U_ij)
-                T_i.append(T_ij)
-
-            self.Us.append(U_i)
-            self.transformTimes.append(T_i)
+                        save_data((self.Us[i][j], self.transformTimes[i][j]), transform_file)
 
     def _subsample_uniform(self):
         if self.foldername:
@@ -159,8 +149,8 @@ class SubsampledSignal(Signal):
         return base_inds_dec
 
     def _get_random_query_indices(self, n_samples):
-        n_samples = np.minimum(n_samples, self.N)
-        base_inds_dec = random.sample(range(self.N), n_samples)
+        # n_samples = np.minimum(n_samples, self.N)
+        base_inds_dec = random.choices(range(self.N), k=n_samples)
         return base_inds_dec
 
     def get_MDU(self, ret_num_subsample, ret_num_repeat, b, trans_times=False):
