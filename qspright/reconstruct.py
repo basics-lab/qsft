@@ -1,5 +1,5 @@
 '''
-Methods for the reconstruction engine; specifically, to
+Methods for the reconstruction engine; specifically, to:
 
 1. carry out singleton detection
 2. get the cardinalities of all bins in a subsampling group (debugging only).

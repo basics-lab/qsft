@@ -1,3 +1,6 @@
+'''
+Class for computing the q-ary fourier transform of a function/signal
+'''
 import time
 import numpy as np
 from qspright.reconstruct import singleton_detection
@@ -6,7 +9,39 @@ from qspright.synthetic_signal import SyntheticSubsampledSignal
 
 
 class QSPRIGHT:
+    '''
+    Class to encapsulate the configuration of our fourier algorithm.
 
+    Attributes
+    ---------
+    reconstruct_method_source : str
+    method of reconstruction for source coding: "identity" - default setting, should be used unless you know that all
+                                                indicies have low hamming weight
+                                                "coded" - Currently only supports prime q, if you know the max hamming
+                                                weight of less than t this option should be used and will greatly reduce
+                                                complexity. Note a source_decoder object must also be passed
+    reconstruct_method_channel : str
+    Method of reconstruction for channel coding: "mle" - exact MLE computation. Fine for small problems but not
+                                                         recommended it is exponential in n
+                                                 "nso" - symbol-wise recovery suitable when a repetition type code is used
+                                                 "identity" - no channel coding, only use when there is no noise
+    num_subsamples : int
+    The number of different subsampling groups M used
+
+    num_repeat : int
+    When a repetition code is used for channel coding, (NSO) this is the number of repetitions
+
+    b : int
+    Size of the sub-sampling signal. In general, we need q^b = O(K) where K is the number of nonzero terms in the
+    transform. In practice, any q^b > K typically works well.
+
+    noise_sd : scalar
+    A noise parameter. Roughly, the standard deviation of the noise if it was an additive gaussian.
+
+    source_decoder : function
+    A function that takes in a source coded index, and returns decoded value of that index. Only needed when
+    reconstruct_method_source = "coded"
+    '''
     def __init__(self, **kwargs):
         self.reconstruct_method_source = kwargs.get("reconstruct_method_source")
         self.reconstruct_method_channel = kwargs.get("reconstruct_method_channel")
@@ -16,6 +51,29 @@ class QSPRIGHT:
         self.noise_sd = kwargs.get("noise_sd")
         self.source_decoder = kwargs.get("source_decoder", None)
 
+    '''
+    Computes the q-ary fourier transform of a signal object
+    
+    Arguments
+    ---------
+    
+    signal : Signal
+    Signal object to be transformed.
+    
+    verbosity : int
+    Larger numbers lead to increased number of printouts
+    
+    timing_verbose : Boolean
+    If set to True, outputs detailed information about the amount of time each transform step takes.
+    
+    report : Boolean
+    If set to True this function returns optional outputs "runtime": transform_time + peeling_time,
+    "n_samples": total number of samples,"locations": locations of nonzero indicies,"avg_hamming_weight" average
+     hamming weight of non-zero indicies and "max_hamming_weight": the maximum hamming weight of a nonzero index
+     
+     Returns
+     -------
+    '''
     def transform(self, signal, verbosity=0, report=False, timing_verbose=False, **kwargs):
 
         q = signal.q
