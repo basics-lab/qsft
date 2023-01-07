@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 from qspright.synthetic_helper import SyntheticHelper
 from qspright.parallel_tests import run_tests
-from src.qspright.synthetic_signal import generate_signal_w
+from qspright import generate_signal_w
 
 
 if __name__ == '__main__':
