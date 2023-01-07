@@ -61,7 +61,7 @@ query_args = {
     "all_bs": args.b
 }
 
-methods = ["qspright", "uniform_lasso"]
+methods = ["qspright", "lasso"]
 colors = ["red", "blue", "green", "purple"]
 
 test_args = {

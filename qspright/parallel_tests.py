@@ -20,7 +20,6 @@ def _test(i):
     model_kwargs["b"] = b
     model_kwargs["noise_sd"] = noise_sd
     model_kwargs["n_samples"] = num_subsample * (helper_obj.q ** b) * num_repeat * (helper_obj.n + 1)
-
     model_result = helper_obj.compute_model(method=method, model_kwargs=model_kwargs, report=True, verbosity=0)
 
     test_kwargs = {}

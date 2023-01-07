@@ -2,10 +2,13 @@ import numpy as np
 from group_lasso import GroupLasso
 from sklearn.linear_model import Ridge
 import time
-from qspright.qspright import dec_to_qary_vec, qary_ints, calc_hamming_weight
+from src.qspright.synthetic_signal import SyntheticSubsampledSignal
+from group_lasso._fista import ConvergenceWarning
+from sklearn.utils._testing import ignore_warnings
 
 
-def lasso_decode(signal, n_samples, refine=False, verbose=False, report=True):
+@ignore_warnings(category=ConvergenceWarning)
+def lasso_decode(signal, n_samples, noise_sd = 0, refine=True, verbose=False, report=True):
     q = signal.q
     n = signal.n
     N = q ** n
@@ -16,14 +19,22 @@ def lasso_decode(signal, n_samples, refine=False, verbose=False, report=True):
         print("Setting up LASSO problem")
 
     (sample_idx_dec, y) = list(signal.signal_t.keys()), list(signal.signal_t.values())
+
     sample_idx_dec = sample_idx_dec[:n_samples]
     y = y[:n_samples]
+
+    # #  WARNING: ADD NOISE ONLY FOR SYNTHETIC SIGNALS
+    # if type(signal) is SyntheticSubsampledSignal:
+    #     y += np.random.normal(0, noise_sd / np.sqrt(2), size=(len(y), 2)).view(np.complex).reshape(len(y))
+
     sample_idx = dec_to_qary_vec(sample_idx_dec, q, n, dtype=dtype)
     y = np.concatenate((np.real(y), np.imag(y)))
     freqs = np.array(sample_idx).T @ qary_ints(n, q, dtype=dtype)
     X = np.exp(2j*np.pi*freqs/q).astype(np.csingle)
-    X = np.concatenate((np.concatenate((np.real(X), -np.imag(X)), axis=1), np.concatenate((np.imag(X), np.real(X)), axis=1)))
+    X_ext = np.concatenate((np.concatenate((np.real(X), -np.imag(X)), axis=1), np.concatenate((np.imag(X), np.real(X)), axis=1)))
     groups = [i % N for i in range(2*N)]
+
+    lasso_start = time.time()
 
     if verbose:
         print(f"Setup Time:{time.time() - start_time}sec")
@@ -33,20 +44,22 @@ def lasso_decode(signal, n_samples, refine=False, verbose=False, report=True):
     lasso = GroupLasso(groups=groups,
                        group_reg=0.1,
                        l1_reg=0,
-                       tol=1e-5,
-                       n_iter=1000,
+                       tol=1e-8,
+                       n_iter=25,
                        supress_warning=True,
                        fit_intercept=False)
-    lasso.fit(X, y)
+    lasso.fit(X_ext, y)
 
     if verbose:
         print(f"LASSO fit time:{time.time() - start_time}sec")
 
     w = lasso.coef_
-    non_zero = np.nonzero(w[:N, 0])[0]
-    if refine:
-        ridge = Ridge(alpha=0.1, tol=1e-8)
-        ridge.fit(X[:, non_zero], y)
+
+    non_zero = np.nonzero(w[:, 0])[0]
+
+    if len(non_zero) > 0 and refine:
+        ridge = Ridge(alpha=1e-2, tol=1e-8)
+        ridge.fit(X_ext[:, non_zero], y)
         w[non_zero] = ridge.coef_[:, np.newaxis]
     gwht = w[0:N] + 1j*w[N:(2*N)]
 
@@ -58,6 +71,8 @@ def lasso_decode(signal, n_samples, refine=False, verbose=False, report=True):
     for p in non_zero_pos:
         gwht_dict[tuple(p)] = gwht[tuple(p)]
 
+    runtime = time.time() - lasso_start
+
     if not report:
         return gwht_dict
     else:
@@ -67,10 +82,12 @@ def lasso_decode(signal, n_samples, refine=False, verbose=False, report=True):
             max_hamming_weight = np.max(calc_hamming_weight(loc))
         else:
             loc, avg_hamming_weight, max_hamming_weight = [], 0, 0
+
         result = {
             "gwht": gwht_dict,
             "n_samples": n_samples,
             "locations": loc,
+            "runtime": runtime,
             "avg_hamming_weight": avg_hamming_weight,
             "max_hamming_weight": max_hamming_weight
         }

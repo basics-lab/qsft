@@ -10,12 +10,12 @@ from qspright.synthetic_signal import get_random_subsampled_signal
 if __name__ == '__main__':
     np.random.seed(20)
     q = 2
-    n = 20
+    n = 50
     N = q ** n
-    sparsity = 10
+    sparsity = 100
     a_min = 1
     a_max = 10
-    b = 6
+    b = 7
     noise_sd = 0
     num_subsample = 3
     num_repeat = 3
@@ -105,7 +105,6 @@ if __name__ == '__main__':
     # test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
     #                                           noise=noise_sd)
 
-
     spright = QSPRIGHT(**qspright_args)
 
     result = spright.transform(test_signal, verbose=False, timing_verbose=True, report=True, sort=True)
@@ -124,6 +123,7 @@ if __name__ == '__main__':
     print("true non-zero indices: ")
     print(test_signal.locq.T)
 
+    print("total samples = ", n_used)
     print("total sample ratio = ", n_used / q ** n)
     signal_w_diff = test_signal.signal_w.copy()
 

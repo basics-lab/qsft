@@ -97,14 +97,13 @@ class QSPRIGHT:
 
         transform_time = np.sum(Ts)
 
-        peeling_start = time.time()
-
         Us = np.array(Us)
 
+        #  WARNING: ADD NOISE ONLY FOR SYNTHETIC SIGNALS
         if type(signal) is SyntheticSubsampledSignal:
-            Us += np.random.normal(0, self.noise_sd, size=Us.shape + (2,)).view(np.complex).reshape(Us.shape)
+            Us += np.random.normal(0, self.noise_sd / np.sqrt(2), size=Us.shape + (2,)).view(np.complex).reshape(Us.shape)
 
-        gamma = 1.5
+        gamma = 0.5
 
         cutoff = 1e-9 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
@@ -123,10 +122,12 @@ class QSPRIGHT:
         # a singleton will map from the (i, j)s to the true (binary) values k.
         # e.g. the singleton (0, 0), which in the example of section 3.2 is X[0100] + W1[00]
         # would be stored as the dictionary entry (0, 0): array([0, 1, 0, 0]).
-        max_iter = 20
+        max_iter = 15
         iter_step = 0
         cont_peeling = True
         num_peeling = 0
+
+        peeling_start = time.time()
 
         if timing_verbose:
             start_time = time.time()

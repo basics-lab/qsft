@@ -7,7 +7,7 @@ from qspright.utils import dec_to_qary_vec
 from multiprocess import Pool
 
 
-def generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=True, max_weight=None):
+def generate_signal_w(n, q, sparsity, a_min, a_max, noise_sd=0, full=True, max_weight=None):
     max_weight = n if max_weight is None else max_weight
     N = q ** n
 

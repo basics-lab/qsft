@@ -1,3 +1,3 @@
 module load python
-source activate generalized-wht
+source activate sparse-fft
 sbatch rna_exp.sh

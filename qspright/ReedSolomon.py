@@ -1,5 +1,5 @@
 import galois
-from galois._codes._reed_solomon import decode_jit
+# from galois._codes._reed_solomon import decode_jit
 import numpy as np
 import math
 
