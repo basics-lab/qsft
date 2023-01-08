@@ -83,11 +83,6 @@ def singleton_detection_mle(U_slice, **kwargs):
     k_sel = np.argmin(residuals)
     return selection[k_sel], S_slice[:, k_sel]
 
-
-def find_nearest_idx(array, value):
-    return
-
-
 """
 Singleton Detection Via NSO Algorithm
 nso1 - Multiplying by conjugate "Soft Decoding" 

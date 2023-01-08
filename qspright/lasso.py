@@ -2,13 +2,49 @@ import numpy as np
 from group_lasso import GroupLasso
 from sklearn.linear_model import Ridge
 import time
-from src.qspright.synthetic_signal import SyntheticSubsampledSignal
 from group_lasso._fista import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
 
 
+
 @ignore_warnings(category=ConvergenceWarning)
 def lasso_decode(signal, n_samples, noise_sd = 0, refine=True, verbose=False, report=True):
+    """
+    Implements Complex LASSO with optional Ridge Regression refinement
+    Parameters
+    ---------
+    signal : Signal
+    Signal object to be transformed.
+
+    n_samples : int
+    number of samples used in computing the transform.
+
+    verbosity : bool
+    If True printouts are increased.
+
+    noise_sd : scalar
+    Noise standard deviation.
+
+    refine : bool
+    If True Ridge Regression refinement is used.
+
+    Returns
+    -------
+    gwht : dict
+    Fourier transform (WHT) of the input signal
+
+    runtime : scalar
+    transform time + peeling time.
+
+    locations : list
+    List of nonzero indicies in the transform.
+
+    avg_hamming_weight : scalar
+    Average hamming wieght of non-zero indicies.
+
+    max_hamming_weight : int
+    Max hamming weight among the non-zero indicies.
+    """
     q = signal.q
     n = signal.n
     N = q ** n

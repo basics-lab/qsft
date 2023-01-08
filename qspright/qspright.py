@@ -51,49 +51,49 @@ class QSPRIGHT:
         self.noise_sd = kwargs.get("noise_sd")
         self.source_decoder = kwargs.get("source_decoder", None)
 
-    '''
-    Computes the q-ary fourier transform of a signal object
-    
-    Arguments
-    ---------
-    
-    signal : Signal
-    Signal object to be transformed.
-    
-    verbosity : int
-    Larger numbers lead to increased number of printouts
-    
-    timing_verbose : Boolean
-    If set to True, outputs detailed information about the amount of time each transform step takes.
-    
-    report : Boolean
-    If set to True this function returns optional outputs "runtime": transform_time + peeling_time,
-    "n_samples": total number of samples,"locations": locations of nonzero indicies,"avg_hamming_weight" average
-     hamming weight of non-zero indicies and "max_hamming_weight": the maximum hamming weight of a nonzero index
-     
-     Returns
-     -------
-     gwht : dict
-     Fourier transform (WHT) of the input signal
-     
-     runtime : scalar
-     transform time + peeling time.
-     
-     n_samples : int
-     number of samples used in computing the transform.
-     
-     locations : list
-     List of nonzero indicies in the transform.
-     
-     avg_hamming_weight : scalar
-     Average hamming wieght of non-zero indicies.
-     
-     
-     max_hamming_weight : int
-     Max hamming weight among the non-zero indicies.
-    '''
-    def transform(self, signal, verbosity=0, report=False, timing_verbose=False, **kwargs):
 
+    def transform(self, signal, verbosity=0, report=False, timing_verbose=False, **kwargs):
+        """
+         Computes the q-ary fourier transform of a signal object
+
+         Arguments
+         ---------
+
+         signal : Signal
+         Signal object to be transformed.
+
+         verbosity : int
+         Larger numbers lead to increased number of printouts
+
+         timing_verbose : Boolean
+         If set to True, outputs detailed information about the amount of time each transform step takes.
+
+         report : Boolean
+         If set to True this function returns optional outputs "runtime": transform_time + peeling_time,
+         "n_samples": total number of samples,"locations": locations of nonzero indicies,"avg_hamming_weight" average
+          hamming weight of non-zero indicies and "max_hamming_weight": the maximum hamming weight of a nonzero index
+
+          Returns
+          -------
+          gwht : dict
+          Fourier transform (WHT) of the input signal
+
+          runtime : scalar
+          transform time + peeling time.
+
+          n_samples : int
+          number of samples used in computing the transform.
+
+          locations : list
+          List of nonzero indicies in the transform.
+
+          avg_hamming_weight : scalar
+          Average hamming wieght of non-zero indicies.
+
+
+          max_hamming_weight : int
+          Max hamming weight among the non-zero indicies.
+         """
         q = signal.q
         n = signal.n
         b = self.b
