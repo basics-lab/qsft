@@ -13,11 +13,11 @@ import uuid
 sys.path.append("..")
 sys.path.append("../src")
 
-from qspright.utils import best_convex_underestimator
+from qsft.utils import best_convex_underestimator
 import argparse
 from pathlib import Path
-from qspright.synthetic_helper import SyntheticHelper
-from qspright.parallel_tests import run_tests
+from qsft.synthetic_helper import SyntheticHelper
+from qsft.parallel_tests import run_tests
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', type=bool, default=False)
@@ -51,7 +51,7 @@ if debug:
 if debug:
     exp_dir = Path(f"results/{str(args.jobid)}")
 else:
-    exp_dir = Path(f"/global/scratch/users/erginbas/qspright/synt-exp-results/{str(args.jobid)}")
+    exp_dir = Path(f"/global/scratch/users/erginbas/qsft/synt-exp-results/{str(args.jobid)}")
 
 print("Parameters :", args, flush=True)
 
@@ -64,7 +64,7 @@ query_args = {
     "all_bs": args.b
 }
 
-methods = ["qspright", "lasso"]
+methods = ["qsft", "lasso"]
 colors = ["red", "blue"]
 
 test_args = {
@@ -88,7 +88,7 @@ print("Starting the tests...", flush=True)
 fig, ax = plt.subplots()
 
 for m in range(len(methods)):
-    # Test QSPRIGHT with different parameters
+    # Test QSFT with different parameters
     # Construct a grid of parameters. For each entry, run multiple test rounds.
     # Compute the average for each parameter selection.
     results_df = run_tests(methods[m], helper, args.iters, args.num_subsample, args.num_repeat,

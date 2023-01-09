@@ -14,8 +14,8 @@ sys.path.append("..")
 sys.path.append("../src")
 
 from rna_transform.rna_helper import RNAHelper
-from qspright.utils import best_convex_underestimator
-from qspright.parallel_tests import run_tests
+from qsft.utils import best_convex_underestimator
+from qsft.parallel_tests import run_tests
 import argparse
 from pathlib import Path
 
@@ -46,7 +46,7 @@ if debug:
     args.subsampling = True
     exp_dir = Path(f"results/{str(args.jobid)}")
 else:
-    exp_dir = Path(f"/global/scratch/users/erginbas/qspright/rna-exp-results/{str(args.jobid)}")
+    exp_dir = Path(f"/global/scratch/users/erginbas/qsft/rna-exp-results/{str(args.jobid)}")
 
 print(exp_dir)
 
@@ -61,7 +61,7 @@ query_args = {
     "all_bs": args.b
 }
 
-methods = ["qspright", "lasso"]
+methods = ["qsft", "lasso"]
 colors = ["red", "blue", "green", "purple"]
 
 test_args = {
@@ -86,7 +86,7 @@ print("Starting the tests...", flush=True)
 fig, ax = plt.subplots()
 
 for m in range(len(methods)):
-    # Test QSPRIGHT with different parameters
+    # Test QSFT with different parameters
     # Construct a grid of parameters. For each entry, run multiple test rounds.
     # Compute the average for each parameter selection.
     results_df = run_tests(methods[m], helper, args.iters, args.num_subsample, args.num_repeat,

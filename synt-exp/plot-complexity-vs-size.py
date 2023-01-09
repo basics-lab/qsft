@@ -22,12 +22,14 @@ if __name__ == '__main__':
 
     matplotlib.rc('font', **font)
 
-    exp_dir = Path(f"results_final/13842167")
+    exp_dir = Path(f"results/debug-510ff35e")
 
     results_df = pd.read_pickle(exp_dir / "result.pkl")
     group_by = ["method", "n", "q", "num_subsample", "num_repeat", "b", "noise_sd"]
     means = results_df.groupby(group_by, as_index=False).mean()
     stds = results_df.groupby(group_by, as_index=False).std()
+
+    print(means)
 
     q = results_df["q"][0]
 
@@ -36,8 +38,8 @@ if __name__ == '__main__':
     sampleAlpha = 0.6
     timeAlpha = 0.8
 
-    methods = ["qspright", "lasso"]
-    method_names = ["q-SFT", "LASSO"]
+    methods = ["qsft_coded"]
+    method_names = ["q-SFT Coded"]
 
     sample_comp = [[] for _ in methods]
     time_comp = [[] for _ in methods]
@@ -84,7 +86,6 @@ if __name__ == '__main__':
 
         sample_bin_avg = sample_bin_avg.T
         sample_bin_avg = np.minimum(sample_bin_avg, 1)
-        print(sample_bin_avg)
 
         masked_sample_bin_avg = np.ma.array(sample_bin_avg, mask=np.isnan(sample_bin_avg))
         colorMap.set_bad('lightgrey')
@@ -96,13 +97,13 @@ if __name__ == '__main__':
         ax.set_yscale("log")
         ax.set_xlabel("n\nN")
         ax.set_ylabel('Sample Complexity')
-        ax.set_xticks(ns[1::2])
-        ax.set_yticks([10, 10**2, 10**3, 10**4, 10**5])
+        ax.set_xticks(ns[1::3])
+        # ax.set_yticks([10, 10**2, 10**3, 10**4, 10**5])
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter(rf"${{%d}}$"))
         ax.xaxis.set_label_coords(-0.03, -.04)
         secax = ax.secondary_xaxis('bottom', functions=(lambda x: x, lambda x: x))
         secax.xaxis.set_major_formatter(ticker.FormatStrFormatter("".join(["\n", rf"${q}^{{%d}}$"])))
-        secax.set_xticks(ns[1::2])
+        secax.set_xticks(ns[1::3])
 
         cbar = fig.colorbar(data, cax=cax, orientation='vertical')
         cbar.ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
@@ -121,14 +122,12 @@ if __name__ == '__main__':
         total_success_time = np.zeros(len(ns))
         count_success_time = np.zeros(len(ns))
         for row in time_comp_m:
-            if row[2] < 0.3:
+            if row[2] < 0.1:
                 n_bin = np.where(int(row[0]) == ns)[0][0]
                 total_success_time[n_bin] += row[1]
                 count_success_time[n_bin] += 1
 
         avg_success_time = total_success_time / count_success_time
-
-        print(total_success_time)
 
         ax.plot(ns, avg_success_time, "o-", label=method_names[m])
         ax.set_xlabel("n\nN")
@@ -136,12 +135,12 @@ if __name__ == '__main__':
         ax.set_yscale("log")
         ax.grid(True)
         ax.set_yticks([0.01, 0.1, 1, 10, 100])
-        ax.set_xticks(ns[1::2])
+        ax.set_xticks(ns[1::3])
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter(rf"${{%d}}$"))
         ax.xaxis.set_label_coords(-0.03, -.04)
         secax = ax.secondary_xaxis('bottom', functions=(lambda x: x, lambda x: x))
         secax.xaxis.set_major_formatter(ticker.FormatStrFormatter("".join(["\n", rf"${q}^{{%d}}$"])))
-        secax.set_xticks(ns[1::2])
+        secax.set_xticks(ns[1::3])
 
         ax.legend()
 
