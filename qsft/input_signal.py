@@ -3,7 +3,7 @@ Class for common interface to an input signal.
 '''
 
 import numpy as np
-from qspright.utils import gwht_tensored, igwht_tensored, save_data, load_data
+from qsft.utils import gwht_tensored, igwht_tensored, save_data, load_data
 from pathlib import Path
 
 class Signal:
@@ -38,6 +38,7 @@ class Signal:
         self.signal_w = kwargs.get("signal_w")
         self.calc_w = kwargs.get("calc_w", False)
         self.foldername = kwargs.get("folder")
+        self.is_synt = False
 
     def _init_signal(self):
 

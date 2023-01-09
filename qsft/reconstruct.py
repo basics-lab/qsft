@@ -6,7 +6,7 @@ Methods for the reconstruction engine; specifically, to:
 '''
 
 import numpy as np
-from qspright.utils import angle_q
+from qsft.utils import angle_q
 
 
 def singleton_detection_noiseless(U_slice, **kwargs):
@@ -47,7 +47,7 @@ def singleton_detection_coded(k, **kwargs):
     Index of the corresponding right node, in binary form.
     '''
     decoder = kwargs.get('source_decoder')
-    dec = decoder(k)
+    dec = decoder(list(k))
     return np.array(dec[0][0, :], dtype=np.int32)
 
 
@@ -128,7 +128,7 @@ def singleton_detection_nso2(U_slice, **kwargs):
     return k_sel_qary
 
 
-def singleton_detection(U_slice, method_source="mle", method_channel="identity", **kwargs):
+def singleton_detection(U_slice, method_source="identity", method_channel="identity", **kwargs):
     # Split detection into two phases, channel and source decoding
     k = {
         "mle": singleton_detection_mle,

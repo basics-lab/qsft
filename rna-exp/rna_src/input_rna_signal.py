@@ -1,4 +1,4 @@
-from qspright.input_signal import Signal
+from qsft.input_signal import Signal
 import numpy as np
 import itertools
 from src.rna_transform.rna_utils import insert

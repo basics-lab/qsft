@@ -12,7 +12,7 @@ sys.path.append("..")
 sys.path.append("../src")
 
 from pathlib import Path
-from qspright.utils import best_convex_underestimator
+from qsft.utils import best_convex_underestimator
 import scipy
 
 if __name__ == '__main__':
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     sampleAlpha = 0.6
     timeAlpha = 0.8
 
-    methods = ["qspright"]
+    methods = ["qsft"]
 
     _, ax = plt.subplots(1, 1, figsize=(4, 3))
 

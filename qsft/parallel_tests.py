@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 import pandas as pd
 
-from qspright.test_helper import TestHelper
+from qsft.test_helper import TestHelper
 tqdm = partial(tqdm, position=0, leave=True)
 
 
@@ -75,8 +75,11 @@ def run_tests(test_method, helper: TestHelper, iters, num_subsample_list, num_re
         for i in pbar:
             result = _test(i)
             pred.append(result)
-            best_result = min(best_result, result['nmse'])
-            pbar.set_postfix({"min NMSE": best_result})
+            if result['nmse'] < best_result:
+                best_result = result['nmse']
+                df_row = test_df.iloc[i]
+                num_subsample, num_repeat, b = int(df_row["num_subsample"]), int(df_row["num_repeat"]), int(df_row["b"])
+                pbar.set_postfix({"min NMSE": best_result, "b": b, "C": num_subsample, "P1": num_repeat})
 
     results_df = pd.DataFrame(data=pred)
     results_df = pd.concat([test_df, results_df], axis=1, join="inner")

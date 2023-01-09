@@ -7,8 +7,8 @@ Methods for the query generator: specifically, to
 '''
 import time
 import numpy as np
-from qspright.utils import fwht, gwht, bin_to_dec, binary_ints, qary_ints
-from qspright.ReedSolomon import ReedSolomon
+from qsft.utils import fwht, gwht, bin_to_dec, binary_ints, qary_ints
+from qsft.ReedSolomon import ReedSolomon
 
 def get_Ms_simple(n, b, q, num_to_get=None):
     '''

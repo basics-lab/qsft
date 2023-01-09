@@ -1,5 +1,5 @@
 import galois
-# from galois._codes._reed_solomon import decode_jit
+from galois._codes._reed_solomon import decode_jit
 import numpy as np
 import math
 
@@ -21,7 +21,6 @@ class ReedSolomon(galois.ReedSolomon):
         nt = (q ** self.s) - 1 if n <= (q ** self.s) - 1 else (q ** (self.s + 1)) - 1
         self.s = self.s if n <= (q ** self.s) - 1 else self.s + 1
         self.ns = n
-        k = nt - 2 * t
         super().__init__(n=nt, k=nt-2*t)
 
     def syndrome_decode(self, syndrome):

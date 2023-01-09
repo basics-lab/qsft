@@ -1,8 +1,9 @@
 import numpy as np
-from qspright.lasso import lasso_decode
-from qspright.qspright import QSPRIGHT
-from qspright.utils import gwht, dec_to_qary_vec, NpEncoder
+from qsft.lasso import lasso_decode
+from qsft.qsft import QSFT
+from qsft.utils import gwht, dec_to_qary_vec, NpEncoder
 import json
+from qsft.query import get_reed_solomon_dec
 
 
 class TestHelper:
@@ -28,14 +29,17 @@ class TestHelper:
         self.test_args = test_args
 
         if self.subsampling:
-            if len(set(methods).intersection(["qspright"])) > 0:
+            if len(set(methods).intersection(["qsft"])) > 0:
                 self.train_signal = self.load_train_data()
             # print("Quaternary Training data loaded.", flush=True)
-            if len(set(methods).intersection(["binary_qspright"])) > 0:
+            if len(set(methods).intersection(["qsft_binary"])) > 0:
                 self.train_signal_binary = self.load_train_data_binary()
                 # print("Binary Training data loaded.", flush=True)
             if len(set(methods).intersection(["lasso"])) > 0:
                 self.train_signal_uniform = self.load_train_data_uniform()
+                # print("Uniform Training data loaded.", flush=True)
+            if len(set(methods).intersection(["qsft_coded"])) > 0:
+                self.train_signal_coded = self.load_train_data_coded()
                 # print("Uniform Training data loaded.", flush=True)
             self.test_signal = self.load_test_data()
             # print("Test data loaded.", flush=True)
@@ -53,7 +57,7 @@ class TestHelper:
         signal_args = self.signal_args.copy()
         query_args = self.subsampling_args.copy()
         query_args.update({
-            "subsampling_method": "qspright",
+            "subsampling_method": "qsft",
             "query_method": "complex",
             "delays_method_source": "identity",
             "delays_method_channel": "nso"
@@ -66,12 +70,13 @@ class TestHelper:
         signal_args = self.signal_args.copy()
         query_args = self.subsampling_args.copy()
         query_args.update({
-            "subsampling_method": "qspright",
+            "subsampling_method": "qsft",
             "query_method": "complex",
             "delays_method_source": "coded",
-            "delays_method_channel": "nso"
+            "delays_method_channel": "nso",
+            "t": signal_args["t"]
         })
-        signal_args["folder"] = self.exp_dir / "train"
+        signal_args["folder"] = self.exp_dir / "train_coded"
         signal_args["query_args"] = query_args
         return self.generate_signal(signal_args)
 
@@ -84,7 +89,7 @@ class TestHelper:
     #     factor = round(np.log(signal_args["q"]) / np.log(2))
     #     signal_args["n"] = factor * signal_args["n"]
     #     signal_args["q"] = 2
-    #     signal_args["query_args"]["subsampling_method"] = "qspright"
+    #     signal_args["query_args"]["subsampling_method"] = "qsft"
     #     signal_args["query_args"]["b"] = factor * query_args["b"]
     #     signal_args["query_args"]["all_bs"] = [factor * b for b in query_args["all_bs"]]
     #     signal_args["query_args"]["num_repeat"] = max(1, query_args["num_repeat"] // factor)
@@ -116,22 +121,22 @@ class TestHelper:
     def compute_model(self, method, model_kwargs, report=False, verbosity=0):
         if method == "gwht":
             return self._calculate_gwht(model_kwargs, report, verbosity)
-        elif method == "qspright":
-            return self._calculate_qspright(model_kwargs, report, verbosity)
-        elif method == "binary_qspright":
-            return self._calculate_binary_qspright(model_kwargs, report, verbosity)
+        elif method == "qsft":
+            return self._calculate_qsft(model_kwargs, report, verbosity)
+        elif method == "qsft_binary":
+            return self._calculate_qsft_binary(model_kwargs, report, verbosity)
+        elif method == "qsft_coded":
+            return self._calculate_qsft_coded(model_kwargs, report, verbosity)
         elif method == "lasso":
             return self._calculate_lasso(model_kwargs, report, verbosity)
         else:
             raise NotImplementedError()
 
     def test_model(self, method, **kwargs):
-        if method == "qspright":
+        if method == "qsft" or method == "qsft_coded" or method == "lasso":
             return self._test_qary(**kwargs)
-        elif method == "binary_qspright":
+        elif method == "qsft_binary":
             return self._test_binary(**kwargs)
-        elif method == "lasso":
-            return self._test_qary(**kwargs)
         else:
             raise NotImplementedError()
 
@@ -148,13 +153,13 @@ class TestHelper:
         print("Found GWHT coefficients")
         return beta
 
-    def _calculate_qspright(self, model_kwargs, report=False, verbosity=0):
+    def _calculate_qsft(self, model_kwargs, report=False, verbosity=0):
         """
-        Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT.
+        Calculates GWHT coefficients of the RNA fitness function using QSFT.
         """
         if verbosity >= 1:
-            print("Estimating GWHT coefficients with QSPRIGHT")
-        qspright = QSPRIGHT(
+            print("Estimating GWHT coefficients with QSFT")
+        qsft = QSFT(
             reconstruct_method_source="identity",
             reconstruct_method_channel="nso",
             num_subsample=model_kwargs["num_subsample"],
@@ -162,20 +167,43 @@ class TestHelper:
             b=model_kwargs["b"],
             noise_sd=model_kwargs["noise_sd"]
         )
-        out = qspright.transform(self.train_signal, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
+        out = qsft.transform(self.train_signal, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
         if verbosity >= 1:
             print("Found GWHT coefficients")
         return out
 
-    def _calculate_binary_qspright(self, model_kwargs, report=False, verbosity=0):
+    def _calculate_qsft_coded(self, model_kwargs, report=False, verbosity=0):
         """
-        Calculates GWHT coefficients of the RNA fitness function using QSPRIGHT.
+        Calculates GWHT coefficients of the RNA fitness function using QSFT.
+        """
+        if verbosity >= 1:
+            print("Estimating GWHT coefficients with QSFT")
+
+        decoder = get_reed_solomon_dec(self.signal_args["n"], self.signal_args["t"], self.signal_args["q"])
+        qsft = QSFT(
+            reconstruct_method_source="coded",
+            reconstruct_method_channel="nso",
+            num_subsample=model_kwargs["num_subsample"],
+            num_repeat=model_kwargs["num_repeat"],
+            b=model_kwargs["b"],
+            noise_sd=model_kwargs["noise_sd"],
+            source_decoder=decoder
+        )
+
+        out = qsft.transform(self.train_signal_coded, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
+        if verbosity >= 1:
+            print("Found GWHT coefficients")
+        return out
+
+    def _calculate_qsft_binary(self, model_kwargs, report=False, verbosity=0):
+        """
+        Calculates GWHT coefficients of the RNA fitness function using QSFT.
         """
         factor = round(np.log(self.q) / np.log(2))
 
         if verbosity >= 1:
-            print("Estimating GWHT coefficients with QSPRIGHT")
-        qspright = QSPRIGHT(
+            print("Estimating GWHT coefficients with QSFT")
+        qsft = QSFT(
             reconstruct_method_source="identity",
             reconstruct_method_channel="nso",
             num_subsample=model_kwargs["num_subsample"],
@@ -183,7 +211,7 @@ class TestHelper:
             b=factor * model_kwargs["b"],
             noise_sd=model_kwargs["noise_sd"] / factor
         )
-        out = qspright.transform(self.train_signal_binary, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
+        out = qsft.transform(self.train_signal_binary, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
         if verbosity >= 1:
             print("Found GWHT coefficients")
         return out

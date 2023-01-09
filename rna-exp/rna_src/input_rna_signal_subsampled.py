@@ -1,7 +1,7 @@
-from qspright.input_signal_subsampled import SubsampledSignal
+from qsft.input_signal_subsampled import SubsampledSignal
 import numpy as np
 from multiprocessing import Pool
-from src.qspright.utils import dec_to_qary_vec, qary_vec_to_dec
+from src.qsft.utils import dec_to_qary_vec, qary_vec_to_dec
 import RNA
 
 

@@ -1,8 +1,9 @@
-from qspright.input_signal import Signal
-from qspright.query import get_Ms_and_Ds
-from qspright.utils import qary_ints, qary_vec_to_dec, gwht, load_data, save_data
+from qsft.input_signal import Signal
+from qsft.query import get_Ms_and_Ds
+from qsft.utils import qary_ints, qary_vec_to_dec, gwht, load_data, save_data
 import numpy as np
 from pathlib import Path
+from math import floor
 import time
 import random
 from tqdm import tqdm
@@ -28,14 +29,14 @@ class SubsampledSignal(Signal):
         self.foldername = kwargs.get("folder")
 
     def _init_signal(self):
-        if self.subsampling_method == "qspright":
-            self._set_Ms_and_Ds_qspright()
-            self._subsample_qspright()
+        if self.subsampling_method == "qsft":
+            self._set_Ms_and_Ds_qsft()
+            self._subsample_qsft()
 
         if self.subsampling_method == "uniform":
             self._subsample_uniform()
 
-    def _check_transforms_qspright(self):
+    def _check_transforms_qsft(self):
         if self.foldername:
             Path(f"{self.foldername}/transforms/").mkdir(exist_ok=True)
             for b in self.all_bs:
@@ -47,7 +48,7 @@ class SubsampledSignal(Signal):
         else:
             return False
 
-    def _set_Ms_and_Ds_qspright(self):
+    def _set_Ms_and_Ds_qsft(self):
         if self.foldername:
             Path(f"{self.foldername}").mkdir(exist_ok=True)
             Ms_and_Ds_path = Path(f"{self.foldername}/Ms_and_Ds.pickle")
@@ -59,7 +60,7 @@ class SubsampledSignal(Signal):
         else:
             self.Ms, self.Ds = get_Ms_and_Ds(self.n, self.q, **self.query_args)
 
-    def _subsample_qspright(self):
+    def _subsample_qsft(self):
         self.Us = [[{} for j in range(len(self.Ds[i]))] for i in range(len(self.Ms))]
         self.transformTimes = [[{} for j in range(len(self.Ds[i]))] for i in range(len(self.Ms))]
 
@@ -82,8 +83,8 @@ class SubsampledSignal(Signal):
                         pbar.total = len(self.Ms) * len(self.Ds[0]) * len(samples)
                         pbar.update(len(samples))
                     else:
-                        query_indices = self._get_qspright_query_indices(self.Ms[i], self.Ds[i][j])
-                        samples = np.zeros((len(query_indices), len(query_indices[0])))
+                        query_indices = self._get_qsft_query_indices(self.Ms[i], self.Ds[i][j])
+                        samples = np.zeros((len(query_indices), len(query_indices[0])), dtype=np.complex)
                         pbar.total = len(self.Ms) * len(self.Ds[0]) * len(query_indices)
                         for k in range(len(query_indices)):
                             samples[k] = self.subsample(query_indices[k])
@@ -120,24 +121,24 @@ class SubsampledSignal(Signal):
     def subsample(self, query_indices):
         raise NotImplementedError
 
-    def get_time_domain(self, base_inds, dec=True):
-        base_inds = np.array(base_inds)
-        if dec:
-            if len(base_inds.shape) == 3:
-                sample_array = [qary_vec_to_dec(inds, self.q) for inds in base_inds]
-                return [np.array([self.signal_t[tup] for tup in inds]) for inds in sample_array]
-            elif len(base_inds.shape) == 2:
-                sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
-                return np.array([self.signal_t[tup] for tup in sample_array])
-        else:
-            if len(base_inds.shape) == 3:
-                sample_array = [[tuple(inds[:, i]) for i in range(inds.shape[1])] for inds in base_inds]
-                return [np.array([self.signal_t[tup] for tup in inds]) for inds in sample_array]
-            elif len(base_inds.shape) == 2:
-                sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
-                return np.array([self.signal_t[tup] for tup in sample_array])
+    # def get_time_domain(self, base_inds, dec=True):
+    #     base_inds = np.array(base_inds)
+    #     if dec:
+    #         if len(base_inds.shape) == 3:
+    #             sample_array = [qary_vec_to_dec(inds, self.q) for inds in base_inds]
+    #             return [np.array([self.signal_t[tup] for tup in inds]) for inds in sample_array]
+    #         elif len(base_inds.shape) == 2:
+    #             sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
+    #             return np.array([self.signal_t[tup] for tup in sample_array])
+    #     else:
+    #         if len(base_inds.shape) == 3:
+    #             sample_array = [[tuple(inds[:, i]) for i in range(inds.shape[1])] for inds in base_inds]
+    #             return [np.array([self.signal_t[tup] for tup in inds]) for inds in sample_array]
+    #         elif len(base_inds.shape) == 2:
+    #             sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
+    #             return np.array([self.signal_t[tup] for tup in sample_array])
 
-    def _get_qspright_query_indices(self, M, D_sub):
+    def _get_qsft_query_indices(self, M, D_sub):
         b = M.shape[1]
         L = self.get_all_qary_vectors()
         ML = (M @ L) % self.q
@@ -150,7 +151,7 @@ class SubsampledSignal(Signal):
 
     def _get_random_query_indices(self, n_samples):
         # n_samples = np.minimum(n_samples, self.N)
-        base_inds_dec = random.choices(range(self.N), k=n_samples)
+        base_inds_dec = [floor(random.uniform(0, 1) * self.N) for _ in range(n_samples)]
         return base_inds_dec
 
     def get_MDU(self, ret_num_subsample, ret_num_repeat, b, trans_times=False):

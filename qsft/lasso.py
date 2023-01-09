@@ -4,7 +4,7 @@ from sklearn.linear_model import Ridge
 import time
 from group_lasso._fista import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
-
+from qsft.utils import calc_hamming_weight, dec_to_qary_vec, qary_ints
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -59,9 +59,9 @@ def lasso_decode(signal, n_samples, noise_sd = 0, refine=True, verbose=False, re
     sample_idx_dec = sample_idx_dec[:n_samples]
     y = y[:n_samples]
 
-    # #  WARNING: ADD NOISE ONLY FOR SYNTHETIC SIGNALS
-    # if type(signal) is SyntheticSubsampledSignal:
-    #     y += np.random.normal(0, noise_sd / np.sqrt(2), size=(len(y), 2)).view(np.complex).reshape(len(y))
+    #  WARNING: ADD NOISE ONLY FOR SYNTHETIC SIGNALS
+    if signal.is_synt:
+        y += np.random.normal(0, noise_sd / np.sqrt(2), size=(len(y), 2)).view(np.complex).reshape(len(y))
 
     sample_idx = dec_to_qary_vec(sample_idx_dec, q, n, dtype=dtype)
     y = np.concatenate((np.real(y), np.imag(y)))
