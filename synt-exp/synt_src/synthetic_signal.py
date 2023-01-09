@@ -1,13 +1,17 @@
-import numpy as np
+from abc import ABC
 
-from qsft.utils import igwht_tensored, random_signal_strength_model, qary_vec_to_dec, sort_qary_vecs
-from qsft.input_signal import Signal
-from qsft.input_signal_subsampled import SubsampledSignal
-from qsft.utils import dec_to_qary_vec
+import numpy as np
+from qspright.utils import igwht_tensored, random_signal_strength_model, qary_vec_to_dec, sort_qary_vecs
+from qspright.input_signal import Signal
+from qspright.input_signal_subsampled import SubsampledSignal
+from qspright.utils import dec_to_qary_vec
 from multiprocess import Pool
 
 
 def generate_signal_w(n, q, sparsity, a_min, a_max, noise_sd=0, full=True, max_weight=None):
+    """
+    Generates a sparse fourier transform
+    """
     max_weight = n if max_weight is None else max_weight
     N = q ** n
 
@@ -36,6 +40,10 @@ def generate_signal_w(n, q, sparsity, a_min, a_max, noise_sd=0, full=True, max_w
 
 
 def get_random_signal(n, q, noise_sd, sparsity, a_min, a_max):
+    """
+    Computes a full random time-domain signal, which is sparse in the fequency domain. This function is only suitable for
+    small n since for large n, storing all q^n symbols is not tractable.
+    """
     signal_w, locq, strengths = generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=True)
     signal_t = igwht_tensored(signal_w, q, n)
     signal_params = {
@@ -50,15 +58,22 @@ def get_random_signal(n, q, noise_sd, sparsity, a_min, a_max):
 
 
 class SyntheticSignal(Signal):
-
+    """
+    This is essentially just a signal object, except the strengths and locations of the non-zero indicies are known, and
+    included as attributes
+    """
     def __init__(self, locq, strengths, **kwargs):
         super().__init__(**kwargs)
         self.locq = locq
         self.strengths = strengths
-        self.is_synt = True
 
 
 def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_args, max_weight=None):
+    """
+    Similar to get_random_signal, but instead of returning a SyntheticSignal object, it returns a SyntheticSubsampledSignal
+    object. The advantage of this is that a subsampled signal does not compute the time domain signal on creation, but
+    instead, creates it on the fly. This should be used (1) when n is large or (2) when when sampling is expensive.
+    """
     signal_w, locq, strengths = generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=False, max_weight=max_weight)
     signal_params = {
         "n": n,
@@ -70,12 +85,13 @@ def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_a
 
 
 class SyntheticSubsampledSignal(SubsampledSignal):
-
+    """
+    This is a Subsampled signal object, except it implements the unimplemented 'subsample' function.
+    """
     def __init__(self, **kwargs):
         self.q = kwargs["q"]
         self.n = kwargs["n"]
         self.locq = kwargs["locq"]
-        self.is_synt = True
 
         freq_normalized = 2j * np.pi * kwargs["locq"] / kwargs["q"]
         strengths = kwargs["strengths"]
@@ -89,6 +105,9 @@ class SyntheticSubsampledSignal(SubsampledSignal):
         super().__init__(**kwargs)
 
     def subsample(self, query_indices):
+        """
+        Computes the signal/function values at the queried indicies on the fly
+        """
         batch_size = 10000
         res = []
         query_indices_batches = np.array_split(query_indices, len(query_indices)//batch_size + 1)

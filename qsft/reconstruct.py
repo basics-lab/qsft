@@ -1,5 +1,5 @@
 '''
-Methods for the reconstruction engine; specifically, to
+Methods for the reconstruction engine; specifically, to:
 
 1. carry out singleton detection
 2. get the cardinalities of all bins in a subsampling group (debugging only).
@@ -82,11 +82,6 @@ def singleton_detection_mle(U_slice, **kwargs):
     residuals = np.linalg.norm(U_slice - (alphas * S_slice).T, ord=2, axis=1)
     k_sel = np.argmin(residuals)
     return selection[k_sel], S_slice[:, k_sel]
-
-
-def find_nearest_idx(array, value):
-    return
-
 
 """
 Singleton Detection Via NSO Algorithm
