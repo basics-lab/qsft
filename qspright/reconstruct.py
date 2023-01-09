@@ -83,12 +83,13 @@ def singleton_detection_mle(U_slice, **kwargs):
     k_sel = np.argmin(residuals)
     return selection[k_sel], S_slice[:, k_sel]
 
-"""
-Singleton Detection Via NSO Algorithm
-nso1 - Multiplying by conjugate "Soft Decoding" 
-nso2 - Quantized angle "Hard Decoding"
-"""
+
 def singleton_detection_nso(U_slice, **kwargs):
+    """
+    Singleton Detection Via NSO Algorithm
+    nso1 - Multiplying by conjugate "Soft Decoding"
+    nso2 - Quantized angle "Hard Decoding"
+    """
     nso_type = kwargs.get("nso_subtype", "nso1")
     if nso_type == "nso1":
         return singleton_detection_nso1(U_slice, **kwargs)
@@ -97,6 +98,9 @@ def singleton_detection_nso(U_slice, **kwargs):
 
 
 def singleton_detection_nso1(U_slice, **kwargs):
+    """
+    NSO algorithm:wq
+    """
     q, p1 = kwargs.get("q"), kwargs.get("source_parity")
     q_roots = 2 * np.pi / q * np.arange(q + 1)
     U_slice_zero = U_slice[0::p1]
