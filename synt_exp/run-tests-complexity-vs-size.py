@@ -43,7 +43,7 @@ if __name__ == '__main__':
         args.n = np.linspace(40, 40, num=1, dtype=int)
         args.q = 3
         args.t = 5
-        args.sparsity = 1
+        args.sparsity = 10
         args.snr = 50
         args.iters = 1
         args.jobid = "debug-" + str(uuid.uuid1())[:8]
