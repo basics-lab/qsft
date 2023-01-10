@@ -16,7 +16,7 @@ sys.path.append("../src")
 from qsft.utils import best_convex_underestimator
 import argparse
 from pathlib import Path
-from qsft.synthetic_helper import SyntheticHelper
+from synt_exp.synt_src.synthetic_helper import SyntheticHelper
 from qsft.parallel_tests import run_tests
 
 parser = argparse.ArgumentParser()

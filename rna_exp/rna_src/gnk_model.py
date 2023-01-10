@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 from scipy.special import binom
 from math import factorial
-import rna_transform.utils
+from rna_exp.rna_src import utils
 
 
 def get_neighborhood_powerset(V):

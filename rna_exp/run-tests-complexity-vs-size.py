@@ -1,19 +1,14 @@
 import numpy as np
-import sys
 import pandas as pd
 import uuid
+import argparse
+from pathlib import Path
+from rna_exp.rna_src.rna_helper import RNAHelper
+from qsft.parallel_tests import run_tests
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 504)
 pd.set_option('display.width', 1000)
-
-sys.path.append("..")
-sys.path.append("../src")
-
-import argparse
-from pathlib import Path
-from rna_transform.rna_helper import RNAHelper
-from qsft.parallel_tests import run_tests
 
 
 if __name__ == '__main__':

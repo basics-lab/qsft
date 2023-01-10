@@ -2,19 +2,15 @@ import numpy as np
 import sys
 import pandas as pd
 import uuid
-
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 504)
 pd.set_option('display.width', 1000)
-
 sys.path.append("..")
-sys.path.append("../src")
-
 import argparse
 from pathlib import Path
-from qsft.synthetic_helper import SyntheticHelper
+from synt_exp.synt_src.synthetic_helper import SyntheticHelper
 from qsft.parallel_tests import run_tests
-from src.qsft.synthetic_signal import generate_signal_w
+from synt_exp.synt_src.synthetic_signal import generate_signal_w
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

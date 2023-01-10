@@ -7,13 +7,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-import pandas as pd
-import uuid
-
 sys.path.append("..")
 sys.path.append("../src")
-
-from rna_transform.rna_helper import RNAHelper
+import pandas as pd
+import uuid
+from rna_exp.rna_src.rna_helper import RNAHelper
 from qsft.utils import best_convex_underestimator
 from qsft.parallel_tests import run_tests
 import argparse

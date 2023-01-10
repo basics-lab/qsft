@@ -1,7 +1,7 @@
 from qsft.input_signal import Signal
 import numpy as np
 import itertools
-from src.rna_transform.rna_utils import insert
+from rna_exp.rna_src.rna_utils import insert
 from multiprocessing import Pool
 from tqdm import tqdm
 from functools import partial

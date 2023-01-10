@@ -1,12 +1,9 @@
 import numpy as np
 import json
-import RNA
-
 from qsft.test_helper import TestHelper
-from qsft.utils import dec_to_qary_vec,qary_vec_to_dec, NpEncoder
-from src.rna_transform.input_rna_signal import RnaSignal
-from src.rna_transform.input_rna_signal_subsampled import RnaSubsampledSignal
-from src.rna_transform.rna_utils import get_rna_base_seq
+from qsft.utils import NpEncoder
+from rna_exp.rna_src.input_rna_signal_subsampled import RnaSubsampledSignal
+from rna_exp.rna_src.rna_utils import get_rna_base_seq
 
 
 class RNAHelper(TestHelper):

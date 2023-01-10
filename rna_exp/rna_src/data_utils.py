@@ -4,11 +4,9 @@ import itertools
 from Bio import PDB
 from tqdm import tqdm
 from sklearn.linear_model import Lasso
-
-import rna_transform.structure_utils
-import rna_transform.utils
-import rna_transform.gnk_model
-
+from rna_exp.rna_src import utils
+from rna_exp.rna_src import gnk_model
+from rna_exp.rna_src import structure_utils
 
 """
 Utility functions for loading and processing empirical fitness function data
