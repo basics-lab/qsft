@@ -20,6 +20,7 @@ Fourier transformations of pseudo-Boolean functions are popular tools for analyz
 The main functionality of our algorithm is availible in the `QSFT` class. Example usage is given below:
 
 ```python
+# TODO This is not a working example
 from synt_exp.synt_src.synthetic_signal import get_random_signal
 test_signal = get_random_signal(n=n, # Generate the test signal sparse in the fourier domain
                                 q=q,
@@ -34,9 +35,13 @@ transformer = QSFT(
     num_subsample=3,
     b=4
 )
-ft, (n_used, n_used_unique, _), peeled = spright.transform(test_signal, verbose=False, report=True)
+ft, (n_used, n_used_unique, _), peeled = transformer.transform(test_signal, verbose=False, report=True)
 ```
-
+### Signals
+<a id=signals></a>
+In this section, we discuss the `Signal` objects that we use to interface with the `QSFT` class.
+A `Signal` encapsulates the function that we are trying to transform. The class `qsft.input_signal.Signal` is itself
+incomplete, and you should extend this class with your own. The most relevant 
 <p align="center">
 <img src="figs/nmse-vs-snr-1.png" width="300">
 </p>

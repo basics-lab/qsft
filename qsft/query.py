@@ -235,4 +235,8 @@ def get_reed_solomon_dec(n, t_max, q):
     -------
     A Reed Solomon syndrome decoder for a t_max error correcting code.
     """
-    return ReedSolomon(n, t_max, q).syndrome_decode
+    primeset = [2, 3, 5, 7, 11, 13, 15, 17, 19, 23, 29]
+    if q in primeset:
+        return ReedSolomon(n, t_max, q).syndrome_decode
+    else:
+        raise NotImplementedError("q is not a prime number under 30!")

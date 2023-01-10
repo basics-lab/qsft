@@ -1,7 +1,6 @@
 """
 A shell Class for common interface to an input signal. This class should be extended when implemented
 """
-
 import numpy as np
 from qsft.utils import gwht_tensored, igwht_tensored, save_data, load_data
 from pathlib import Path
@@ -70,30 +69,28 @@ class Signal:
     def sample(self):
         raise NotImplementedError
 
-    '''
-    shape: returns the shape of the time domain signal.
-
-    Returns
-    -------
-    shape of time domain signal
-    '''
-
     def shape(self):
+        '''
+        shape: returns the shape of the time domain signal.
+
+        Returns
+        -------
+        shape of time domain signal
+        '''
         return tuple([self.q for i in range(self.n)])
 
-    '''
-    Arguments
-    ---------    
-    inds: tuple of 1d n-element arrays that represent the indicies to be queried
-    
-    Returns
-    -------
-    indices : linear output of the queried indicies
-    '''
+    def get_time_domain(self, inds):
+        '''
+        Arguments
+        ---------
+        inds: tuple of 1d n-element arrays that represent the indicies to be queried
 
-    def get_time_domain(self, base_inds):
-        base_inds = np.array(base_inds)
-        if len(base_inds.shape) == 3:
-            return [self.signal_t[tuple(inds)] for inds in base_inds]
-        elif len(base_inds.shape) == 2:
-            return self.signal_t[tuple(base_inds)]
+        Returns
+        -------
+        indices : linear output of the queried indicies
+        '''
+        inds = np.array(inds)
+        if len(inds.shape) == 3:
+            return [self.signal_t[tuple(inds)] for inds in inds]
+        elif len(inds.shape) == 2:
+            return self.signal_t[tuple(inds)]
