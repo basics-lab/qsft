@@ -4,7 +4,9 @@ Class for computing the q-ary fourier transform of a function/signal
 import time
 import numpy as np
 from qsft.reconstruct import singleton_detection
+from qsft.input_signal_subsampled import SubsampledSignal
 from qsft.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight, dec_to_qary_vec
+
 from synt_exp.synt_src.synthetic_signal import SyntheticSubsampledSignal
 
 
@@ -106,8 +108,10 @@ class QSFT:
 
         peeling_max = q ** n
         peeled = set([])
-
-        Ms, Ds, Us, Ts = signal.get_MDU(self.num_subsample, self.num_repeat, self.b, trans_times=True)
+        if type(signal) == SubsampledSignal:
+            Ms, Ds, Us, Ts = signal.get_MDU(self.num_subsample, self.num_repeat, self.b, trans_times=True)
+        else:
+            raise NotImplementedError("QSFT currently only supports signals that inherit from SubsampledSignal")
 
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
