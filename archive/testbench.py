@@ -6,7 +6,7 @@ from qsft.qsft import QSFT
 
 np.random.seed(10)
 q = 4
-n = 10
+n = 30
 N = q ** n
 sparsity = 200
 a_min = 1

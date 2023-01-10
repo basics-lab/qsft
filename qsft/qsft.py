@@ -108,7 +108,7 @@ class QSFT:
 
         peeling_max = q ** n
         peeled = set([])
-        if type(signal) == SubsampledSignal:
+        if isinstance(signal, SubsampledSignal):
             Ms, Ds, Us, Ts = signal.get_MDU(self.num_subsample, self.num_repeat, self.b, trans_times=True)
         else:
             raise NotImplementedError("QSFT currently only supports signals that inherit from SubsampledSignal")
@@ -118,7 +118,8 @@ class QSFT:
             Ds[i] = np.vstack(Ds[i])
 
         transform_time = np.sum(Ts)
-
+        if timing_verbose:
+            print(f"Transform Time:{transform_time}", flush=True)
         Us = np.array(Us)
 
         #  WARNING: ADD NOISE ONLY FOR SYNTHETIC SIGNALS

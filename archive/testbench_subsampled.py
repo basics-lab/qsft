@@ -1,21 +1,18 @@
 import numpy as np
-import sys
-
-sys.path.append("../qspright/")
-from qspright.qspright import QSPRIGHT
-from qspright.query import get_reed_solomon_dec
-from qspright.synthetic_signal import get_random_subsampled_signal
+from qsft.qsft import QSFT
+from qsft.query import get_reed_solomon_dec
+from synt_exp.synt_src.synthetic_signal import get_random_subsampled_signal
 
 
 if __name__ == '__main__':
     np.random.seed(20)
-    q = 2
-    n = 50
+    q = 5
+    n = 10
     N = q ** n
     sparsity = 100
     a_min = 1
     a_max = 10
-    b = 7
+    b = 4
     noise_sd = 0
     num_subsample = 3
     num_repeat = 3
@@ -28,7 +25,7 @@ if __name__ == '__main__':
         "query_method": "complex",
         "num_subsample": num_subsample,
         "delays_method_source": delays_method_source,
-        "subsampling_method": "qspright",
+        "subsampling_method": "qsft",
         "delays_method_channel": delays_method_channel,
         "num_repeat": num_repeat,
         "b": b,
@@ -105,11 +102,12 @@ if __name__ == '__main__':
     # test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
     #                                           noise=noise_sd)
 
-    spright = QSPRIGHT(**qspright_args)
+    spright = QSFT(**qspright_args)
 
-    result = spright.transform(test_signal, verbose=False, timing_verbose=True, report=True, sort=True)
+    result = spright.transform(test_signal, verbose=5, timing_verbose=True, report=True, sort=True)
 
     gwht = result.get("gwht")
+    loc = result.get("locations")
     n_used = result.get("n_samples")
     peeled = result.get("locations")
     avg_hamming_weight = result.get("avg_hamming_weight")

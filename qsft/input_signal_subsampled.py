@@ -63,12 +63,14 @@ class SubsampledSignal(Signal):
         self.foldername = kwargs.get("folder")
 
     def _init_signal(self):
-        if self.subsampling_method == "qsft":
-            self._set_Ms_and_Ds_qsft()
-            self._subsample_qsft()
-
         if self.subsampling_method == "uniform":
             self._subsample_uniform()
+        elif self.subsampling_method == "qsft":
+            self._set_Ms_and_Ds_qsft()
+            self._subsample_qsft()
+        else:
+            self._set_Ms_and_Ds_qsft()
+            self._subsample_qsft()
 
     def _check_transforms_qsft(self):
         """

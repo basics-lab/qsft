@@ -4,6 +4,7 @@ from qsft.input_signal import Signal
 from qsft.input_signal_subsampled import SubsampledSignal
 from qsft.utils import dec_to_qary_vec
 from multiprocess import Pool
+import time
 
 
 def generate_signal_w(n, q, sparsity, a_min, a_max, noise_sd=0, full=True, max_weight=None):
@@ -72,12 +73,14 @@ def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_a
     object. The advantage of this is that a subsampled signal does not compute the time domain signal on creation, but
     instead, creates it on the fly. This should be used (1) when n is large or (2) when when sampling is expensive.
     """
-    signal_w, locq, strengths = generate_signal_w(n, q, noise_sd, sparsity, a_min, a_max, full=False, max_weight=max_weight)
+    start_time = time.time()
+    signal_w, locq, strengths = generate_signal_w(n, q, sparsity, a_min, a_max, noise_sd, full=False, max_weight=max_weight)
     signal_params = {
         "n": n,
         "q": q,
         "query_args": query_args,
     }
+    print(f"Generation Time:{time.time() - start_time}", flush=True)
     return SyntheticSubsampledSignal(signal_w=signal_w, locq=locq, strengths=strengths,
                                      noise_sd=noise_sd, **signal_params)
 
