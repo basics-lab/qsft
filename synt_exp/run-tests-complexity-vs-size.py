@@ -36,16 +36,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
     debug = args.debug
     if debug:
-        args.num_subsample = [1, 2]
-        args.num_repeat = [1, 2]
-        args.b = [1, 2, 3, 4, 5, 6]
+        args.num_subsample = [2]
+        args.num_repeat = [2]
+        args.b = [6]
         args.a = 1
-        args.n = np.linspace(20, 100, num=20, dtype=int)
-        args.q = 3
+        args.n = np.linspace(40, 40, num=1, dtype=int)
+        args.q = 2
         args.t = 5
-        args.sparsity = 10
-        args.snr = 30
-        args.iters = 5
+        args.sparsity = 1
+        args.snr = 50
+        args.iters = 1
         args.jobid = "debug-" + str(uuid.uuid1())[:8]
         args.subsampling = True
 

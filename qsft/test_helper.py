@@ -164,9 +164,9 @@ class TestHelper:
             reconstruct_method_channel="nso",
             num_subsample=model_kwargs["num_subsample"],
             num_repeat=model_kwargs["num_repeat"],
-            b=model_kwargs["b"],
-            noise_sd=model_kwargs["noise_sd"]
+            b=model_kwargs["b"]
         )
+        self.train_signal.noise_sd = model_kwargs["noise_sd"]
         out = qsft.transform(self.train_signal, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
         if verbosity >= 1:
             print("Found GWHT coefficients")
@@ -186,10 +186,9 @@ class TestHelper:
             num_subsample=model_kwargs["num_subsample"],
             num_repeat=model_kwargs["num_repeat"],
             b=model_kwargs["b"],
-            noise_sd=model_kwargs["noise_sd"],
             source_decoder=decoder
         )
-
+        self.train_signal_coded.noise_sd = model_kwargs["noise_sd"]
         out = qsft.transform(self.train_signal_coded, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
         if verbosity >= 1:
             print("Found GWHT coefficients")
@@ -209,8 +208,8 @@ class TestHelper:
             num_subsample=model_kwargs["num_subsample"],
             num_repeat=max(1, model_kwargs["num_repeat"] // factor),
             b=factor * model_kwargs["b"],
-            noise_sd=model_kwargs["noise_sd"] / factor
         )
+        self.train_signal_binary.noise_sd = model_kwargs["noise_sd"] / factor
         out = qsft.transform(self.train_signal_binary, verbosity=verbosity, timing_verbose=(verbosity >= 1), report=report)
         if verbosity >= 1:
             print("Found GWHT coefficients")
@@ -225,6 +224,7 @@ class TestHelper:
         if verbosity > 0:
             print("Finding Fourier coefficients with LASSO")
 
+        self.train_signal_uniform.noise_sd = model_kwargs["noise_sd"]
         out = lasso_decode(self.train_signal_uniform, model_kwargs["n_samples"], noise_sd=model_kwargs["noise_sd"])
 
         if verbosity > 0:

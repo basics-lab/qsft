@@ -93,6 +93,7 @@ class SyntheticSubsampledSignal(SubsampledSignal):
         self.q = kwargs["q"]
         self.n = kwargs["n"]
         self.locq = kwargs["locq"]
+        self.noise_sd = 0
 
         freq_normalized = 2j * np.pi * kwargs["locq"] / kwargs["q"]
         strengths = kwargs["strengths"]
@@ -116,3 +117,15 @@ class SyntheticSubsampledSignal(SubsampledSignal):
             for new_res in pool.imap(self.sampling_function, query_indices_batches):
                 res = np.concatenate((res, new_res))
         return res
+
+    def get_MDU(self, ret_num_subsample, ret_num_repeat, b, trans_times=False):
+        """
+        wraps get_MDU method from SubsampledSignal to add synthetic noise
+        """
+        mdu = super().get_MDU(ret_num_subsample, ret_num_repeat, b, trans_times)
+        for i in range(len(mdu[2])):
+            for j in range(len(mdu[2][i])):
+                size = np.array(mdu[2][i][j]).shape
+                nu = self.noise_sd / np.sqrt(2 * self.q ** b)
+                mdu[2][i][j] += np.random.normal(0, nu, size=size + (2,)).view(np.complex).reshape(size)
+        return mdu

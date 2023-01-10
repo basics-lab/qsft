@@ -50,7 +50,6 @@ class QSFT:
         self.num_subsample = kwargs.get("num_subsample")
         self.num_repeat = kwargs.get("num_repeat")
         self.b = kwargs.get("b")
-        self.noise_sd = kwargs.get("noise_sd")
         self.source_decoder = kwargs.get("source_decoder", None)
 
 
@@ -122,13 +121,10 @@ class QSFT:
             print(f"Transform Time:{transform_time}", flush=True)
         Us = np.array(Us)
 
-        #  WARNING: ADD NOISE ONLY FOR SYNTHETIC SIGNALS
-        if type(signal) is SyntheticSubsampledSignal:
-            Us += np.random.normal(0, self.noise_sd / np.sqrt(2), size=Us.shape + (2,)).view(np.complex).reshape(Us.shape)
+        # print(Us)
 
         gamma = 0.5
-
-        cutoff = 1e-9 + 2 * (1 + gamma) * (self.noise_sd ** 2) * (q ** (n - b))  # noise threshold
+        cutoff = 1e-9 + (1 + gamma) * (signal.noise_sd ** 2) / (q ** b)  # noise threshold
         cutoff = kwargs.get("cutoff", cutoff)
 
         if verbosity >= 2:

@@ -133,15 +133,24 @@ class SubsampledSignal(Signal):
                     else:
                         query_indices = self._get_qsft_query_indices(self.Ms[i], self.Ds[i][j])
                         samples = np.zeros((len(query_indices), len(query_indices[0])), dtype=np.complex)
+                        block_length = len(query_indices[0])
                         pbar.total = len(self.Ms) * len(self.Ds[0]) * len(query_indices)
-                        for k in range(len(query_indices)):
-                            samples[k] = self.subsample(query_indices[k])
-                            pbar.update()
+                        if block_length > 10000:
+                            for k in range(len(query_indices)):
+                                samples[k] = self.subsample(query_indices[k])
+                                pbar.update()
+                        else:
+                            all_query_indices = [item for sublist in query_indices for item in sublist]
+                            all_samples = self.subsample(all_query_indices)
+                            for k in range(len(query_indices)):
+                                samples[k] = all_samples[k * block_length: (k+1) * block_length]
+                                pbar.update()
                         if self.foldername:
                             save_data(samples, sample_file)
                     for b in self.all_bs:
                         start_time = time.time()
                         self.Us[i][j][b] = self._compute_subtransform(samples, b)
+                        print(self.Us[i][j][b])
                         self.transformTimes[i][j][b] = time.time() - start_time
                     if self.foldername:
                         save_data((self.Us[i][j], self.transformTimes[i][j]), transform_file)
