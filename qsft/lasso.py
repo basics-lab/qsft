@@ -10,7 +10,7 @@ from qsft.utils import calc_hamming_weight, dec_to_qary_vec, qary_ints
 @ignore_warnings(category=ConvergenceWarning)
 def lasso_decode(signal, n_samples, noise_sd = 0, refine=True, verbose=False, report=True):
     """
-    Implements Complex LASSO with optional Ridge Regression refinement
+    Implements Complex LASSO via Fast Iterative Soft Thresholding (FISTA) with optional Ridge Regression refinement
     Parameters
     ---------
     signal : Signal

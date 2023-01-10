@@ -1,14 +1,15 @@
-'''
-Class for common interface to an input signal.
-'''
+"""
+A shell Class for common interface to an input signal. This class should be extended when implemented
+"""
 
 import numpy as np
 from qsft.utils import gwht_tensored, igwht_tensored, save_data, load_data
 from pathlib import Path
 
+
 class Signal:
-    '''
-    Class to encapsulate a time signal and its Walsh-Hadamard (W-H) transform.
+    """
+    Class to encapsulate a time domain signal and its q-ary Fourier transform.
 
     Attributes
     ---------
@@ -18,12 +19,22 @@ class Signal:
     q : int
     Locations of true peaks in the W-H spectrum. Elements must be integers in [0, q ** n - 1].
     
-    strengths : iterable
-    The strength of each peak in the W-H spectrum. Defaults to all 1s. Length has to match that of loc.
-    
     noise_sd : scalar
     The standard deviation of the added noise.
-    '''
+
+    signal_t
+    Time domain representation of the signal.
+
+    signal_w
+    Frequency domain representation of the signal,
+
+    calc_w
+    If True and signal_w is not included, it is computed based on signal_t.
+
+    foldername
+    If signal_t is not provided, the signal will be read from {foldername}/signal_t.pickle. If signal_t is provided, a
+    copy of the signal is written to {foldername}/signal_t.pickle
+    """
 
     def __init__(self, **kwargs):
         self._set_params(**kwargs)
@@ -53,7 +64,7 @@ class Signal:
 
         if self.calc_w and self.signal_w is None:
             self.signal_w = gwht_tensored(self.signal_t, self.q, self.n)
-            if np.linalg.norm(self.signal_t - igwht_tensored(self.signal_w, self.q, self.n))/self.N < 1e-5:
+            if np.linalg.norm(self.signal_t - igwht_tensored(self.signal_w, self.q, self.n)) / self.N < 1e-5:
                 print("verified transform")
 
     def sample(self):
@@ -66,6 +77,7 @@ class Signal:
     -------
     shape of time domain signal
     '''
+
     def shape(self):
         return tuple([self.q for i in range(self.n)])
 
@@ -78,6 +90,7 @@ class Signal:
     -------
     indices : linear output of the queried indicies
     '''
+
     def get_time_domain(self, base_inds):
         base_inds = np.array(base_inds)
         if len(base_inds.shape) == 3:

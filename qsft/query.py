@@ -12,7 +12,7 @@ from qsft.ReedSolomon import ReedSolomon
 
 def get_Ms_simple(n, b, q, num_to_get=None):
     '''
-    A semi-arbitrary fixed choice of the subsampling matrices. See get_Ms for full signature.
+    Sets Ms[0] = [I 0 ...], Ms[1] = [0 I ...], Ms[2] = [0 0 I 0 ...] and so forth. See get_Ms for full signature.
     '''
     Ms = []
     for i in range(num_to_get - 1, -1, -1):
@@ -24,13 +24,16 @@ def get_Ms_simple(n, b, q, num_to_get=None):
 
 
 def get_Ms_complex(n, b, q, num_to_get=None):
-
+    """
+    Generate M uniformly at random.
+    """
     Ms = []
-    # TODO Prevent duplicate M
+    # TODO Prevent duplicate M (Not a problem for large n, m )
     for i in range(num_to_get):
         M = np.random.randint(q, size=(n, b))
         Ms.append(M)
     return Ms
+
 
 def get_Ms(n, b, q, num_to_get=None, method="simple"):
     '''
@@ -39,10 +42,10 @@ def get_Ms(n, b, q, num_to_get=None, method="simple"):
     Arguments
     ---------
     n : int
-    log2 of the signal length.
+    log_q of the signal length (number of inputs to function).
 
     b : int
-    Sparsity.
+    subsampling dimension.
 
     num_to_get : int
     The number of M matrices to return.
@@ -161,7 +164,10 @@ def subsample_indices(M, d):
     return bin_to_dec(inds_binary)
 
 
-def compute_delayed_gwht(signal, M, D, q, parallel = True):
+def compute_delayed_gwht(signal, M, D, q):
+    """
+    Computes the Fourier transform of the delayed signal for some M and for each row in the delay matrix D
+    """
     b = M.shape[1]
     L = np.array(qary_ints(b, q))  # List of all length b qary vectors
     base_inds = [(M @ L + np.outer(d, np.ones(q ** b, dtype=int))) % q for d in D]
@@ -169,11 +175,13 @@ def compute_delayed_gwht(signal, M, D, q, parallel = True):
     used_inds = np.reshape(used_inds, (used_inds.shape[0], -1))
     samples_to_transform = signal.get_time_domain(base_inds)
     transform = np.array([gwht(row, q, b) for row in samples_to_transform])
-
     return transform, used_inds
 
 
 def get_Ms_and_Ds(n, q, **kwargs):
+    """
+    Based on the parameters provided in kwargs, generates Ms and Ds.
+    """
     timing_verbose = kwargs.get("timing_verbose", False)
     if timing_verbose:
         start_time = time.time()
@@ -220,4 +228,11 @@ def compute_delayed_wht(signal, M, D):
 
 
 def get_reed_solomon_dec(n, t_max, q):
+    """
+    Gets a suitable reed solomon decoder
+
+    Returns
+    -------
+    A Reed Solomon syndrome decoder for a t_max error correcting code.
+    """
     return ReedSolomon(n, t_max, q).syndrome_decode

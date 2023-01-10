@@ -99,7 +99,7 @@ def singleton_detection_nso(U_slice, **kwargs):
 
 def singleton_detection_nso1(U_slice, **kwargs):
     """
-    NSO algorithm:wq
+    Soft Decoding NSO algorithm
     """
     q, p1 = kwargs.get("q"), kwargs.get("source_parity")
     q_roots = 2 * np.pi / q * np.arange(q + 1)
@@ -110,12 +110,13 @@ def singleton_detection_nso1(U_slice, **kwargs):
         angle = np.angle(np.mean(U_slice_zero * np.conjugate(U_slice_i))) % (2 * np.pi)
         idx = (np.abs(q_roots - angle)).argmin() % q
         k_sel_qary[i-1] = idx
-
-    #k_sel = qary_vec_to_dec(k_sel_qary, q)[0]
     return k_sel_qary
 
 
 def singleton_detection_nso2(U_slice, **kwargs):
+    """
+    Hard Decoding NSO Algorithm
+    """
     q, p1 = kwargs.get("q"), kwargs.get("source_parity")
     U_slice_zero = U_slice[0::p1]
     angle_0 = angle_q(U_slice_zero, q)
@@ -129,6 +130,30 @@ def singleton_detection_nso2(U_slice, **kwargs):
 
 
 def singleton_detection(U_slice, method_source="identity", method_channel="identity", **kwargs):
+    """
+    Recovers the index value k of a singleton.
+    Parameters
+    ----------
+    U_slice : np.array
+    The relevant subsampled fourier transform to be considered
+
+    method_source
+    method of reconstruction for source coding: "identity" - default setting, should be used unless you know that all
+                                                indicies have low hamming weight
+                                                "coded" - Currently only supports prime q, if you know the max hamming
+                                                weight of less than t this option should be used and will greatly reduce
+                                                complexity. Note a source_decoder object must also be passed
+
+    method_channel
+    Method of reconstruction for channel coding: "mle" - exact MLE computation. Fine for small problems but not
+                                                         recommended it is exponential in n
+                                                 "nso" - symbol-wise recovery suitable when a repetition type code is used
+                                                 "identity" - no channel coding, only use when there is no noise
+
+    Returns
+    -------
+    Value of the computed singleton index k
+    """
     # Split detection into two phases, channel and source decoding
     k = {
         "mle": singleton_detection_mle,

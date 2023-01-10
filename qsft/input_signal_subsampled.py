@@ -10,7 +10,40 @@ from tqdm import tqdm
 import timeit
 
 class SubsampledSignal(Signal):
+    """
+    A shell Class for input signal/functions that are too large and cannot be stored in their entirety. In addition to
+    the signal itself, this must also contain information about the M and D matricies that are used for subsampling
+    Notable attributes are included below.
 
+    Attributes
+    ---------
+    query_args : dict
+    These are the parameters that determine the structure of the Ms and Ds needed for subsampling.
+    It contains the following sub-parameters:
+        b : int
+        The max dimension of subsampling (i.e., we will subsample functions with b inputs, or equivalently a signal of
+        length q^b)
+        all_bs : list, (optional)
+        List of all the b values that should be subsampled. This is most useful when you want to repeat an experiment
+        many times with different values of b to see which is most efficient
+        For a description of the "delays_method_channel", "delays_method_source", "num_repeat" and "num_subsample", see
+        the docstring of the QSFT class.
+        subsampling_method
+            If set to "simple" the M matricies are generated according to the construction in Appendix C, i.e., a
+            block-wise identity structure.
+            If set to "complex" the elements of the M matricies are uniformly populated from integers from 0 to q-1.
+            It should be noted that these matricies are not checked to be full rank (w.r.t. the module where arithemtic is
+            over the integer quotient ring), and so it is possible that the actual dimension of subsampling may be
+            lower. For large enough n and b this isn't a problem, since w.h.p. the matricies are full rank.
+
+    L : np.array
+    An array that enumerates all q^b q-ary vectors of length b
+
+    foldername : str
+    If set, and the file {foldername}/Ms_and_Ds.pickle exists, the Ms and Ds are read directly from the file.
+    Furthermore, if the transforms for all the bs are in {foldername}/transforms/U{i}_b{b}.pickle, the transforms can be
+    directly loaded into memory.
+    """
     def _set_params(self, **kwargs):
         self.n = kwargs.get("n")
         self.q = kwargs.get("q")
@@ -25,6 +58,7 @@ class SubsampledSignal(Signal):
         self.num_repeat = self.query_args.get("num_repeat")
         self.subsampling_method = self.query_args.get("subsampling_method")
         self.delays_method_source = self.query_args.get("delays_method_source")
+        self.delays_method_source = self.query_args.get("delays_method_channel")
         self.L = None  # List of all length b qary vectors
         self.foldername = kwargs.get("folder")
 
@@ -37,6 +71,11 @@ class SubsampledSignal(Signal):
             self._subsample_uniform()
 
     def _check_transforms_qsft(self):
+        """
+        Returns
+        -------
+        True if the transform is already computed and saved for all values of b, else False
+        """
         if self.foldername:
             Path(f"{self.foldername}/transforms/").mkdir(exist_ok=True)
             for b in self.all_bs:
@@ -49,6 +88,9 @@ class SubsampledSignal(Signal):
             return False
 
     def _set_Ms_and_Ds_qsft(self):
+        """
+        Sets the values of Ms and Ds, either by loading from folder if xists, otherwise it loaded from query_args
+        """
         if self.foldername:
             Path(f"{self.foldername}").mkdir(exist_ok=True)
             Ms_and_Ds_path = Path(f"{self.foldername}/Ms_and_Ds.pickle")
@@ -61,6 +103,10 @@ class SubsampledSignal(Signal):
             self.Ms, self.Ds = get_Ms_and_Ds(self.n, self.q, **self.query_args)
 
     def _subsample_qsft(self):
+        """
+        Subsamples and computes the sparse fourier transform for each subsampling group if the samples are not already
+        present in the folder
+        """
         self.Us = [[{} for j in range(len(self.Ds[i]))] for i in range(len(self.Ms))]
         self.transformTimes = [[{} for j in range(len(self.Ds[i]))] for i in range(len(self.Ms))]
 
@@ -99,6 +145,9 @@ class SubsampledSignal(Signal):
                         save_data((self.Us[i][j], self.transformTimes[i][j]), transform_file)
 
     def _subsample_uniform(self):
+        """
+        Uniformly subsamples the signal. Useful when you are solving via LASSO
+        """
         if self.foldername:
             Path(f"{self.foldername}").mkdir(exist_ok=True)
 
@@ -121,24 +170,21 @@ class SubsampledSignal(Signal):
     def subsample(self, query_indices):
         raise NotImplementedError
 
-    # def get_time_domain(self, base_inds, dec=True):
-    #     base_inds = np.array(base_inds)
-    #     if dec:
-    #         if len(base_inds.shape) == 3:
-    #             sample_array = [qary_vec_to_dec(inds, self.q) for inds in base_inds]
-    #             return [np.array([self.signal_t[tup] for tup in inds]) for inds in sample_array]
-    #         elif len(base_inds.shape) == 2:
-    #             sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
-    #             return np.array([self.signal_t[tup] for tup in sample_array])
-    #     else:
-    #         if len(base_inds.shape) == 3:
-    #             sample_array = [[tuple(inds[:, i]) for i in range(inds.shape[1])] for inds in base_inds]
-    #             return [np.array([self.signal_t[tup] for tup in inds]) for inds in sample_array]
-    #         elif len(base_inds.shape) == 2:
-    #             sample_array = [tuple(base_inds[:, i]) for i in range(base_inds.shape[1])]
-    #             return np.array([self.signal_t[tup] for tup in sample_array])
-
     def _get_qsft_query_indices(self, M, D_sub):
+        """
+        Gets the indicies to be queried for a given M and D
+
+        Parameters
+        ----------
+        M
+        D_sub
+
+        Returns
+        -------
+        base_inds_dec : list
+        The i-th element in the list is the affine space {Mx + d_i, forall x}, but in a decimal index, because it is
+        more efficient, where d_i is the i-th row of D_sub.
+        """
         b = M.shape[1]
         L = self.get_all_qary_vectors()
         ML = (M @ L) % self.q
@@ -150,11 +196,38 @@ class SubsampledSignal(Signal):
         return base_inds_dec
 
     def _get_random_query_indices(self, n_samples):
+        """
+        Returns random indicies to be sampled.
+
+        Parameters
+        ----------
+        n_samples
+
+        Returns
+        -------
+        base_ids_dec
+        Indicies to be queried in decimal representation
+        """
         # n_samples = np.minimum(n_samples, self.N)
         base_inds_dec = [floor(random.uniform(0, 1) * self.N) for _ in range(n_samples)]
         return base_inds_dec
 
     def get_MDU(self, ret_num_subsample, ret_num_repeat, b, trans_times=False):
+        """
+        Allows the QSFT Class to get the effective Ms, Ds and Us (subsampled transforms).
+        Parameters
+        ----------
+        ret_num_subsample
+        ret_num_repeat
+        b
+        trans_times
+
+        Returns
+        -------
+        Ms_ret
+        Ds_ret
+        Us_ret
+        """
         Ms_ret = []
         Ds_ret = []
         Us_ret = []

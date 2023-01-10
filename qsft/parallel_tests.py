@@ -10,6 +10,17 @@ tqdm = partial(tqdm, position=0, leave=True)
 
 
 def _test(i):
+    """
+    Runs a single instance of a test
+    Parameters
+    ----------
+    i
+    index of the test
+    Returns
+    -------
+    result : dict
+    Result of a test, containing a variety of important quantities
+    """
     df_row = test_df.iloc[i]
     num_subsample, num_repeat, b, noise_sd = int(df_row["num_subsample"]), int(df_row["num_repeat"]), int(df_row["b"]), df_row["noise_sd"]
 
@@ -45,7 +56,23 @@ def _test(i):
 
 
 def run_tests(test_method, helper: TestHelper, iters, num_subsample_list, num_repeat_list, b_list, noise_sd_list, parallel=True):
+    """
+    Run an experiment based on the given parameters
+    Parameters
+    ----------
+    test_method
+    helper
+    iters
+    num_subsample_list
+    num_repeat_list
+    b_list
+    noise_sd_list
+    parallel
 
+    Returns
+    -------
+
+    """
     global test_df
     global helper_obj
     global method

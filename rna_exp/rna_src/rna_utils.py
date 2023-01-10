@@ -1,6 +1,6 @@
 import RNA
 import itertools
-import src.rna_transform.utils as utils
+import utils
 
 import linecache
 import tracemalloc

@@ -3,12 +3,12 @@ Class for computing the q-ary fourier transform of a function/signal
 '''
 import time
 import numpy as np
-from qspright.reconstruct import singleton_detection
-from qspright.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight, dec_to_qary_vec
-from qspright.synthetic_signal import SyntheticSubsampledSignal
+from qsft.reconstruct import singleton_detection
+from qsft.utils import bin_to_dec, qary_vec_to_dec, sort_qary_vecs, calc_hamming_weight, dec_to_qary_vec
+from synt_exp.synt_src.synthetic_signal import SyntheticSubsampledSignal
 
 
-class QSPRIGHT:
+class QSFT:
     '''
     Class to encapsulate the configuration of our fourier algorithm.
 
