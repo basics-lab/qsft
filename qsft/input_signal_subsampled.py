@@ -91,7 +91,7 @@ class SubsampledSignal(Signal):
 
     def _set_Ms_and_Ds_qsft(self):
         """
-        Sets the values of Ms and Ds, either by loading from folder if xists, otherwise it loaded from query_args
+        Sets the values of Ms and Ds, either by loading from folder if exists, otherwise it loaded from query_args
         """
         if self.foldername:
             Path(f"{self.foldername}").mkdir(exist_ok=True)

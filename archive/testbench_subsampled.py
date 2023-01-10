@@ -2,20 +2,20 @@ import numpy as np
 from qsft.qsft import QSFT
 from qsft.query import get_reed_solomon_dec
 from synt_exp.synt_src.synthetic_signal import get_random_subsampled_signal
-
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     np.random.seed(20)
     q = 3
-    n = 10
+    n = 40
     N = q ** n
-    sparsity = 100
+    sparsity = 1
     a_min = 1
     a_max = 10
     b = 4
     noise_sd = 0
     num_subsample = 3
-    num_repeat = 3
+    num_repeat = 1
     t = 4
     decoder = get_reed_solomon_dec(n, t, q)
     delays_method_source = "coded"
@@ -26,7 +26,7 @@ if __name__ == '__main__':
         "num_subsample": num_subsample,
         "delays_method_source": delays_method_source,
         "subsampling_method": "qsft",
-        "delays_method_channel": delays_method_channel,
+        "delays_method_channel": None,
         "num_repeat": num_repeat,
         "b": b,
         "t": t
@@ -54,6 +54,16 @@ if __name__ == '__main__':
                                                query_args=query_args,
                                                max_weight=t)
 
+    Ms, Ds, Us, Ts = test_signal.get_MDU(qspright_args["num_subsample"], query_args["num_repeat"], query_args["b"], trans_times=True)
+    k = test_signal.locq
+    from qsft.utils import qary_vec_to_dec
+    j1 = qary_vec_to_dec(Ms[0].T @ np.array(k) % q, q)[0]
+    j2 = qary_vec_to_dec(Ms[1].T @ np.array(k) % q, q)[0]
+    j3 = qary_vec_to_dec(Ms[2].T @ np.array(k) % q, q)[0]
+    print(Us[0][0][:, 0])
+    plt.scatter(Us[0][0][:, 1].real, Us[0][0][:, 1].imag)
+    #plt.scatter(Us[0][0][:, j1].real, Us[0][0][:, j1].imag)
+    plt.show()
     """
     The PrecomputeSignalRNA Class is only slightly different from the standard PrecomputedSignal Class, If constructed without 
     the signal keyword argument, the PrecomputedSignalRNA object is intended to be used to save samples. When the 
@@ -102,33 +112,33 @@ if __name__ == '__main__':
     # test_signal_from_file = PrecomputedSignal(signal="full_signal.pickle",
     #                                           noise=noise_sd)
 
-    spright = QSFT(**qspright_args)
+    #spright = QSFT(**qspright_args)
 
-    result = spright.transform(test_signal, verbose=5, timing_verbose=True, report=True, sort=True)
+    #result = spright.transform(test_signal, verbosity=10, timing_verbose=True, report=True, sort=True)
 
-    gwht = result.get("gwht")
-    loc = result.get("locations")
-    n_used = result.get("n_samples")
-    peeled = result.get("locations")
-    avg_hamming_weight = result.get("avg_hamming_weight")
+    #gwht = result.get("gwht")
+    #loc = result.get("locations")
+    #n_used = result.get("n_samples")
+    #peeled = result.get("locations")
+    #avg_hamming_weight = result.get("avg_hamming_weight")
 
     # gwht_lasso, non_zero = lasso_decode(test_signal, 0.30)
 
-    print("found non-zero indices SPRIGHT: ")
-    print(peeled)
+    #print("found non-zero indices SPRIGHT: ")
+    #print(peeled)
     # print("found non-zero indices LASSO: ")
     # print(np.sort(non_zero))
     print("true non-zero indices: ")
     print(test_signal.locq.T)
 
-    print("total samples = ", n_used)
-    print("total sample ratio = ", n_used / q ** n)
-    signal_w_diff = test_signal.signal_w.copy()
+    #print("total samples = ", n_used)
+    #print("total sample ratio = ", n_used / q ** n)
+    #signal_w_diff = test_signal.signal_w.copy()
 
-    for key in gwht.keys():
-        signal_w_diff[key] = signal_w_diff.get(key, 0) - gwht[key]
-    print("NMSE SPRIGHT= ",
-         np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal.signal_w.values())) ** 2))
+    #for key in gwht.keys():
+    #    signal_w_diff[key] = signal_w_diff.get(key, 0) - gwht[key]
+    #print("NMSE SPRIGHT= ",
+    #     np.sum(np.abs(list(signal_w_diff.values())) ** 2) / np.sum(np.abs(list(test_signal.signal_w.values())) ** 2))
 
-    print("AVG Hamming Weight of Nonzero Locations = ", avg_hamming_weight)
+    #print("AVG Hamming Weight of Nonzero Locations = ", avg_hamming_weight)
     # print("NMSE LASSO= ", np.sum(np.abs(test_signal._signal_w - gwht_lasso)**2) / np.sum(np.abs(test_signal._signal_w)**2))

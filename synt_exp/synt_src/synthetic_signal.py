@@ -71,7 +71,7 @@ def get_random_subsampled_signal(n, q, noise_sd, sparsity, a_min, a_max, query_a
     """
     Similar to get_random_signal, but instead of returning a SyntheticSignal object, it returns a SyntheticSubsampledSignal
     object. The advantage of this is that a subsampled signal does not compute the time domain signal on creation, but
-    instead, creates it on the fly. This should be used (1) when n is large or (2) when when sampling is expensive.
+    instead, creates it on the fly. This should be used (1) when n is large or (2) when sampling is expensive.
     """
     start_time = time.time()
     signal_w, locq, strengths = generate_signal_w(n, q, sparsity, a_min, a_max, noise_sd, full=False, max_weight=max_weight)

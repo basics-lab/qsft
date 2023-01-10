@@ -111,11 +111,9 @@ class QSFT:
             Ms, Ds, Us, Ts = signal.get_MDU(self.num_subsample, self.num_repeat, self.b, trans_times=True)
         else:
             raise NotImplementedError("QSFT currently only supports signals that inherit from SubsampledSignal")
-
         for i in range(len(Ds)):
             Us[i] = np.vstack(Us[i])
             Ds[i] = np.vstack(Ds[i])
-
         transform_time = np.sum(Ts)
         if timing_verbose:
             print(f"Transform Time:{transform_time}", flush=True)
