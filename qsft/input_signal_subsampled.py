@@ -132,15 +132,15 @@ class SubsampledSignal(Signal):
                         pbar.update(len(samples))
                     else:
                         query_indices = self._get_qsft_query_indices(self.Ms[i], self.Ds[i][j])
-                        samples = np.zeros((len(query_indices), len(query_indices[0])), dtype=np.complex)
                         block_length = len(query_indices[0])
+                        samples = np.zeros((len(query_indices), block_length), dtype=np.complex)
                         pbar.total = len(self.Ms) * len(self.Ds[0]) * len(query_indices)
                         if block_length > 10000:
                             for k in range(len(query_indices)):
                                 samples[k] = self.subsample(query_indices[k])
                                 pbar.update()
                         else:
-                            all_query_indices = [item for sublist in query_indices for item in sublist]
+                            all_query_indices = np.concatenate(query_indices)
                             all_samples = self.subsample(all_query_indices)
                             for k in range(len(query_indices)):
                                 samples[k] = all_samples[k * block_length: (k+1) * block_length]
