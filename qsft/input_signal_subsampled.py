@@ -150,7 +150,6 @@ class SubsampledSignal(Signal):
                     for b in self.all_bs:
                         start_time = time.time()
                         self.Us[i][j][b] = self._compute_subtransform(samples, b)
-                        print(self.Us[i][j][b])
                         self.transformTimes[i][j][b] = time.time() - start_time
                     if self.foldername:
                         save_data((self.Us[i][j], self.transformTimes[i][j]), transform_file)

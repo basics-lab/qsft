@@ -41,7 +41,7 @@ if __name__ == '__main__':
         args.b = [6]
         args.a = 1
         args.n = np.linspace(40, 40, num=1, dtype=int)
-        args.q = 2
+        args.q = 3
         args.t = 5
         args.sparsity = 1
         args.snr = 50

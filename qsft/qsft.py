@@ -226,7 +226,7 @@ class QSFT:
                 num_peeling += 1
 
                 k = np.array(ball)[..., np.newaxis]
-                potential_peels = [(l, qary_vec_to_dec(M.T.dot(k) % q, q)) for l, M in enumerate(Ms)]
+                potential_peels = [(l, qary_vec_to_dec(M.T.dot(k) % q, q)[0]) for l, M in enumerate(Ms)]
                 if verbosity >= 6:
                     k_dec = qary_vec_to_dec(k, q)
                     peeled.add(int(k_dec))
@@ -240,7 +240,7 @@ class QSFT:
                     # print(np.linalg.norm(Us[peel[0]][:, peel[1]]), np.linalg.norm(to_subtract))
                     if verbosity >= 6:
                         print("Peeled ball {0} off bin {1}".format(qary_vec_to_dec(k, q), peel))
-                    Us[peel[0]][:, peel[1]] -= to_subtract
+                    Us[peel[0]][:, peel[1]] -= np.array(to_subtract)[:, 0]
 
                 if verbosity >= 5:
                     print("Iteration Complete: The peeled indicies are:")

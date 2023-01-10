@@ -73,15 +73,15 @@ def near_nth_roots(ratios, q, eps):
 
 def qary_vec_to_dec(x, q):
     n = x.shape[0]
-    return np.array([q ** (n - (i + 1)) for i in range(n)]) @ np.array(x, dtype=int)
+    return np.array([q ** (n - (i + 1)) for i in range(n)], dtype=object) @ np.array(x,  dtype=object)
 
 
-def dec_to_qary_vec(x, q, n, dtype=int):
+def dec_to_qary_vec(x, q, n):
     qary_vec = []
     for i in range(n):
-        qary_vec.append(np.array([a // (q ** (n - (i + 1))) for a in x], dtype=dtype))
+        qary_vec.append(np.array([a // (q ** (n - (i + 1))) for a in x], dtype=object))
         x = x - (q ** (n-(i + 1))) * qary_vec[i]
-    return np.array(qary_vec)
+    return np.array(qary_vec, dtype=int)
 
 
 def dec_to_bin(x, num_bits):
