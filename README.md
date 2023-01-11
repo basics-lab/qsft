@@ -65,17 +65,80 @@ choose "coded", you must also include the `t` parameter.
 Finally, 
 
 <p align="center">
-<img src="figs/nmse-vs-snr-1.png" width="300">
+<img src="figs/nmse-vs-snr-1.png" width="300" alt="SNR vs NMSE">
 </p>
 
 ####  Example: Computational Biology
 <a id=rna></a>
 
 <p align="center">
-<img src="figs/complexity-vs-n-rna-1.png" width="300">
+<img src="figs/complexity-vs-n-rna-1.png" width="300" alt="Example: Computational Biology">
 </p>
 
-### QSFT Class
+### Test Helper
+
+The `TestHelper` is an **abstract class** used to encapsulate the complete pipeline of sampling, data storage, data loading and spare Fourier transformation.
+It contains a single abstract method `generate_signal` that needs to be overriden when inheriting `TestHelper`.
+
+The only argument of the `generate_signal` method is the dictionary `signal_args` that is provided to the helper object at object creation.
+The `generate_signal` method needs to be implemented such that for a given `signal_args` dictionary, it returns the corresponding `Signal` object.
+
+For instance, the `SynthethicHelper` class inherits `TestHelper` and overrides the `generate_signal` method as follows.
+```python
+from qsft.test_helper import TestHelper
+from synt_exp.synt_src.synthetic_signal import SyntheticSubsampledSignal
+
+class SyntheticHelper(TestHelper):
+    def generate_signal(self, signal_args):
+        return SyntheticSubsampledSignal(**signal_args)
+```
+
+Then a `SyntheticHelper` object needs be created with following arguments:
+
+```python
+TestHelper(signal_args,
+           methods, 
+           subsampling_args,
+           test_args,
+           exp_dir)
+```
+
+Here, the arguments are as follows:
+* `signal_args` argument is directly provided to `generate_signal` method and used to generate `Signal` objects. 
+* The `methods` argument is a list of Strings that determines which algorithms are going to be used with the helper object.
+Possible options are `"qsft"`, `"coded_qsft"` and `"lasso"`. 
+* The `subsampling_args` argument is a dictionary that contains `num_subsample` (number of different subsampling matrices), `num_repeat` (number of repetitions in coding), `b` (inner dimension of subsampling).
+* The `test_args` argument is a dictionary that contains `n_samples` (number of test samples).
+* The `exp_dir` argument is an optional argument that specifies the directory to save the samples and sub-transforms for later usage. If provided directory contains previously computed samples and sub-transforms, they are loaded instead of computing again.
+
+For instance, the following code creates a `SyntheticHelper` object
+```python
+methods = ["qsft"]
+subsampling_args = {
+            "num_subsample": 5,
+            "num_repeat": 3,
+            "b": 7,
+        }
+test_args = { "n_samples": 200000 }
+helper = SyntheticHelper(signal_args, methods, subsampling_args, test_args, exp_dir)
+```
+
+At the time of object creation, the signal object is generated and subsampled. To compute the model using samples, we call `compute_model` method with arguments
+* `method`: algorithm to be used. Possible options are `"qsft"`, `"coded_qsft"` and `"lasso"`.
+* `model_kwargs`: If `method` is `"qsft"` or `"coded_qsft"`, it needs to be a dictionary with fields `"num_subsample"`, `"num_repeat"`, `"b"`, and `"noise_sd"` (standard deviation of the noise, it is used to determine the threshold for bin identification). The values for `"num_subsample"`, `"num_repeat"`, `"b"` must be less than or equal to the values in `signal_args` provided to the `TestHelper` object at the time of creation. Even if sampling is done for larger values, we can compute the models for lower values of these arguments using a subset of the samples. 
+If `method` is `"lasso"`, it needs to be a dictionary with fields `"n_samples"` (the number of uniformly chosen samples) and `"noise_sd"`.
+
+For instance, we can run
+```python
+method = "qsft"
+model_kwargs = {
+            "num_subsample": 2,
+            "num_repeat": 2,
+            "b": 7,
+            "noise_sd": 0.01
+}
+helper.compute_model(method, model_kwargs)
+```
 
 ### Comparing with LASSO
 <a id=LASSO></a>

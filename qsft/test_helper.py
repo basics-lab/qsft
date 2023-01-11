@@ -8,7 +8,7 @@ from qsft.query import get_reed_solomon_dec
 
 class TestHelper:
 
-    def __init__(self, signal_args, methods, subsampling_args, test_args, exp_dir, subsampling=False):
+    def __init__(self, signal_args, methods, subsampling_args, test_args, exp_dir, subsampling=True):
 
         self.n = signal_args["n"]
         self.q = signal_args["q"]
