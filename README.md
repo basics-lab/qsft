@@ -22,7 +22,8 @@ The main functionality of our algorithm is availible in the `QSFT` class. Exampl
 ### Signals
 <a id=signals></a>
 In this section, we discuss the `Signal` objects that we use to interface with the `QSFT` class.
-A `Signal` encapsulates the object that we are trying to transform. Most relevant to our discussion is the 
+A `Signal` encapsulates the object that we are trying to transform (you may interpret it as a signal of length $q^n$ 
+or a function of $n$ $q$-ary variables). Most relevant to our discussion is the 
 `SubsampledSignal` class found at `qsft.input_signal_subsampled.SubsampledSignal`. This class can be extended to 
 easily create a signal for the specific application that we desire. For example, we create a 
 synthetic signal that is sparse in the fourier domain in 
@@ -56,7 +57,10 @@ the subsampling. This parameter must be chosen such that the number of non-zero 
 
 Next are the parameters related to the delay structure. The `delays_method_source` parameter is set to "identity". 
 In general, this should be set to "identity", unless you know that the max hamming weight of the non-zero fourier 
-coefficients are low (i.e., the Fourier transform is low degree). 
+coefficients are low (i.e., the Fourier transform is low degree). This will use $n$ delays. If you know, however, 
+that the max hamming weight (i.e., degree) is lower _and_ $q$ is prime, then you can use the "coded" setting, which 
+uses only $2t\left 
+\lceil \log_q n \right \rceil$ delays instead, a potential significant improvement when $n$ is large.
 
 
 
