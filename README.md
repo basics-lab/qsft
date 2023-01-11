@@ -10,8 +10,11 @@ _"Efficiently Computing Sparse Fourier Transforms of_ $q$_-ary Functions" Yigit 
 * [Abstract](#abstract)
 * [Quick Start](#quickstart)
 * [Signals](#signals)
-  * [Example: Computational Biology](#rna)
-* [Comparing with LASSO](#LASSO)
+* [Test Helper](#test-helper)
+* [Experimental Results](#exp)
+  * [Comparing with LASSO](#LASSO)
+  * [SNR vs NMSE](#snr)
+  * [Real-World Example from Computational Biology](#rna)
 
 ### Abstract
 <a id=abstract></a>
@@ -19,7 +22,7 @@ Fourier transformations of pseudo-Boolean functions are popular tools for analyz
 
 ### Quick Start
 <a id=quickstart></a>
-The main functionality of our algorithm is availible in the `QSFT` class. Example usage is given below:
+The main functionality of our algorithm is available in the `QSFT` class. Example usage is given below:
 
 ### Signals
 <a id=signals></a>
@@ -64,22 +67,10 @@ which
 uses only $2t \log_q n $ delays instead, a potential significant improvement when $n$ is large. Note that if you 
 choose "coded", you must also include the `t` parameter.
 
-Finally, 
-
-<p align="center">
-<img src="figs/nmse-vs-snr-1.png" width="300" alt="SNR vs NMSE">
-</p>
-
-####  Example: Computational Biology
-<a id=rna></a>
-
-<p align="center">
-<img src="figs/complexity-vs-n-rna-1.png" width="300" alt="Example: Computational Biology">
-</p>
-
 ### Test Helper
+<a id=test-helper></a>
 
-The `TestHelper` is an **abstract class** used to encapsulate the complete pipeline of sampling, data storage, data loading and spare Fourier transformation.
+The `TestHelper` is an **abstract class** used to encapsulate the complete pipeline of sampling, data storage, data loading and sparse Fourier transformation.
 It contains a single abstract method `generate_signal` that needs to be overriden when inheriting `TestHelper`.
 
 The only argument of the `generate_signal` method is the dictionary `signal_args` that is provided to the helper object at object creation.
@@ -142,14 +133,16 @@ model_kwargs = {
 helper.compute_model(method, model_kwargs)
 ```
 
-### Comparing with LASSO
+### Experimental Results
+<a id=exp></a>
+
+
+#### Comparing with LASSO
 <a id=LASSO></a>
 
 <p align="center">
 <img src="figs/complexity-vs-n-lasso-1.png" width="300">
 </p>
-
-
 
 <p align="center">
 <img src="figs/complexity-vs-n-qspright-1.png" width="300">
@@ -157,3 +150,18 @@ helper.compute_model(method, model_kwargs)
 <p align="center">
 <img src="figs/complexity-vs-n-runtime-1.png" width="300">
 </p>
+
+#### SNR vs NMSE
+<a id=snr></a>
+
+<p align="center">
+<img src="figs/nmse-vs-snr-1.png" width="300" alt="SNR vs NMSE">
+</p>
+
+####  Real-World Example from Computational Biology
+<a id=rna></a>
+
+<p align="center">
+<img src="figs/complexity-vs-n-rna-1.png" width="300" alt="Example: Computational Biology">
+</p>
+
