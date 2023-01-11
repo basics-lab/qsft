@@ -4,6 +4,8 @@ This repository contains code for the paper:
 
 _"Efficiently Computing Sparse Fourier Transforms of_ $q$_-ary Functions" Yigit Erginbas*, Justin Kang*, Amirali Aghazadeh, Kannan Ramchandran_
 
+*Equal contribution: These authors contributed equally.
+
 ### Table of Contents
 * [Abstract](#abstract)
 * [Quick Start](#quickstart)
