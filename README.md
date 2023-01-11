@@ -42,7 +42,6 @@ We can construct a `SyntheticSparseSignal` as follows. First, we need to declare
         "delays_method_source": "identity",
         "delays_method_channel": "nso",
         "num_repeat": num_repeat,
-        "t": t
     }
 ```
 Let's break this down. `subsampling_method` should be set to `qsft` if we plan to use the `QSFT` class, otherwise it 
@@ -58,11 +57,12 @@ the subsampling. This parameter must be chosen such that the number of non-zero 
 Next are the parameters related to the delay structure. The `delays_method_source` parameter is set to "identity". 
 In general, this should be set to "identity", unless you know that the max hamming weight of the non-zero fourier 
 coefficients are low (i.e., the Fourier transform is low degree). This will use $n$ delays. If you know, however, 
-that the max hamming weight (i.e., degree) is lower _and_ $q$ is prime, then you can use the "coded" setting, which 
-uses only $2t\left 
-\lceil \log_q n \right \rceil$ delays instead, a potential significant improvement when $n$ is large.
+that the max hamming weight (i.e., degree) is lower than $t$ _and_ $q$ is prime, then you can use the "coded" setting, 
+which 
+uses only $2t \log_q n $ delays instead, a potential significant improvement when $n$ is large. Note that if you 
+choose "coded", you must also include the `t` parameter.
 
-
+Finally, 
 
 <p align="center">
 <img src="figs/nmse-vs-snr-1.png" width="300">
@@ -74,6 +74,8 @@ uses only $2t\left
 <p align="center">
 <img src="figs/complexity-vs-n-rna-1.png" width="300">
 </p>
+
+### QSFT Class
 
 ### Comparing with LASSO
 <a id=LASSO></a>
