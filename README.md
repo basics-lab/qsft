@@ -19,52 +19,46 @@ Fourier transformations of pseudo-Boolean functions are popular tools for analyz
 <a id=quickstart></a>
 The main functionality of our algorithm is availible in the `QSFT` class. Example usage is given below:
 
-```python
-# TODO This is not a working example
-from synt_exp.synt_src.synthetic_signal import get_random_signal
-test_signal = get_random_signal(n=n, # Generate the test signal sparse in the fourier domain
-                                q=q,
-                                sparsity=sparsity,
-                                a_min=a_min,
-                                a_max=a_max,
-                                noise_sd=noise_sd)
-transformer = QSFT(
-    query_method="complex",
-    delays_method="identity",
-    reconstruct_method="noiseless",
-    num_subsample=3,
-    b=4
-)
-ft, (n_used, n_used_unique, _), peeled = transformer.transform(test_signal, verbose=False, report=True)
-```
 ### Signals
 <a id=signals></a>
 In this section, we discuss the `Signal` objects that we use to interface with the `QSFT` class.
 A `Signal` encapsulates the object that we are trying to transform. Most relevant to our discussion is the 
 `SubsampledSignal` class found at `qsft.input_signal_subsampled.SubsampledSignal`. This class can be extended to 
-easily extended to create a signal for the specific application that we desire. For example, we create a 
+easily create a signal for the specific application that we desire. For example, we create a 
 synthetic signal that is sparse in the fourier domain in 
 `synt_exp.synt_src.synthetic_signal.SyntheticSparseSignal`. The `subsample()` function must be implemented in the 
 extended class. This function takes a list of `query_indicies` and outputs a list of  fuction/signal value at the given 
-query indicies. For example the following implementation of the subsample function would be suitable.
+query indicies. We refer to the `SyntheticSparseSignal` as an example.
+
+We can construct a `SyntheticSparseSignal` as follows. First, we need to declare the `query_args`:
+
 ```python
-from qsft.utils import dec_to_qary_vec
-import numpy as np
-
-    def __init__(self, **kwargs):
-        self.q = kwargs["q"]
-        self.n = kwargs["n"]
-        self.locq = kwargs["locq"]
-        self.noise_sd = kwargs["noise_sd"]
-        freq_normalized = 2j * np.pi * kwargs["locq"] / kwargs["q"]
-        strengths = kwargs["strengths"]
-
-    def subsample(self, query_indicies):
-        query_indices_qary = np.array(dec_to_qary_vec(query_indicies, self.q, self.n)).T
-        return np.exp(query_indices_qary @ self.freq_normalized) @ self.strengths
+    query_args = {
+        "subsampling_method": "qsft",
+        "query_method": "complex",
+        "num_subsample": num_subsample,
+        "b": b,
+        "delays_method_source": "identity",
+        "delays_method_channel": "nso",
+        "num_repeat": num_repeat,
+        "t": t
+    }
 ```
-Note the actual implementation of `SyntheticSparseSignal` is somewhat more involved, to support parallelism and 
-efficient RAM usage.
+Let's break this down. `subsampling_method` should be set to `qsft` if we plan to use the `QSFT` class, otherwise it 
+should be set to `lasso` if LASSO will be used. The `query_method` argument is set to "complex", which 
+sets our subsampling matricies $M_c$ 
+to be generated randomly. This works very well in practice, in particular for situations where you do not expect the 
+Fourier coefficients to be uniformly distributed. Alternately, setting this argument to "simple" will generate $M_c$ 
+according to the identity matrix structure in our paper, which works provably well when fourier coefficients. The 
+`num_subsample` parameter
+sets $C$, the number of different matricies $M_c, c=1,\dotsc,C$ that are used. `b` determines the inner dimension of 
+the subsampling. This parameter must be chosen such that the number of non-zero coefficients is $O(q^b)$.
+
+Next are the parameters related to the delay structure. The `delays_method_source` parameter is set to "identity". 
+In general, this should be set to "identity", unless you know that the max hamming weight of the non-zero fourier 
+coefficients are low (i.e., the Fourier transform is low degree). 
+
+
 
 <p align="center">
 <img src="figs/nmse-vs-snr-1.png" width="300">
