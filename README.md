@@ -6,15 +6,18 @@ _"Efficiently Computing Sparse Fourier Transforms of_ $q$_-ary Functions" Yigit 
 
 *Equal contribution: These authors contributed equally.
 
+This package may be useful to you if you deal with complicated functions of $q$-ary sequences, for example, 
+functions of protiens, DNA or RNA. 
 ### Table of Contents
 * [Abstract](#abstract)
 * [Quick Start](#quickstart)
 * [Signals](#signals)
+* [The QSFT Class](#qsft)
 * [Test Helper](#test-helper)
 * [Experimental Results](#exp)
   * [Comparing with LASSO](#LASSO)
   * [SNR vs NMSE](#snr)
-  * [Real-World Example from Computational Biology](#rna)
+  * [Example from Computational Biology](#rna)
 
 ### Abstract
 <a id=abstract></a>
@@ -22,7 +25,8 @@ Fourier transformations of pseudo-Boolean functions are popular tools for analyz
 
 ### Quick Start
 <a id=quickstart></a>
-The main functionality of our algorithm is available in the `QSFT` class. Example usage is given below:
+The main functionality of our algorithm is available in the `QSFT` class. A minimal example can be found in 
+`synt_exp/quick_example.py`. Details on how this file works can be found in other sections of the README. 
 
 ### Signals
 <a id=signals></a>
@@ -31,7 +35,7 @@ A `Signal` encapsulates the object that we are trying to transform (you may inte
 or a function of $n$ $q$-ary variables). Most relevant to our discussion is the 
 `SubsampledSignal` class found at `qsft.input_signal_subsampled.SubsampledSignal`. This class can be extended to 
 easily create a signal for the specific application that we desire. For example, we create a 
-synthetic signal that is sparse in the fourier domain in 
+synthetic signal that is sparse in the Fourier domain in 
 `synt_exp.synt_src.synthetic_signal.SyntheticSparseSignal`. The `subsample()` function must be implemented in the 
 extended class. This function takes a list of `query_indicies` and outputs a list of  fuction/signal value at the given 
 query indicies. We refer to the `SyntheticSparseSignal` as an example.
@@ -49,24 +53,91 @@ We can construct a `SyntheticSparseSignal` as follows. First, we need to declare
         "num_repeat": num_repeat,
     }
 ```
-Let's break this down. `subsampling_method` should be set to `qsft` if we plan to use the `QSFT` class, otherwise it 
-should be set to `lasso` if LASSO will be used. The `query_method` argument is set to "complex", which 
+Let's break this down. 
+* `subsampling_method` should be set to `qsft` if we plan to use the `QSFT` class, otherwise it 
+should be set to `lasso` if LASSO will be used. 
+* The `query_method` argument is set to "complex", which 
 sets our subsampling matricies $M_c$ 
 to be generated randomly. This works very well in practice, in particular for situations where you do not expect the 
 Fourier coefficients to be uniformly distributed. Alternately, setting this argument to "simple" will generate $M_c$ 
-according to the identity matrix structure in our paper, which works provably well when fourier coefficients. The 
+according to the identity matrix structure in our paper, which works provably well when fourier coefficients. 
+* The 
 `num_subsample` parameter
-sets $C$, the number of different matricies $M_c, c=1,\dotsc,C$ that are used. `b` determines the inner dimension of 
-the subsampling. This parameter must be chosen such that the number of non-zero coefficients is $O(q^b)$.
+sets $C$, the number of different matricies $M_c, \;c=1,\dotsc,C$ that are used. A good place to start is $C=3$, but 
+you can adjust it later to potentially improve performance.
+* `b` determines the inner dimension of 
+the subsampling. This parameter must be chosen such that the number of non-zero coefficients is $O(q^b)$. If you 
+don't know the sparsity of your signal, you may have you adjust `b` until you find a suitable value. Note that you 
+don't want to make `b` too large either, as that will increase your sample and computational complexity.  
 
-Next are the parameters related to the delay structure. The `delays_method_source` parameter is set to "identity". 
-In general, this should be set to "identity", unless you know that the max hamming weight of the non-zero fourier 
+* The `delays_method_source` parameter is set to "identity". 
+In general, this should be set to "identity", unless you know that the max hamming weight of the non-zero Fourier 
 coefficients are low (i.e., the Fourier transform is low degree). This will use $n$ delays. If you know, however, 
-that the max hamming weight (i.e., degree) is lower than $t$ _and_ $q$ is prime, then you can use the "coded" setting, 
+that the max hamming weight (i.e., degree) of non-zero Fourier coefficients is lower than $t$ _and_ $q$ is prime, then 
+you can use the "coded" setting, 
 which 
-uses only $2t \log_q n $ delays instead, a potential significant improvement when $n$ is large. Note that if you 
-choose "coded", you must also include the `t` parameter.
+uses only $2t \log_q n $ delays instead, a significant improvement when $n$ is large. This is often the 
+case when the function you are dealing with represents some real-world function. 
+* If you 
+set `delays_method_source` to "coded", you must also include the `t` parameter. The `QSFT` class reports the max 
+hamming weight of non-zero 
+coefficients, so if you find that they are constantly low, consider enabling this for a significant speedup. 
 
+With `query_args` set, we can now construct our signal object. To do so, we call the `get_random_subsampled_signal`, 
+which randomly generates a `SyntheticSubsampledSingal` for us.
+```python
+test_signal = get_random_subsampled_signal( n=n,
+                                            q=q,
+                                            sparsity=sparsity,
+                                            a_min=a_min,
+                                            a_max=a_max,
+                                            noise_sd=noise_sd,
+                                            query_args=query_args,
+                                            max_weight=t)
+```
+Some parameters are explained below:
+* `n`, `q` represent the number of function inputs and alphabet size respectively (for interpretation as a signal 
+  this is a signal with $q^n$ elements).
+* `sparsity` is the number of non-zero coefficients that should be in the transform
+* `a_min` and `a_max` are the minimum and maximum modulus of the nonzero coefficients, which is chosen uniformly 
+  over this range.
+* `noise_sd` is the stander deviation of the additive noise added to the signal.
+* `max_weight` (optional) is the max weight of non-zero Fourier coefficients in the generated signal. The set of 
+  indicies for the non-zero Fourier coefficients are chosen uniformly over all indicies with hamming weight 
+  `max_weight` or less. In general, you probably want `max_weight` to be equal to `t` in query_args, since setting 
+  `t` ensures you only look for coefficients with indicies of weight `t` or less.
+
+This in only one type of signal object. In another section, we show an example of how to use a signal object to wrap 
+a much more complicated function ViennaRNA.
+
+Now that we have a signal object, the next step is to take its transform!
+
+### QSFT
+<a id=qsft></a>
+Once we construct the signal we want to transform, the next step is to create the QSFT object that will perform the 
+transformation. Again, we start with the key arguments for 
+```python
+    qsft_args = {
+        "num_subsample": num_subsample,
+        "num_repeat": num_repeat,
+        "reconstruct_method_source": delays_method_source,
+        "reconstruct_method_channel": delays_method_channel,
+        "b": b,
+        "noise_sd": noise_sd,
+        "source_decoder": decoder
+    }
+```
+* `num_subsample`, `num_repeat`,  and `b` are similar to the equivalent parameters for the signal object. a QSFT 
+  instance may only be used on a singal if its corresponding parameters are leger or equal. For example, if we have 
+  a signal with `num_subsample = 3`, we can set `num_subsample` to be any value $\leq 3$.
+* `delays_method_source` and `delays_method_channel` must exactly match those of the signal you intend to use with 
+  the QSFT instance. If `delays_method_source = "coded"`, you must also pass a function handle `source_decoder`. We 
+  have implemented a function that returns a suitable Reed Solomon decoder in `get_reed_solomon_dec`.
+
+```python
+    sft = QSFT(**qsft_args)
+    result = sft.transform(test_signal, verbosity=0, timing_verbose=True, report=True, sort=True)
+```
 ### Test Helper
 <a id=test-helper></a>
 
