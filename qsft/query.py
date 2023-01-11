@@ -109,6 +109,9 @@ def get_D_nso(n, D_source, **kwargs):
 def get_D_channel_coded(n, D, **kwargs):
     raise NotImplementedError("One day this might be implemented")
 
+def get_D_channel_identity(n, D, **kwargs):
+    q = kwargs.get("q")
+    return [D % q]
 
 def get_D(n, **kwargs):
     '''
@@ -131,14 +134,12 @@ def get_D(n, **kwargs):
         "coded": get_D_source_coded
     }.get(delays_method_source)(n, **kwargs)
 
-    delays_method_channel = kwargs.get("delays_method_channel", None)
-    if delays_method_channel is not None:
-        D = {
+    delays_method_channel = kwargs.get("delays_method_channel", "identity")
+    D = {
             "nso": get_D_nso,
-            "coded": get_D_channel_coded
-        }.get(delays_method_channel)(n, D, **kwargs)
-    else:
-        D = [D]
+            "coded": get_D_channel_coded,
+            "identity": get_D_channel_identity
+    }.get(delays_method_channel)(n, D, **kwargs)
     return D
 
 

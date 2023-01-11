@@ -179,8 +179,8 @@ class QSFT:
                         bin_matching = np.all((M.T @ k) % q == j_qary)
 
                         if verbosity >= 5:
-                            print((i, j), np.linalg.norm(residual) ** 2, cutoff * len(residual))
-                        if (not bin_matching) or np.linalg.norm(residual) ** 2 > cutoff * len(residual):
+                            print((i, j), np.linalg.norm(residual) ** 2, cutoff * len(col))
+                        if (not bin_matching) or np.linalg.norm(residual) ** 2 > cutoff * len(col):
                             multitons.append((i, j))
                             if verbosity >= 6:
                                 print("We have a Multiton")

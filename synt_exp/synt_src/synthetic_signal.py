@@ -93,8 +93,7 @@ class SyntheticSubsampledSignal(SubsampledSignal):
         self.q = kwargs["q"]
         self.n = kwargs["n"]
         self.locq = kwargs["locq"]
-        self.noise_sd = 0
-
+        self.noise_sd = kwargs["noise_sd"]
         freq_normalized = 2j * np.pi * kwargs["locq"] / kwargs["q"]
         strengths = kwargs["strengths"]
 

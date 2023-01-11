@@ -40,8 +40,32 @@ ft, (n_used, n_used_unique, _), peeled = transformer.transform(test_signal, verb
 ### Signals
 <a id=signals></a>
 In this section, we discuss the `Signal` objects that we use to interface with the `QSFT` class.
-A `Signal` encapsulates the function that we are trying to transform. The class `qsft.input_signal.Signal` is itself
-incomplete, and you should extend this class with your own. The most relevant 
+A `Signal` encapsulates the object that we are trying to transform. Most relevant to our discussion is the 
+`SubsampledSignal` class found at `qsft.input_signal_subsampled.SubsampledSignal`. This class can be extended to 
+easily extended to create a signal for the specific application that we desire. For example, we create a 
+synthetic signal that is sparse in the fourier domain in 
+`synt_exp.synt_src.synthetic_signal.SyntheticSparseSignal`. The `subsample()` function must be implemented in the 
+extended class. This function takes a list of `query_indicies` and outputs a list of  fuction/signal value at the given 
+query indicies. For example the following implementation of the subsample function would be suitable.
+```python
+from qsft.utils import dec_to_qary_vec
+import numpy as np
+
+    def __init__(self, **kwargs):
+        self.q = kwargs["q"]
+        self.n = kwargs["n"]
+        self.locq = kwargs["locq"]
+        self.noise_sd = kwargs["noise_sd"]
+        freq_normalized = 2j * np.pi * kwargs["locq"] / kwargs["q"]
+        strengths = kwargs["strengths"]
+
+    def subsample(self, query_indicies):
+        query_indices_qary = np.array(dec_to_qary_vec(query_indicies, self.q, self.n)).T
+        return np.exp(query_indices_qary @ self.freq_normalized) @ self.strengths
+```
+Note the actual implementation of `SyntheticSparseSignal` is somewhat more involved, to support parallelism and 
+efficient RAM usage.
+
 <p align="center">
 <img src="figs/nmse-vs-snr-1.png" width="300">
 </p>

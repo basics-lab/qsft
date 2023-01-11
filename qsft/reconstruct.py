@@ -160,6 +160,7 @@ def singleton_detection(U_slice, method_source="identity", method_channel="ident
         "nso": singleton_detection_nso,
         "identity": singleton_detection_noiseless,
     }.get(method_channel)(U_slice, **kwargs)
+
     if method_source != "identity":
         k = {
             "coded": singleton_detection_coded
