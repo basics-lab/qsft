@@ -232,7 +232,8 @@ LASSO vs. QSFT<br>
 <p align="center">
 <img src="figs/complexity-vs-n-runtime-1.png" width="300">
 </p>
-As we can see, the runtime of LASSO is sub-exponential in $n$.
+
+As we can see, the runtime of LASSO is sub-exponential in $n$ .
 
 #### SNR vs NMSE
 As the amount of noise in the signal/function increases, sucessful recover becomes more difficult. To examine this 
@@ -247,7 +248,15 @@ behaviour is tpyical in compressed sensing.
 ####  Real-World Example from Computational Biology
 <a id=rna></a>
 
+This repository also provide an example of how to apply our code to a complex $q$-ary function in  
+[ViennaRNA](https://github.com/ViennaRNA/ViennaRNA). 
+Code for this example is in the `rna_exp` folder. We create the `RnaSubsampledSignal(SubsampledSignal)` Class. The 
+`subsample(self, query_indices)` function interfaces with the ViennaRNA package, to compute the Mean Free Energy (MFE)
+ of an RNA sequence.
 <p align="center">
 <img src="figs/complexity-vs-n-rna-1.png" width="300" alt="Example: Computational Biology">
 </p>
 
+The graph above shows that when $n$ is large, our the `QSFT` function achieves a low NMSE. This means that `QSFT` 
+generates a sparse fourier transform that is able to compute the MFE of an arbitrary unseen RNA sequence with 
+relatively little error. 
