@@ -76,7 +76,7 @@ coefficients are low (i.e., the Fourier transform is low degree). This will use 
 that the max hamming weight (i.e., degree) of non-zero Fourier coefficients is lower than $t$ _and_ $q$ is prime, then 
 you can use the "coded" setting, 
 which 
-uses only $2t \log_q n $ delays instead, a significant improvement when $n$ is large. This is often the 
+uses only $2t \log_q n$ delays instead, a significant improvement when $n$ is large. This is often the 
 case when the function you are dealing with represents some real-world function. 
 * If you 
 set `delays_method_source` to "coded", you must also include the `t` parameter. The `QSFT` class reports the max 
