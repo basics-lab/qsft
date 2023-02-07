@@ -14,7 +14,7 @@ if __name__ == '__main__':
     b = 4
     noise_sd = 1
     num_subsample = 3
-    num_repeat = 3
+    num_repeat = 1
     t = 4
     decoder = get_reed_solomon_dec(n, t, q)
     delays_method_source = "identity"
