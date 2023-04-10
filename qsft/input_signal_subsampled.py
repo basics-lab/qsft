@@ -58,7 +58,7 @@ class SubsampledSignal(Signal):
         self.num_repeat = self.query_args.get("num_repeat")
         self.subsampling_method = self.query_args.get("subsampling_method")
         self.delays_method_source = self.query_args.get("delays_method_source")
-        self.delays_method_source = self.query_args.get("delays_method_channel")
+        self.delays_method_channel = self.query_args.get("delays_method_channel")
         self.L = None  # List of all length b qary vectors
         self.foldername = kwargs.get("folder")
 
