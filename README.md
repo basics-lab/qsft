@@ -1,6 +1,6 @@
 # Efficient Sparse q-ary Fourier Transforms
 
-This repository contains code for the <a href="https://arxiv.org/abs/2301.06200">paper</a>:
+This repository contains code for the <a href="https://arxiv.org/abs/2301.06200">paper</a>, to appear at IEEE ISIT 2023:
 
 _"Efficiently Computing Sparse Fourier Transforms of_ $q$_-ary Functions" Yigit Erginbas*, Justin Kang*, Amirali Aghazadeh, Kannan Ramchandran_
 
