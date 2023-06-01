@@ -1,6 +1,6 @@
-from qsft.qsft.utils import qary_ints, qary_vec_to_dec, gwht, load_data, save_data
-from qsft.qsft.input_signal import Signal
-from qsft.qsft.query import get_Ms_and_Ds
+from qsft.utils import qary_ints, qary_vec_to_dec, gwht, load_data, save_data
+from qsft.input_signal import Signal
+from qsft.query import get_Ms_and_Ds
 from pathlib import Path
 from math import floor
 from tqdm import tqdm
