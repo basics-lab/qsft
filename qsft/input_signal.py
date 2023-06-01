@@ -2,7 +2,7 @@
 A shell Class for common interface to an input signal. This class should be extended when implemented
 """
 import numpy as np
-from qsft.utils import gwht_tensored, igwht_tensored, save_data, load_data
+from qsft.qsft.utils import gwht_tensored, igwht_tensored, save_data, load_data
 from pathlib import Path
 
 
