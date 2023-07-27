@@ -6,6 +6,8 @@ _"Efficiently Computing Sparse Fourier Transforms of_ $q$_-ary Functions" Yigit 
 
 *Equal contribution: These authors contributed equally.
 
+**Check out our NEW Youtube video <a href="https://youtu.be/_UgRE1iSrzY">HERE</a>**
+
 This package may be useful to you if you deal with complicated functions of $q$-ary sequences, for example, 
 functions of protiens, DNA or RNA. 
 ### Table of Contents
