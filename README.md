@@ -233,7 +233,7 @@ LASSO vs. QSFT<br>
 <img src="figs/complexity-vs-n-runtime-1.png" width="300">
 </p>
 
-As we can see, the runtime of LASSO is sub-exponential in $n$ .
+As we can see, the runtime of $q$-SFT is sub-exponential in $n$, making it practical where LASSO is not.
 
 #### SNR vs NMSE
 As the amount of noise in the signal/function increases, sucessful recover becomes more difficult. To examine this 
